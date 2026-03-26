@@ -1,0 +1,50 @@
+@page
+@model LoginTwoFactorModel
+@{
+    ViewData["Title"] = "Two-Factor Authentication";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card shadow-lg">
+            <div class="card-body p-5">
+                <h1 class="card-title text-center mb-2">Two-Factor Authentication</h1>
+                <p class="text-center text-muted mb-4">Enter the 6-digit code sent to your email</p>
+
+                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                {
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        @Model.ErrorMessage
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                }
+
+                <form method="post">
+                    <div class="mb-4">
+                        <label asp-for="Input.Code" class="form-label">Verification Code</label>
+                        <input asp-for="Input.Code" 
+                               class="form-control form-control-lg text-center" 
+                               placeholder="000000" 
+                               maxlength="6"
+                               inputmode="numeric"
+                               autocomplete="off" />
+                        <span asp-validation-for="Input.Code" class="text-danger small"></span>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary btn-lg w-100">Verify</button>
+                </form>
+
+                <hr />
+
+                <div class="text-center">
+                    <p class="text-muted small">Didn't receive the code?</p>
+                    <a asp-page="./Login" class="btn btn-link btn-sm">Go back to login</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

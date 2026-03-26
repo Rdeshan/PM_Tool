@@ -1,0 +1,62 @@
+@page
+@using System.Security.Claims
+@model DashboardModel
+@{
+    ViewData["Title"] = "Dashboard";
+    var userName = User.FindFirst(ClaimTypes.Email)?.Value ?? "User";
+}
+
+@if (!User.Identity?.IsAuthenticated ?? true)
+{
+    <div class="alert alert-warning" role="alert">
+        <h4 class="alert-heading">Access Denied</h4>
+        <p>You must be logged in to access this page. <a asp-page="/Auth/Login">Login here</a></p>
+    </div>
+}
+else
+{
+    <div class="container mt-5">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h1>Welcome, @userName</h1>
+                <p class="text-muted">This is your dashboard</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a asp-page="/Account/Settings" class="btn btn-outline-primary me-2">Account Settings</a>
+                <form method="post" style="display:inline;">
+                    <button type="submit" asp-page-handler="Logout" class="btn btn-danger">Logout</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Projects</h5>
+                        <p class="card-text text-muted">Manage your projects</p>
+                        <a href="#" class="btn btn-sm btn-primary">View Projects</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Tasks</h5>
+                        <p class="card-text text-muted">View your assigned tasks</p>
+                        <a href="#" class="btn btn-sm btn-primary">View Tasks</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Teams</h5>
+                        <p class="card-text text-muted">Manage team members</p>
+                        <a href="#" class="btn btn-sm btn-primary">View Teams</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}

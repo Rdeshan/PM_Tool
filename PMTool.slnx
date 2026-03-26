@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/Solution Items/">
+    <File Path=".gitignore" />
+    <File Path="description.txt" />
+  </Folder>
+  <Project Path="PMTool.Application/PMTool.Application.csproj" />
+  <Project Path="PMTool.Domain/PMTool.Domain.csproj" />
+  <Project Path="PMTool.Infrastructure/PMTool.Infrastructure.csproj" />
+  <Project Path="PMTool.Web/PMTool.Web.csproj" />
+</Solution>

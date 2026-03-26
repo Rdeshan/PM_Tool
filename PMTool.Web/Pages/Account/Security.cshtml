@@ -1,0 +1,102 @@
+@page
+@using System.Security.Claims
+@model SecurityModel
+@{
+    ViewData["Title"] = "Security Settings";
+}
+
+@if (!User.Identity?.IsAuthenticated ?? true)
+{
+    <div class="alert alert-warning" role="alert">
+        <h4 class="alert-heading">Access Denied</h4>
+        <p>You must be logged in to access this page. <a asp-page="/Auth/Login">Login here</a></p>
+    </div>
+}
+else
+{
+    <div class="container mt-5">
+        <div class="row">
+            <div class="col-md-3 mb-4">
+                <div class="list-group">
+                    <a class="list-group-item list-group-item-action" asp-page="./Settings">Account Settings</a>
+                    <a class="list-group-item list-group-item-action active" asp-page="./Security">Security</a>
+                    <a class="list-group-item list-group-item-action" asp-page="./TwoFactor">Two-Factor Auth</a>
+                </div>
+            </div>
+            <div class="col-md-9">
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Change Password</h5>
+                    </div>
+                    <div class="card-body">
+                        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                @Model.ErrorMessage
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+                        {
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                @Model.SuccessMessage
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        }
+
+                        <form method="post">
+                            <div class="mb-3">
+                                <label asp-for="Input.CurrentPassword" class="form-label">Current Password</label>
+                                <input asp-for="Input.CurrentPassword" type="password" class="form-control" placeholder="Enter your current password" />
+                                <span asp-validation-for="Input.CurrentPassword" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Input.NewPassword" class="form-label">New Password</label>
+                                <input asp-for="Input.NewPassword" type="password" class="form-control" placeholder="Enter new password (min 8 characters)" />
+                                <div class="form-text">Must contain: uppercase, lowercase, number, and special character</div>
+                                <span asp-validation-for="Input.NewPassword" class="text-danger small"></span>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Input.ConfirmPassword" class="form-label">Confirm New Password</label>
+                                <input asp-for="Input.ConfirmPassword" type="password" class="form-control" placeholder="Confirm new password" />
+                                <span asp-validation-for="Input.ConfirmPassword" class="text-danger small"></span>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary">Update Password</button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="card mt-4">
+                    <div class="card-header">
+                        <h5>Active Sessions</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted">You are currently logged in from one location.</p>
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <strong>Current Session</strong>
+                                        <br />
+                                        <small class="text-muted">@Request.HttpContext.Connection.RemoteIpAddress</small>
+                                    </td>
+                                    <td class="text-end">
+                                        <span class="badge bg-success">Active</span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

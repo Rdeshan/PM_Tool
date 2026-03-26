@@ -1,0 +1,49 @@
+@page
+@model ConfirmEmailModel
+@{
+    ViewData["Title"] = "Confirm Email";
+}
+
+<div class="row justify-content-center mt-5">
+    <div class="col-md-5">
+        <div class="card shadow-lg">
+            <div class="card-body p-5 text-center">
+                @if (Model.IsConfirmed)
+                {
+                    <div class="mb-3">
+                        <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
+                    </div>
+                    <h1 class="card-title mb-3">Email Confirmed!</h1>
+                    <p class="text-muted mb-4">Your email has been verified successfully.</p>
+                    <a asp-page="./Login" class="btn btn-primary btn-lg">Login Now</a>
+                }
+                else if (Model.IsExpired)
+                {
+                    <div class="mb-3">
+                        <i class="bi bi-clock-history text-warning" style="font-size: 3rem;"></i>
+                    </div>
+                    <h1 class="card-title mb-3">Confirmation Expired</h1>
+                    <p class="text-muted mb-4">This confirmation link has expired.</p>
+                    <a asp-page="./ResendConfirmationEmail" asp-route-email="@Model.Email" class="btn btn-warning btn-lg">Resend Confirmation Email</a>
+                }
+                else if (Model.IsInvalid)
+                {
+                    <div class="mb-3">
+                        <i class="bi bi-x-circle-fill text-danger" style="font-size: 3rem;"></i>
+                    </div>
+                    <h1 class="card-title mb-3">Invalid Link</h1>
+                    <p class="text-muted mb-4">The confirmation link is invalid.</p>
+                    <a asp-page="./Register" class="btn btn-danger btn-lg">Register Again</a>
+                }
+                else
+                {
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Confirming...</span>
+                    </div>
+                    <h1 class="card-title mt-3">Confirming Email...</h1>
+                    <p class="text-muted">Please wait while we confirm your email address.</p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
