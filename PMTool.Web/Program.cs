@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.EntityFrameworkCore;
 using PMTool.Application.Services.Auth;
+using PMTool.Application.Services.RBAC;
 using PMTool.Infrastructure.Data;
 using PMTool.Infrastructure.Repositories;
 using PMTool.Infrastructure.Repositories.Interfaces;
@@ -45,9 +46,14 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<ITokenService, TokenService>();
 builder.Services.AddScoped<IEmailService, EmailService>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IRoleRepository, RoleRepository>();
+builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
+builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
 
 // Application Services
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
+builder.Services.AddScoped<IRoleService, RoleService>();
+builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
 
 var app = builder.Build();
 
@@ -55,6 +61,10 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
+
+    // Initialize default roles and permissions
+    var roleService = scope.ServiceProvider.GetRequiredService<IRoleService>();
+    await roleService.InitializeDefaultRolesAsync();
 }
 
 // Configure the HTTP request pipeline.
