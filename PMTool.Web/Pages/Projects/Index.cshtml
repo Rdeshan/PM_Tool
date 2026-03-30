@@ -1,0 +1,117 @@
+@page
+@model PMTool.Web.Pages.Projects.IndexModel
+@using System.Security.Claims
+@{
+    ViewData["Title"] = "Projects";
+    var canEditProject = User.IsInRole("Administrator") || User.IsInRole("Project Manager");
+}
+
+<div class="container-fluid mt-4">
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="mb-0">Projects</h1>
+        </div>
+        <div class="col-md-4 text-end">
+            @if (canEditProject)
+            {
+                <a asp-page="./Create" class="btn btn-primary me-2">
+                    <i class="bi bi-plus-circle"></i> New Project
+                </a>
+            }
+            @if (User.IsInRole("Administrator"))
+            {
+                <a asp-page="/Admin/Dashboard" class="btn btn-primary">
+                    <i class="bi bi-speedometer2"></i> Admin Dashboard
+                </a>
+            }
+            else if (User.IsInRole("Project Manager"))
+            {
+                <a asp-page="/PM/Dashboard" class="btn btn-info">
+                    <i class="bi bi-speedometer2"></i> PM Dashboard
+                </a>
+            }
+        </div>
+    </div>
+
+    <!-- Filter Tabs -->
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <li class="nav-item" role="presentation">
+            <a class="nav-link @(!Model.ShowArchived ? "active" : "")" href="@Url.Page("./Index", new { archived = false })">
+                Active Projects
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link @(Model.ShowArchived ? "active" : "")" href="@Url.Page("./Index", new { archived = true })">
+                Archived
+            </a>
+        </li>
+    </ul>
+
+    <!-- Projects Grid -->
+    @if (Model.Projects.Any())
+    {
+        <div class="row g-4">
+            @foreach (var project in Model.Projects)
+            {
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex align-items-start justify-content-between mb-3">
+                                <div>
+                                    <h5 class="card-title">@project.Name</h5>
+                                    <p class="text-muted small mb-0">Code: <strong>@project.ProjectCode</strong></p>
+                                </div>
+                                @if (!string.IsNullOrEmpty(project.ColourCode))
+                                {
+                                    <div class="p-2 rounded" style="background-color: @project.ColourCode; width: 40px; height: 40px;"></div>
+                                }
+                            </div>
+
+                            <p class="card-text small text-secondary">@project.ClientName</p>
+                            <p class="card-text" style="font-size: 0.9rem;">@project.Description</p>
+
+                            <div class="small text-muted mb-3">
+                                <div><i class="bi bi-calendar"></i> @project.StartDate.ToShortDateString() - @project.ExpectedEndDate.ToShortDateString()</div>
+                                <div class="mt-2">
+                                    <span class="badge bg-info">@GetStatusLabel(project.Status)</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-white">
+                            <div class="btn-group w-100" role="group">
+                                <a asp-page="./Details" asp-route-id="@project.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                @if (!Model.ShowArchived && canEditProject)
+                                {
+                                    <form method="post" asp-page-handler="Archive" style="display: inline;">
+                                        <input type="hidden" name="projectId" value="@project.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-warning" onclick="return confirm('Archive this project?')">Archive</button>
+                                    </form>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i>
+            No projects found.
+        </div>
+    }
+</div>
+
+@functions {
+    private string GetStatusLabel(int status)
+    {
+        return status switch
+        {
+            1 => "Active",
+            2 => "On Hold",
+            3 => "Completed",
+            _ => "Unknown"
+        };
+    }
+}

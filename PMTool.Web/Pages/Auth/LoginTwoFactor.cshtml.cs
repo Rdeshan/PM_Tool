@@ -53,9 +53,9 @@ public class LoginTwoFactorModel : PageModel
 
         var result = await _authService.VerifyTwoFactorCodeAsync(Input.Email, Input.Code);
 
-        if (!result)
+        if (!result.Success)
         {
-            ErrorMessage = "Invalid or expired verification code";
+            ErrorMessage = result.Message;
             return Page();
         }
 
@@ -64,13 +64,18 @@ public class LoginTwoFactorModel : PageModel
         HttpContext.Session.Remove("UserId");
         HttpContext.Session.Remove("TempToken");
 
-        // Create authentication cookie
+        // Create authentication cookie with user roles
         var claims = new List<Claim>
         {
-            new(ClaimTypes.NameIdentifier, Input.Email),
-            new(ClaimTypes.Email, Input.Email),
-            new(ClaimTypes.Role, "User")
+            new(ClaimTypes.NameIdentifier, result.UserId ?? string.Empty),
+            new(ClaimTypes.Email, Input.Email)
         };
+
+        // Add all roles to claims
+        foreach (var role in result.Roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var claimsIdentity = new ClaimsIdentity(claims, "Cookies");
         var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);

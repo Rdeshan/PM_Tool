@@ -15,6 +15,8 @@ public class AppDbContext : DbContext
     public DbSet<Permission> Permissions { get; set; } = null!;
     public DbSet<UserRole> UserRoles { get; set; } = null!;
     public DbSet<RolePermission> RolePermissions { get; set; } = null!;
+    public DbSet<Project> Projects { get; set; } = null!;
+    public DbSet<ProjectBacklog> ProjectBacklogs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -135,6 +137,68 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.RoleId, e.PermissionId })
                 .IsUnique();
+        });
+
+        // Project configuration
+        modelBuilder.Entity<Project>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(e => e.Description)
+                .HasMaxLength(1000);
+
+            entity.Property(e => e.ClientName)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(e => e.ProjectCode)
+                .IsRequired()
+                .HasMaxLength(20);
+
+            entity.HasIndex(e => e.ProjectCode)
+                .IsUnique();
+
+            entity.Property(e => e.ColourCode)
+                .HasMaxLength(7); // Hex colour code
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasMany(p => p.Backlogs)
+                .WithOne(pb => pb.Project)
+                .HasForeignKey(pb => pb.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ProjectBacklog configuration
+        modelBuilder.Entity<ProjectBacklog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Title)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            entity.Property(e => e.Description)
+                .HasMaxLength(2000);
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasOne(pb => pb.Project)
+                .WithMany(p => p.Backlogs)
+                .HasForeignKey(pb => pb.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }
