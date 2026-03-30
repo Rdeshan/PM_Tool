@@ -17,6 +17,8 @@ public class AppDbContext : DbContext
     public DbSet<RolePermission> RolePermissions { get; set; } = null!;
     public DbSet<Project> Projects { get; set; } = null!;
     public DbSet<ProjectBacklog> ProjectBacklogs { get; set; } = null!;
+    public DbSet<Team> Teams { get; set; } = null!;
+    public DbSet<TeamMember> TeamMembers { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -198,6 +200,61 @@ public class AppDbContext : DbContext
             entity.HasOne(pb => pb.Project)
                 .WithMany(p => p.Backlogs)
                 .HasForeignKey(pb => pb.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Team configuration
+        modelBuilder.Entity<Team>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.Description)
+                .HasMaxLength(500);
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasMany(t => t.TeamMembers)
+                .WithOne(tm => tm.Team)
+                .HasForeignKey(tm => tm.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // TeamMember configuration
+        modelBuilder.Entity<TeamMember>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.JoinedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasIndex(e => new { e.TeamId, e.UserId })
+                .IsUnique();
+
+            entity.HasOne(tm => tm.Team)
+                .WithMany(t => t.TeamMembers)
+                .HasForeignKey(tm => tm.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(tm => tm.User)
+                .WithMany(u => u.TeamMembers)
+                .HasForeignKey(tm => tm.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // Extended User configuration for Team relationship
+        modelBuilder.Entity<User>(entity =>
+        {
+            entity.HasMany(u => u.TeamMembers)
+                .WithOne(tm => tm.User)
+                .HasForeignKey(tm => tm.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
     }

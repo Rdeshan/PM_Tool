@@ -17,7 +17,7 @@ public interface IProjectService
     Task<bool> DeleteProjectAsync(Guid id);
     Task<bool> ArchiveProjectAsync(Guid id);
     Task<bool> ProjectCodeExistsAsync(string projectCode);
-    Task<IEnumerable<User>> GetProjectTeamAsync(Guid projectId);
+    Task<IEnumerable<Domain.Entities.User>> GetProjectTeamAsync(Guid projectId);
     Task<bool> AddTeamMemberAsync(Guid projectId, Guid userId, Guid roleId);
     Task<bool> RemoveTeamMemberAsync(Guid projectId, Guid userId);
 }
@@ -130,7 +130,7 @@ public class ProjectService : IProjectService
         return await _projectRepository.ProjectCodeExistsAsync(projectCode);
     }
 
-    public async Task<IEnumerable<User>> GetProjectTeamAsync(Guid projectId)
+    public async Task<IEnumerable<Domain.Entities.User>> GetProjectTeamAsync(Guid projectId)
     {
         return await _projectRepository.GetProjectTeamAsync(projectId);
     }

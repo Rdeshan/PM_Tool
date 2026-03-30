@@ -139,7 +139,7 @@ public class AuthenticationService : IAuthenticationService
         if (existingUser != null)
             return false;
 
-        var user = new User
+        var user = new Domain.Entities.User
         {
             Email = request.Email,
             FirstName = request.FirstName,

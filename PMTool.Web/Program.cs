@@ -3,6 +3,9 @@ using Microsoft.EntityFrameworkCore;
 using PMTool.Application.Services.Auth;
 using PMTool.Application.Services.RBAC;
 using PMTool.Application.Services.Project;
+using PMTool.Application.Services.User;
+using PMTool.Application.Services.Team;
+using PMTool.Application.Services.Admin;
 using PMTool.Infrastructure.Data;
 using PMTool.Infrastructure.Repositories;
 using PMTool.Infrastructure.Repositories.Interfaces;
@@ -51,6 +54,8 @@ builder.Services.AddScoped<IRoleRepository, RoleRepository>();
 builder.Services.AddScoped<IUserRoleRepository, UserRoleRepository>();
 builder.Services.AddScoped<IPermissionRepository, PermissionRepository>();
 builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
+builder.Services.AddScoped<IUserAdminRepository, UserAdminRepository>();
+builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 builder.Services.AddScoped<DataSeedingService>();
 
 // Application Services
@@ -58,6 +63,8 @@ builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
 builder.Services.AddScoped<IRoleService, RoleService>();
 builder.Services.AddScoped<IAuthorizationService, AuthorizationService>();
 builder.Services.AddScoped<IProjectService, ProjectService>();
+builder.Services.AddScoped<IUserAdminService, UserAdminService>();
+builder.Services.AddScoped<ITeamService, TeamService>();
 
 var app = builder.Build();
 

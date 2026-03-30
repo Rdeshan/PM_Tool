@@ -13,7 +13,7 @@ public class DetailsModel : PageModel
     private readonly IProjectService _projectService;
 
     public ProjectDTO? Project { get; set; }
-    public IEnumerable<User> TeamMembers { get; set; } = new List<User>();
+    public IEnumerable<Domain.Entities.User> TeamMembers { get; set; } = new List<Domain.Entities.User>();
     public string? ErrorMessage { get; set; }
 
     public DetailsModel(IProjectService projectService)

@@ -140,6 +140,37 @@ public class EmailService : IEmailService
         }
     }
 
+    public async Task<bool> SendAccountInvitationAsync(string email, string setupLink)
+    {
+        try
+        {
+            if (!_emailSettings.IsEnabled)
+            {
+                _logger.LogInformation("Email service is disabled. Invitation link: {SetupLink}", setupLink);
+                return true;
+            }
+
+            var subject = "You're Invited to PMTool!";
+            var body = $@"
+                <h2>Welcome to PMTool!</h2>
+                <p>You've been invited to join PMTool as a team member.</p>
+                <p>Click the link below to complete your account setup (valid for 7 days):</p>
+                <p><a href='{setupLink}'>Complete Account Setup</a></p>
+                <p>After setup, you'll be able to collaborate with your team on projects and tasks.</p>
+                <p>If you didn't expect this invitation, you can safely ignore this email.</p>
+                <hr/>
+                <p><small>This is an automated message. Please do not reply to this email.</small></p>
+            ";
+
+            return await SendEmailAsync(email, subject, body);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending account invitation to {Email}", email);
+            return false;
+        }
+    }
+
     private async Task<bool> SendEmailAsync(string recipientEmail, string subject, string htmlBody)
     {
         try
