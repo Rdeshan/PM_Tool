@@ -71,4 +71,10 @@ public class LoginModel : PageModel
 
         return RedirectToPage("/Dashboard");
     }
+
+    public async Task<IActionResult> OnPostQuickLoginAsync(string email, string password)
+    {
+        Input = new LoginRequest { Email = email, Password = password };
+        return await OnPostAsync();
+    }
 }
