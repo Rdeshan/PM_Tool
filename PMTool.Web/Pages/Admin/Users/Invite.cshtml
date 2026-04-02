@@ -1,0 +1,119 @@
+@page
+@model PMTool.Web.Pages.Admin.Users.InviteModel
+@using PMTool.Application.Validators.User
+@{
+    ViewData["Title"] = "Invite User";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-person-plus"></i> Invite New User</h4>
+                </div>
+                <div class="card-body p-4">
+                    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="bi bi-check-circle"></i> @Model.SuccessMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-circle"></i> @Model.ErrorMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    <form method="post">
+                        <!-- Email -->
+                        <div class="mb-3">
+                            <label asp-for="Input.Email" class="form-label">Email Address <span class="text-danger">*</span></label>
+                            <input asp-for="Input.Email" type="email" class="form-control form-control-lg" placeholder="user@example.com" />
+                            <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Names -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Input.FirstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                                    <input asp-for="Input.FirstName" class="form-control form-control-lg" />
+                                    <span asp-validation-for="Input.FirstName" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Input.LastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                                    <input asp-for="Input.LastName" class="form-control form-control-lg" />
+                                    <span asp-validation-for="Input.LastName" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Roles -->
+                        <div class="mb-3">
+                            <label class="form-label">Assign Roles <span class="text-danger">*</span></label>
+                            <div class="card border-light">
+                                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                    @foreach (var role in Model.AvailableRoles)
+                                    {
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="Input.RoleIds" value="@role.Id" id="role_@role.Id" />
+                                            <label class="form-check-label" for="role_@role.Id">
+                                                <strong>@role.Name</strong>
+                                                <small class="text-muted d-block">@role.Description</small>
+                                            </label>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <small class="text-muted">Select at least one role</small>
+                        </div>
+
+                        <!-- Teams -->
+                        <div class="mb-4">
+                            <label class="form-label">Assign Teams (Optional)</label>
+                            <div class="card border-light">
+                                <div class="card-body" style="max-height: 200px; overflow-y: auto;">
+                                    @foreach (var team in Model.AvailableTeams)
+                                    {
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="Input.TeamIds" value="@team.Id" id="team_@team.Id" />
+                                            <label class="form-check-label" for="team_@team.Id">
+                                                <strong>@team.Name</strong>
+                                                <small class="text-muted d-block">@team.MemberCount members</small>
+                                            </label>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Info Alert -->
+                        <div class="alert alert-info mb-4">
+                            <i class="bi bi-info-circle"></i>
+                            <strong>Note:</strong> An invitation email will be sent to the user with a link to complete their account setup. The link will be valid for 7 days.
+                        </div>
+
+                        <!-- Buttons -->
+                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                            <a asp-page="./Index" class="btn btn-outline-secondary btn-lg">Cancel</a>
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-send"></i> Send Invitation
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

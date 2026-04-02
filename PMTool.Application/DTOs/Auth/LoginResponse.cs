@@ -7,4 +7,6 @@ public class LoginResponse
     public string? UserId { get; set; }
     public bool RequiresTwoFactor { get; set; }
     public string? TempToken { get; set; }
+    public List<string> Roles { get; set; } = new();
 }
+

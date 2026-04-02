@@ -7,6 +7,7 @@
     <title>@ViewData["Title"] - PMTool</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/PMTool.Web.styles.css" asp-append-version="true" />
 </head>
@@ -29,11 +30,31 @@
                                 <a class="nav-link text-light" asp-area="" asp-page="/Dashboard">Dashboard</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-light" href="#">Projects</a>
+                                <a class="nav-link text-light" asp-area="" asp-page="/Projects/Index">Projects</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link text-light" href="#">Tasks</a>
                             </li>
+                            @if (User.IsInRole("Administrator"))
+                            {
+                                <li class="nav-item dropdown">
+                                    <a class="nav-link dropdown-toggle text-light" href="#" id="adminDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                        <i class="bi bi-gear"></i> Admin
+                                    </a>
+                                    <ul class="dropdown-menu" aria-labelledby="adminDropdown">
+                                        <li><a class="dropdown-item" asp-page="/Admin/Users/Index"><i class="bi bi-people"></i> Users</a></li>
+                                        <li><a class="dropdown-item" asp-page="/Admin/Teams/Index"><i class="bi bi-diagram-3"></i> Teams</a></li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li><a class="dropdown-item" asp-page="/Admin/Dashboard"><i class="bi bi-speedometer2"></i> Admin Dashboard</a></li>
+                                    </ul>
+                                </li>
+                            }
+                            @if (User.IsInRole("Project Manager"))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link text-light" asp-page="/PM/Dashboard"><i class="bi bi-speedometer2"></i> PM Dashboard</a>
+                                </li>
+                            }
                         </ul>
                         <ul class="navbar-nav ms-auto">
                             <li class="nav-item dropdown">
@@ -41,13 +62,14 @@
                                     <i class="bi bi-person-circle"></i> @(User.FindFirst(ClaimTypes.Email)?.Value ?? "User")
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                                    <li><a class="dropdown-item" asp-page="/Account/Settings">Account Settings</a></li>
-                                    <li><a class="dropdown-item" asp-page="/Account/Security">Security</a></li>
-                                    <li><a class="dropdown-item" asp-page="/Account/TwoFactor">Two-Factor Auth</a></li>
+                                    <li><a class="dropdown-item" asp-page="/Account/Profile"><i class="bi bi-person"></i> Profile</a></li>
+                                    <li><a class="dropdown-item" asp-page="/Account/Settings"><i class="bi bi-sliders"></i> Settings</a></li>
+                                    <li><a class="dropdown-item" asp-page="/Account/Security"><i class="bi bi-shield-lock"></i> Security</a></li>
+                                    <li><a class="dropdown-item" asp-page="/Account/TwoFactor"><i class="bi bi-lock-fill"></i> Two-Factor Auth</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form method="post" asp-page="/Dashboard" asp-page-handler="Logout" style="display:inline;">
-                                            <button type="submit" class="dropdown-item text-danger">Logout</button>
+                                            <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> Logout</button>
                                         </form>
                                     </li>
                                 </ul>

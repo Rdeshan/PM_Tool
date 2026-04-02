@@ -1,0 +1,224 @@
+@page
+@model PMTool.Web.Pages.Account.ProfileModel
+@{
+    ViewData["Title"] = "Profile Settings";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><i class="bi bi-person"></i> Profile Settings</h4>
+                </div>
+                <div class="card-body p-4">
+                    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+                    {
+                        <div class="alert alert-success alert-dismissible fade show" role="alert">
+                            <i class="bi bi-check-circle"></i> @Model.SuccessMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <i class="bi bi-exclamation-circle"></i> @Model.ErrorMessage
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+
+                    @if (Model.CurrentUser != null)
+                    {
+                        <form method="post">
+                            <!-- Avatar Section -->
+                            <div class="row mb-4">
+                                <div class="col-md-3 text-center">
+                                    <div class="mb-3">
+                                        @if (!string.IsNullOrEmpty(Model.CurrentUser.AvatarUrl))
+                                        {
+                                            <img src="@Model.CurrentUser.AvatarUrl" alt="Avatar" class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover;" />
+                                        }
+                                        else
+                                        {
+                                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 120px; height: 120px;">
+                                                <i class="bi bi-person" style="font-size: 3rem; color: #ccc;"></i>
+                                            </div>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="col-md-9">
+                                    <div class="mb-3">
+                                        <label asp-for="Input.AvatarUrl" class="form-label">Avatar URL</label>
+                                        <input asp-for="Input.AvatarUrl" type="url" class="form-control" placeholder="https://example.com/avatar.jpg" />
+                                        <small class="text-muted">Provide a URL to an image for your profile avatar</small>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr />
+
+                            <!-- Basic Information -->
+                            <h5 class="mb-3">Basic Information</h5>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label asp-for="Input.FirstName" class="form-label">First Name <span class="text-danger">*</span></label>
+                                        <input asp-for="Input.FirstName" class="form-control form-control-lg" />
+                                        <span asp-validation-for="Input.FirstName" class="text-danger small"></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label asp-for="Input.LastName" class="form-label">Last Name <span class="text-danger">*</span></label>
+                                        <input asp-for="Input.LastName" class="form-control form-control-lg" />
+                                        <span asp-validation-for="Input.LastName" class="text-danger small"></span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label asp-for="Input.DisplayName" class="form-label">Display Name (Optional)</label>
+                                <input asp-for="Input.DisplayName" class="form-control form-control-lg" placeholder="How you appear to others" />
+                                <small class="text-muted">If set, this will be used instead of your first and last names</small>
+                            </div>
+
+                            <hr />
+
+                            <!-- Account Information -->
+                            <h5 class="mb-3">Account Information</h5>
+                            <div class="mb-3">
+                                <label class="form-label">Email Address</label>
+                                <input type="email" class="form-control" value="@Model.CurrentUser.Email" disabled />
+                                <small class="text-muted">Contact administrator to change email</small>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label">Account Status</label>
+                                @if (Model.CurrentUser.IsActive)
+                                {
+                                    <div class="alert alert-success mb-0">
+                                        <i class="bi bi-check-circle"></i> <strong>Active</strong> - Your account is active
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="alert alert-danger mb-0">
+                                        <i class="bi bi-x-circle"></i> <strong>Inactive</strong> - Your account has been deactivated
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Roles and Teams -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Roles</label>
+                                        @if (Model.CurrentUser.Roles.Any())
+                                        {
+                                            <div class="d-flex flex-wrap gap-2">
+                                                @foreach (var role in Model.CurrentUser.Roles)
+                                                {
+                                                    <span class="badge bg-info">@role</span>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted">No roles assigned</small>
+                                        }
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label class="form-label">Teams</label>
+                                        @if (Model.CurrentUser.Teams.Any())
+                                        {
+                                            <div class="d-flex flex-wrap gap-2">
+                                                @foreach (var team in Model.CurrentUser.Teams)
+                                                {
+                                                    <span class="badge bg-secondary">@team</span>
+                                                }
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <small class="text-muted">Not assigned to any team</small>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+
+                            <hr />
+
+                            <!-- Preferences -->
+                            <h5 class="mb-3">Preferences</h5>
+                            <div class="mb-4">
+                                <div class="form-check form-switch">
+                                    <input class="form-check-input" type="checkbox" asp-for="Input.NotificationsEnabled" id="notificationsToggle" />
+                                    <label class="form-check-label" for="notificationsToggle">
+                                        <strong>Enable Email Notifications</strong>
+                                        <small class="d-block text-muted">Receive email updates about project activities and assignments</small>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- Account Dates -->
+                            <div class="row text-muted small">
+                                <div class="col-md-6">
+                                    <p><strong>Member Since:</strong> @Model.CurrentUser.CreatedAt.ToString("MMMM dd, yyyy")</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p><strong>Last Updated:</strong> @Model.CurrentUser.UpdatedAt.ToString("MMMM dd, yyyy HH:mm")</p>
+                                </div>
+                            </div>
+
+                            <!-- Buttons -->
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                                <a asp-page="/Dashboard" class="btn btn-outline-secondary btn-lg">Cancel</a>
+                                <button type="submit" class="btn btn-primary btn-lg">
+                                    <i class="bi bi-save"></i> Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    }
+                </div>
+            </div>
+
+            <!-- Additional Settings Cards -->
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="bi bi-key"></i> Security</h6>
+                            <p class="card-text text-muted small">Change password and manage security settings</p>
+                            <a asp-page="/Account/Security" class="btn btn-sm btn-outline-primary">Manage Security</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="bi bi-shield-check"></i> Two-Factor</h6>
+                            <p class="card-text text-muted small">Enable two-factor authentication for added security</p>
+                            <a asp-page="/Account/TwoFactor" class="btn btn-sm btn-outline-primary">Configure 2FA</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card shadow-sm">
+                        <div class="card-body">
+                            <h6 class="card-title"><i class="bi bi-question-circle"></i> Help</h6>
+                            <p class="card-text text-muted small">Need help or have questions?</p>
+                            <a href="#" class="btn btn-sm btn-outline-primary">Contact Support</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
