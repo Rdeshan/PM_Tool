@@ -17,6 +17,8 @@ public class AppDbContext : DbContext
     public DbSet<RolePermission> RolePermissions { get; set; } = null!;
     public DbSet<Project> Projects { get; set; } = null!;
     public DbSet<ProjectBacklog> ProjectBacklogs { get; set; } = null!;
+    public DbSet<Product> Products { get; set; } = null!;
+    public DbSet<ReleaseNotes> ReleaseNotes { get; set; } = null!;
     public DbSet<Team> Teams { get; set; } = null!;
     public DbSet<TeamMember> TeamMembers { get; set; } = null!;
 
@@ -173,10 +175,52 @@ public class AppDbContext : DbContext
             entity.Property(e => e.UpdatedAt)
                 .HasDefaultValueSql("GETUTCDATE()");
 
+            entity.HasMany(p => p.Products)
+                .WithOne(pr => pr.Project)
+                .HasForeignKey(p => p.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
             entity.HasMany(p => p.Backlogs)
                 .WithOne(pb => pb.Project)
                 .HasForeignKey(pb => pb.ProjectId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+
+        // Product configuration
+        modelBuilder.Entity<Product>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.VersionName)
+                .IsRequired()
+                .HasMaxLength(50); // e.g., "1.0.0", "2.5.3"
+
+            entity.Property(e => e.Description)
+                .HasMaxLength(1000);
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasIndex(e => new { e.ProjectId, e.VersionName })
+                .IsUnique(); // Version name unique per project
+
+            entity.HasOne(p => p.Project)
+                .WithMany(pr => pr.Products)
+                .HasForeignKey(p => p.ProjectId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(p => p.ReleaseNotes)
+                .WithOne(rn => rn.Product)
+                .HasForeignKey(rn => rn.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(p => p.Backlogs)
+                .WithOne(pb => pb.Product)
+                .HasForeignKey(pb => pb.ProductId)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         // ProjectBacklog configuration
@@ -200,8 +244,43 @@ public class AppDbContext : DbContext
             entity.HasOne(pb => pb.Project)
                 .WithMany(p => p.Backlogs)
                 .HasForeignKey(pb => pb.ProjectId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.NoAction); // Changed to NoAction to avoid cascade cycles
+
+            entity.HasOne(pb => pb.Product)
+                .WithMany(p => p.Backlogs)
+                .HasForeignKey(pb => pb.ProductId)
+                .OnDelete(DeleteBehavior.NoAction); 
         });
+
+        // ReleaseNotes configuration
+        modelBuilder.Entity<ReleaseNotes>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Title)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            entity.Property(e => e.Content)
+                .IsRequired();
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasOne(rn => rn.Product)
+                .WithMany(p => p.ReleaseNotes)
+                .HasForeignKey(rn => rn.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(rn => rn.CreatedByUser)
+                .WithMany()
+                .HasForeignKey(rn => rn.CreatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict); // Prevent deleting user if release notes exist
+        });
+
 
         // Team configuration
         modelBuilder.Entity<Team>(entity =>

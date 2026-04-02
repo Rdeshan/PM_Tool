@@ -21,4 +21,5 @@ public class Project
     // Navigation properties
     public ICollection<UserRole> TeamMembers { get; set; } = new List<UserRole>();
     public ICollection<ProjectBacklog> Backlogs { get; set; } = new List<ProjectBacklog>();
+    public ICollection<Product> Products { get; set; } = new List<Product>();
 }

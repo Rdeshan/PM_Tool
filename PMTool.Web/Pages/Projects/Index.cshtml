@@ -80,6 +80,7 @@
                         <div class="card-footer bg-white">
                             <div class="btn-group w-100" role="group">
                                 <a asp-page="./Details" asp-route-id="@project.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                <a asp-page="/Products/Index" asp-route-projectId="@project.Id" class="btn btn-sm btn-outline-info">Products</a>
                                 @if (!Model.ShowArchived && canEditProject)
                                 {
                                     <form method="post" asp-page-handler="Archive" style="display: inline;">
