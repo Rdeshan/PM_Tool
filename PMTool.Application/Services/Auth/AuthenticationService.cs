@@ -92,26 +92,29 @@ public class AuthenticationService : IAuthenticationService
         user.SessionExpiresAt = DateTime.UtcNow.AddMinutes(SessionTimeoutMinutes);
         await _userRepository.UpdateAsync(user);
 
+        var roles = user.UserRoles?.Select(ur => ur.Role?.Name ?? "User").ToList() ?? new List<string> { "User" };
+
         return new LoginResponse
         {
             Success = true,
             Message = "Login successful",
-            UserId = user.Id.ToString()
+            UserId = user.Id.ToString(),
+            Roles = roles
         };
     }
 
-    public async Task<bool> VerifyTwoFactorCodeAsync(string email, string code)
+    public async Task<TwoFactorVerifyResponse> VerifyTwoFactorCodeAsync(string email, string code)
     {
         var user = await _userRepository.GetByEmailAsync(email);
 
         if (user == null || !user.TwoFactorEnabled)
-            return false;
+            return new TwoFactorVerifyResponse { Success = false, Message = "User not found" };
 
         if (user.TwoFactorCodeExpiry < DateTime.UtcNow)
-            return false;
+            return new TwoFactorVerifyResponse { Success = false, Message = "Verification code expired" };
 
         if (!_tokenService.VerifyPassword(code, user.TwoFactorCode ?? string.Empty))
-            return false;
+            return new TwoFactorVerifyResponse { Success = false, Message = "Invalid verification code" };
 
         user.LastLoginAt = DateTime.UtcNow;
         user.SessionExpiresAt = DateTime.UtcNow.AddMinutes(SessionTimeoutMinutes);
@@ -119,7 +122,15 @@ public class AuthenticationService : IAuthenticationService
         user.TwoFactorCodeExpiry = null;
         await _userRepository.UpdateAsync(user);
 
-        return true;
+        var roles = user.UserRoles?.Select(ur => ur.Role?.Name ?? "User").ToList() ?? new List<string> { "User" };
+
+        return new TwoFactorVerifyResponse
+        {
+            Success = true,
+            Message = "Two-factor verification successful",
+            UserId = user.Id.ToString(),
+            Roles = roles
+        };
     }
 
     public async Task<bool> RegisterAsync(RegisterRequest request)
@@ -128,7 +139,7 @@ public class AuthenticationService : IAuthenticationService
         if (existingUser != null)
             return false;
 
-        var user = new User
+        var user = new Domain.Entities.User
         {
             Email = request.Email,
             FirstName = request.FirstName,

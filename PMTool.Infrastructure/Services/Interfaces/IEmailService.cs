@@ -6,4 +6,5 @@ public interface IEmailService
     Task<bool> SendEmailConfirmationAsync(string email, string confirmationLink);
     Task<bool> SendTwoFactorCodeAsync(string email, string code);
     Task<bool> SendAccountLockedAsync(string email);
+    Task<bool> SendAccountInvitationAsync(string email, string setupLink);
 }

@@ -5,7 +5,7 @@ namespace PMTool.Application.Services.Auth;
 public interface IAuthenticationService
 {
     Task<LoginResponse> LoginAsync(LoginRequest request);
-    Task<bool> VerifyTwoFactorCodeAsync(string email, string code);
+    Task<TwoFactorVerifyResponse> VerifyTwoFactorCodeAsync(string email, string code);
     Task<bool> RegisterAsync(RegisterRequest request);
     Task<bool> ConfirmEmailAsync(string email, string token);
     Task<bool> RequestPasswordResetAsync(string email);

@@ -15,6 +15,18 @@ public class DashboardModel : PageModel
             return RedirectToPage("/Auth/Login");
         }
 
+        // Route users to their role-specific dashboards
+        if (User.IsInRole("Administrator"))
+        {
+            return RedirectToPage("/Admin/Dashboard");
+        }
+
+        if (User.IsInRole("Project Manager"))
+        {
+            return RedirectToPage("/PM/Dashboard");
+        }
+
+        // Regular users stay on this dashboard
         return Page();
     }
 

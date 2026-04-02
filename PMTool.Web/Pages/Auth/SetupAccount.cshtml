@@ -1,0 +1,210 @@
+@page
+@model PMTool.Web.Pages.Auth.SetupAccountModel
+@{
+    ViewData["Title"] = "Complete Account Setup";
+}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="card-title"><i class="bi bi-person-check"></i> Complete Your Account Setup</h2>
+                        <p class="text-muted">Set up your password and complete your profile</p>
+                    </div>
+
+                    @if (Model.IsTokenValid == false)
+                    {
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <strong><i class="bi bi-exclamation-circle"></i> Invalid or Expired Link</strong>
+                            <p class="mb-0">The setup link is invalid or has expired. Please contact your administrator to send a new invitation.</p>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    }
+                    else if (Model.IsTokenValid == true && Model.IsLoading)
+                    {
+                        <div class="alert alert-info">
+                            <i class="bi bi-hourglass-split"></i> Verifying your invitation...
+                        </div>
+                    }
+                    else if (Model.IsTokenValid == true)
+                    {
+                        <form method="post" class="needs-validation" novalidate>
+                            <input type="hidden" name="token" value="@Model.Token" />
+                            <input type="hidden" name="email" value="@Model.Email" />
+
+                            <!-- Email (Read-only) -->
+                            <div class="mb-3">
+                                <label for="email" class="form-label">Email Address</label>
+                                <input type="email" class="form-control" id="email" value="@Model.Email" disabled>
+                                <small class="text-muted">This email was used for your invitation</small>
+                            </div>
+
+                            <!-- First Name -->
+                            <div class="mb-3">
+                                <label for="firstName" class="form-label">First Name</label>
+                                <input type="text" 
+                                       class="form-control@(ModelState.ContainsKey("Input.FirstName") && !ModelState.IsValid ? " is-invalid" : "")" 
+                                       id="firstName" name="Input.FirstName" value="@Model.Input.FirstName" required>
+                                <div class="invalid-feedback">
+                                    @if (ModelState.ContainsKey("Input.FirstName"))
+                                    {
+                                        @ModelState["Input.FirstName"].Errors.FirstOrDefault()?.ErrorMessage
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Last Name -->
+                            <div class="mb-3">
+                                <label for="lastName" class="form-label">Last Name</label>
+                                <input type="text" 
+                                       class="form-control@(ModelState.ContainsKey("Input.LastName") && !ModelState.IsValid ? " is-invalid" : "")" 
+                                       id="lastName" name="Input.LastName" value="@Model.Input.LastName" required>
+                                <div class="invalid-feedback">
+                                    @if (ModelState.ContainsKey("Input.LastName"))
+                                    {
+                                        @ModelState["Input.LastName"].Errors.FirstOrDefault()?.ErrorMessage
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Password -->
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" 
+                                       class="form-control@(ModelState.ContainsKey("Input.Password") && !ModelState.IsValid ? " is-invalid" : "")" 
+                                       id="password" name="Input.Password" required
+                                       aria-describedby="passwordHint">
+                                <small id="passwordHint" class="form-text text-muted d-block mt-2">
+                                    Password must be at least 8 characters long and include:
+                                    <ul class="mt-2 mb-0">
+                                        <li>One uppercase letter</li>
+                                        <li>One lowercase letter</li>
+                                        <li>One number</li>
+                                        <li>One special character (!, &#64;, #, $, %, ^, &, *)</li>
+                                    </ul>
+                                </small>
+                                <div class="invalid-feedback d-block">
+                                    @if (ModelState.ContainsKey("Input.Password"))
+                                    {
+                                        @ModelState["Input.Password"].Errors.FirstOrDefault()?.ErrorMessage
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Confirm Password -->
+                            <div class="mb-3">
+                                <label for="confirmPassword" class="form-label">Confirm Password</label>
+                                <input type="password" 
+                                       class="form-control@(ModelState.ContainsKey("Input.ConfirmPassword") && !ModelState.IsValid ? " is-invalid" : "")" 
+                                       id="confirmPassword" name="Input.ConfirmPassword" required>
+                                <div class="invalid-feedback">
+                                    @if (ModelState.ContainsKey("Input.ConfirmPassword"))
+                                    {
+                                        @ModelState["Input.ConfirmPassword"].Errors.FirstOrDefault()?.ErrorMessage
+                                    }
+                                </div>
+                            </div>
+
+                            <!-- Error Message -->
+                            @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                            {
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <i class="bi bi-exclamation-circle"></i> @Model.ErrorMessage
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            }
+
+                            <!-- Success Message -->
+                            @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+                            {
+                                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                    <i class="bi bi-check-circle"></i> @Model.SuccessMessage
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                                </div>
+                            }
+
+                            <!-- Submit Button -->
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="bi bi-check-lg"></i> Complete Setup & Login
+                            </button>
+                        </form>
+
+                        <hr class="my-4">
+
+                        <!-- Info Alert -->
+                        <div class="alert alert-info alert-sm" role="alert">
+                            <small>
+                                <strong><i class="bi bi-info-circle"></i> Note:</strong> After completing setup, you'll be redirected to the login page where you can sign in with your email and password.
+                            </small>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <!-- Footer Link -->
+            <div class="text-center mt-4">
+                <p class="text-muted">
+                    <a href="@Url.Page("/Auth/Login")" class="text-decoration-none">Back to Login</a>
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Form validation
+    (function () {
+        'use strict';
+        window.addEventListener('load', function () {
+            var forms = document.getElementsByClassName('needs-validation');
+            var validation = Array.prototype.filter.call(forms, function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (form.checkValidity() === false) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    form.classList.add('was-validated');
+                }, false);
+            });
+        }, false);
+    })();
+
+    // Password confirmation validation
+    document.getElementById('password').addEventListener('change', function () {
+        var password = this.value;
+        var confirmPassword = document.getElementById('confirmPassword');
+        if (confirmPassword.value && confirmPassword.value !== password) {
+            confirmPassword.setCustomValidity('Passwords do not match');
+        } else {
+            confirmPassword.setCustomValidity('');
+        }
+    });
+
+    document.getElementById('confirmPassword').addEventListener('change', function () {
+        var password = document.getElementById('password').value;
+        if (this.value !== password) {
+            this.setCustomValidity('Passwords do not match');
+        } else {
+            this.setCustomValidity('');
+        }
+    });
+</script>
+
+<style>
+    .alert-sm {
+        padding: 0.75rem;
+        font-size: 0.875rem;
+    }
+    
+    .card {
+        border: none;
+        border-radius: 0.5rem;
+    }
+    
+    .form-control:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+    }
+</style>

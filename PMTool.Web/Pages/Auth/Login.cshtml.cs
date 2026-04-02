@@ -56,13 +56,18 @@ public class LoginModel : PageModel
             return RedirectToPage("./LoginTwoFactor");
         }
 
-        // Create authentication cookie
+        // Create authentication cookie with user roles
         var claims = new List<Claim>
         {
             new(ClaimTypes.NameIdentifier, result.UserId ?? string.Empty),
-            new(ClaimTypes.Email, Input.Email),
-            new(ClaimTypes.Role, "User")
+            new(ClaimTypes.Email, Input.Email)
         };
+
+        // Add all roles to claims
+        foreach (var role in result.Roles)
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var claimsIdentity = new ClaimsIdentity(claims, "Cookies");
         var claimsPrincipal = new ClaimsPrincipal(claimsIdentity);
@@ -70,5 +75,11 @@ public class LoginModel : PageModel
         await HttpContext.SignInAsync("Cookies", claimsPrincipal);
 
         return RedirectToPage("/Dashboard");
+    }
+
+    public async Task<IActionResult> OnPostQuickLoginAsync(string email, string password)
+    {
+        Input = new LoginRequest { Email = email, Password = password };
+        return await OnPostAsync();
     }
 }

@@ -1,0 +1,145 @@
+@page
+@using System.Security.Claims
+@model PMTool.Web.Pages.Admin.DashboardModel
+@{
+    ViewData["Title"] = "Admin Dashboard";
+    var userName = User.FindFirst(ClaimTypes.Email)?.Value ?? "User";
+}
+
+@if (!User.Identity?.IsAuthenticated ?? true)
+{
+    <div class="alert alert-warning" role="alert">
+        <h4 class="alert-heading">Access Denied</h4>
+        <p>You must be logged in to access this page. <a asp-page="/Auth/Login">Login here</a></p>
+    </div>
+}
+else if (!User.IsInRole("Administrator"))
+{
+    <div class="alert alert-danger" role="alert">
+        <h4 class="alert-heading">Access Denied</h4>
+        <p>Only administrators can access this page.</p>
+        <a asp-page="/Dashboard" class="btn btn-sm btn-secondary mt-2">Go to Dashboard</a>
+    </div>
+}
+else
+{
+    <div class="container-fluid mt-4">
+        <div class="row mb-4">
+            <div class="col-md-8">
+                <h1>Admin Dashboard</h1>
+                <p class="text-muted">Welcome, @userName</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a asp-page="/Account/Settings" class="btn btn-outline-primary me-2">Account Settings</a>
+                <a asp-page="/Dashboard" class="btn btn-outline-secondary me-2">Back to Dashboard</a>
+                <form method="post" style="display:inline;">
+                    <button type="submit" asp-page-handler="Logout" class="btn btn-danger">Logout</button>
+                </form>
+            </div>
+        </div>
+
+        @if (Model.RecentProjects.Any())
+        {
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <h5 class="mb-3">Recent Projects</h5>
+                    <div class="row g-4">
+                        @foreach (var project in Model.RecentProjects)
+                        {
+                            <div class="col-md-6 col-lg-4">
+                                <div class="card h-100 shadow-sm">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-start justify-content-between mb-3">
+                                            <div>
+                                                <h5 class="card-title">@project.Name</h5>
+                                                <p class="text-muted small mb-0">Code: <strong>@project.ProjectCode</strong></p>
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(project.ColourCode))
+                                            {
+                                                <div class="p-2 rounded" style="background-color: @project.ColourCode; width: 40px; height: 40px;"></div>
+                                            }
+                                        </div>
+
+                                        <p class="card-text small text-secondary">@project.ClientName</p>
+                                        <p class="card-text" style="font-size: 0.9rem;">@(project.Description?.Length > 50 ? project.Description.Substring(0, 50) + "..." : project.Description)</p>
+
+                                        <div class="small text-muted mb-3">
+                                            <div><i class="bi bi-calendar"></i> @project.StartDate.ToShortDateString() - @project.ExpectedEndDate.ToShortDateString()</div>
+                                            <div class="mt-2">
+                                                <span class="badge @GetStatusBadgeClass(project.Status)">@GetStatusLabel(project.Status)</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="card-footer bg-white">
+                                        <div class="btn-group w-100" role="group">
+                                            <a asp-page="/Projects/Details" asp-route-id="@project.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                            <a asp-page="/Projects/Edit" asp-route-id="@project.Id" class="btn btn-sm btn-outline-secondary">Edit</a>
+                                            <form method="post" asp-page-handler="DeleteProject" style="display: inline; width: 33.33%;">
+                                                <input type="hidden" name="projectId" value="@project.Id" />
+                                                <button type="submit" class="btn btn-sm btn-outline-danger w-100" onclick="return confirm('Are you sure you want to delete this project?')">Delete</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+
+        <div class="row">
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Users</h5>
+                        <p class="card-text text-muted">Manage system users</p>
+                        <a href="#" class="btn btn-sm btn-primary">Manage Users</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">Roles & Permissions</h5>
+                        <p class="card-text text-muted">Configure access control</p>
+                        <a href="#" class="btn btn-sm btn-primary">Configure</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h5 class="card-title">System Settings</h5>
+                        <p class="card-text text-muted">Configure system settings</p>
+                        <a href="#" class="btn btn-sm btn-primary">Settings</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@functions {
+    private string GetStatusLabel(int status)
+    {
+        return status switch
+        {
+            1 => "Active",
+            2 => "On Hold",
+            3 => "Completed",
+            _ => "Unknown"
+        };
+    }
+
+    private string GetStatusBadgeClass(int status)
+    {
+        return status switch
+        {
+            1 => "bg-success",
+            2 => "bg-warning",
+            3 => "bg-secondary",
+            _ => "bg-secondary"
+        };
+    }
+}
