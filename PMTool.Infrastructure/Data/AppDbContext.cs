@@ -19,6 +19,9 @@ public class AppDbContext : DbContext
     public DbSet<ProjectBacklog> ProjectBacklogs { get; set; } = null!;
     public DbSet<Product> Products { get; set; } = null!;
     public DbSet<ReleaseNotes> ReleaseNotes { get; set; } = null!;
+    public DbSet<SubProject> SubProjects { get; set; } = null!;
+    public DbSet<SubProjectDependency> SubProjectDependencies { get; set; } = null!;
+    public DbSet<SubProjectTeam> SubProjectTeams { get; set; } = null!;
     public DbSet<Team> Teams { get; set; } = null!;
     public DbSet<TeamMember> TeamMembers { get; set; } = null!;
 
@@ -335,6 +338,111 @@ public class AppDbContext : DbContext
                 .WithOne(tm => tm.User)
                 .HasForeignKey(tm => tm.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // SubProject configuration
+        modelBuilder.Entity<SubProject>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(200); // e.g., "Student Registration Portal"
+
+            entity.Property(e => e.Description)
+                .HasMaxLength(1000);
+
+            entity.Property(e => e.Progress)
+                .HasDefaultValue(0); // 0-100 based on ticket completion
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasOne(sp => sp.Product)
+                .WithMany(p => p.SubProjects)
+                .HasForeignKey(sp => sp.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(sp => sp.ModuleOwner)
+                .WithMany()
+                .HasForeignKey(sp => sp.ModuleOwnerId)
+                .OnDelete(DeleteBehavior.Restrict); // Prevent deleting user if they own sub-projects
+
+            entity.HasMany(sp => sp.SubProjectTeams)
+                .WithOne(spt => spt.SubProject)
+                .HasForeignKey(spt => spt.SubProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(sp => sp.Backlog)
+                .WithOne(pb => pb.SubProject)
+                .HasForeignKey(pb => pb.SubProjectId)
+                .OnDelete(DeleteBehavior.NoAction); // Prevent cascade if sub-project deleted
+
+            entity.HasMany(sp => sp.DependsOn)
+                .WithOne(sd => sd.SubProject)
+                .HasForeignKey(sd => sd.SubProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(sp => sp.DependentOn)
+                .WithOne(sd => sd.DependsOnSubProject)
+                .HasForeignKey(sd => sd.DependsOnSubProjectId)
+                .OnDelete(DeleteBehavior.NoAction); // Prevent cascade from dependent sub-projects
+        });
+
+        // SubProjectDependency configuration
+        modelBuilder.Entity<SubProjectDependency>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Notes)
+                .HasMaxLength(500);
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasOne(sd => sd.SubProject)
+                .WithMany(sp => sp.DependsOn)
+                .HasForeignKey(sd => sd.SubProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(sd => sd.DependsOnSubProject)
+                .WithMany(sp => sp.DependentOn)
+                .HasForeignKey(sd => sd.DependsOnSubProjectId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasIndex(e => new { e.SubProjectId, e.DependsOnSubProjectId })
+                .IsUnique(); // Prevent duplicate dependencies
+        });
+
+        // SubProjectTeam configuration
+        modelBuilder.Entity<SubProjectTeam>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Role)
+                .HasMaxLength(100); // e.g., "Development", "QA", "BA"
+
+            entity.Property(e => e.AssignedDate)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasOne(spt => spt.SubProject)
+                .WithMany(sp => sp.SubProjectTeams)
+                .HasForeignKey(spt => spt.SubProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(spt => spt.Team)
+                .WithMany()
+                .HasForeignKey(spt => spt.TeamId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasIndex(e => new { e.SubProjectId, e.TeamId })
+                .IsUnique(); // Prevent assigning same team twice
         });
     }
 }

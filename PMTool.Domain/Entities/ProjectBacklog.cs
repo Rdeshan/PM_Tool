@@ -5,6 +5,7 @@ public class ProjectBacklog
     public Guid Id { get; set; }
     public Guid ProjectId { get; set; }
     public Guid? ProductId { get; set; } // Optional: if null, backlog is for project; if set, backlog is for product
+    public Guid? SubProjectId { get; set; } // Optional: if set, backlog is for sub-project
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public int Type { get; set; } // BRD, UserStory, Requirement, etc.
@@ -17,4 +18,5 @@ public class ProjectBacklog
     // Navigation properties
     public Project? Project { get; set; }
     public Product? Product { get; set; }
+    public SubProject? SubProject { get; set; }
 }
