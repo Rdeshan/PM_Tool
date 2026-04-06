@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PMTool.Application.DTOs.Auth;
-using PMTool.Application.Services.Auth;
 using System.Security.Claims;
 
 namespace PMTool.Web.Pages.Auth;
@@ -11,14 +10,14 @@ namespace PMTool.Web.Pages.Auth;
 [AllowAnonymous]
 public class LoginTwoFactorModel : PageModel
 {
-    private readonly PMTool.Application.Services.Auth.IAuthenticationService _authService;
+    private readonly Application.Interfaces.IAuthenticationService _authService;
 
     [BindProperty]
     public TwoFactorRequest Input { get; set; } = new();
 
     public string ErrorMessage { get; set; } = string.Empty;
 
-    public LoginTwoFactorModel(PMTool.Application.Services.Auth.IAuthenticationService authService)
+    public LoginTwoFactorModel(Application.Interfaces.IAuthenticationService authService)
     {
         _authService = authService;
     }

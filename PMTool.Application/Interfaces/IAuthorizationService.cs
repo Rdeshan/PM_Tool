@@ -1,8 +1,7 @@
 using PMTool.Domain.Entities;
 using PMTool.Domain.Enums;
-using PMTool.Infrastructure.Repositories.Interfaces;
 
-namespace PMTool.Application.Services.RBAC;
+namespace PMTool.Application.Interfaces;
 
 public interface IAuthorizationService
 {

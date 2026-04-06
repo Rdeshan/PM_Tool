@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PMTool.Application.DTOs.Team;
 using PMTool.Application.DTOs.User;
+using PMTool.Application.Interfaces;
 using PMTool.Application.Services.Team;
-using PMTool.Application.Services.User;
 
 namespace PMTool.Web.Pages.Admin.Teams;
 

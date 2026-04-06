@@ -54,7 +54,11 @@
             @foreach (var project in Model.Projects)
             {
                 <div class="col-md-6 col-lg-4">
-                    <div class="card h-100 shadow-sm">
+                    <a asp-page="./Details" 
+                    asp-route-id="@project.Id"
+                    class="text-decoration-none text-dark">
+                        
+                        <div class="card h-100 shadow-sm project-card">
                         <div class="card-body">
                             <div class="d-flex align-items-start justify-content-between mb-3">
                                 <div>
@@ -79,7 +83,9 @@
                         </div>
                         <div class="card-footer bg-white">
                             <div class="btn-group w-100" role="group">
+                                @*
                                 <a asp-page="./Details" asp-route-id="@project.Id" class="btn btn-sm btn-outline-primary">View</a>
+                                *@
                                 <a asp-page="/Products/Index" asp-route-projectId="@project.Id" class="btn btn-sm btn-outline-info">Products</a>
                                 @if (!Model.ShowArchived && canEditProject)
                                 {
@@ -91,6 +97,7 @@
                             </div>
                         </div>
                     </div>
+                    </a>
                 </div>
             }
         </div>
@@ -116,3 +123,14 @@
         };
     }
 }
+
+<style>
+    .project-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+        .project-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+        }
+</style>
