@@ -1,0 +1,216 @@
+@page "{id:guid}/{productId:guid}"
+@model PMTool.Web.Pages.SubProjects.EditModel
+@{
+    ViewData["Title"] = "Edit Sub-Project";
+}
+
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-lg-8 offset-lg-2">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">
+                        <i class="bi bi-pencil-square"></i> Edit Sub-Project
+                    </h5>
+                </div>
+
+                <div class="card-body">
+                    <form method="post" asp-route-id="@Model.SubProjectId" asp-route-productId="@Model.ProductId">
+                        <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
+
+                        <!-- Basic Information -->
+                        <div class="mb-3">
+                            <label asp-for="Input.Name" class="form-label">Sub-Project Name *</label>
+                            <input asp-for="Input.Name" class="form-control" />
+                            <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="mb-3">
+                            <label asp-for="Input.Description" class="form-label">Description</label>
+                            <textarea asp-for="Input.Description" class="form-control" rows="4"></textarea>
+                            <span asp-validation-for="Input.Description" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Status -->
+                        <div class="mb-3">
+                            <label asp-for="Input.Status" class="form-label">Status *</label>
+                            <select asp-for="Input.Status" asp-items="Model.Statuses" class="form-select">
+                                <option value="">-- Select Status --</option>
+                            </select>
+                            <span asp-validation-for="Input.Status" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Module Owner -->
+                        <div class="mb-3">
+                            <label asp-for="Input.ModuleOwnerId" class="form-label">Module Owner *</label>
+                            <select asp-for="Input.ModuleOwnerId" asp-items="Model.ModuleOwners" class="form-select">
+                                <option value="">-- Select Module Owner --</option>
+                            </select>
+                            <span asp-validation-for="Input.ModuleOwnerId" class="text-danger small"></span>
+                        </div>
+
+                        <!-- Timeline -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Input.StartDate" class="form-label">Start Date</label>
+                                    <input asp-for="Input.StartDate" type="date" class="form-control" />
+                                    <span asp-validation-for="Input.StartDate" class="text-danger small"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label asp-for="Input.DueDate" class="form-label">Due Date</label>
+                                    <input asp-for="Input.DueDate" type="date" class="form-control" />
+                                    <span asp-validation-for="Input.DueDate" class="text-danger small"></span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Current Team Assignments -->
+                        @if (Model.CurrentTeams.Count > 0)
+                        {
+                            <div class="mb-4">
+                                <label class="form-label">Current Team Assignments</label>
+                                <div class="list-group">
+                                    @foreach (var team in Model.CurrentTeams)
+                                    {
+                                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                                            <div>
+                                                <strong>@team.TeamName</strong>
+                                                @if (!string.IsNullOrEmpty(team.Role))
+                                                {
+                                                    <br />
+                                                    <small class="text-muted">Role: @team.Role</small>
+                                                }
+                                            </div>
+                                            <small class="text-muted">Assigned: @team.AssignedDate.ToString("MMM dd, yyyy")</small>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <!-- Team Assignment -->
+                        <div class="mb-4">
+                            <label class="form-label">Update Team Assignments</label>
+                            <div id="teamsContainer">
+                                <div class="team-assignment mb-2">
+                                    <div class="row align-items-end">
+                                        <div class="col-md-7">
+                                            <select class="form-select team-select" name="teamId">
+                                                <option value="">-- Select Team --</option>
+                                                @foreach (var team in Model.Teams)
+                                                {
+                                                    <option value="@team.Value">@team.Text</option>
+                                                }
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <input type="text" class="form-control team-role" name="teamRole" placeholder="Role (e.g., Development, QA)" />
+                                        </div>
+                                        <div class="col-md-1">
+                                            <button type="button" class="btn btn-outline-danger btn-sm remove-team" title="Remove team">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="addTeamBtn">
+                                <i class="bi bi-plus"></i> Add Team
+                            </button>
+                        </div>
+
+                        <!-- Form Actions -->
+                         <div class="d-flex gap-2">
+                             <button type="submit" class="btn btn-warning text-dark">
+                                 <i class="bi bi-check-circle"></i> Update Sub-Project
+                             </button>
+                             <a href="/SubProjects/@Model.SubProjectId" class="btn btn-secondary">
+                                 <i class="bi bi-x-circle"></i> Cancel
+                             </a>
+                         </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const teamsContainer = document.getElementById('teamsContainer');
+            const addTeamBtn = document.getElementById('addTeamBtn');
+
+            function updateTeamAssignments() {
+                const teamAssignments = document.querySelectorAll('.team-assignment');
+                const teamIds = [];
+                const teamRoles = [];
+
+                teamAssignments.forEach(assignment => {
+                    const select = assignment.querySelector('.team-select');
+                    const roleInput = assignment.querySelector('.team-role');
+
+                    if (select.value) {
+                        teamIds.push(select.value);
+                        teamRoles.push(roleInput.value || '');
+                    }
+                });
+
+                let hiddenTeamIds = document.getElementById('hiddenTeamIds');
+                let hiddenTeamRoles = document.getElementById('hiddenTeamRoles');
+
+                if (!hiddenTeamIds) {
+                    hiddenTeamIds = document.createElement('input');
+                    hiddenTeamIds.type = 'hidden';
+                    hiddenTeamIds.id = 'hiddenTeamIds';
+                    hiddenTeamIds.name = 'Input.TeamIds';
+                    document.querySelector('form').appendChild(hiddenTeamIds);
+                }
+
+                if (!hiddenTeamRoles) {
+                    hiddenTeamRoles = document.createElement('input');
+                    hiddenTeamRoles.type = 'hidden';
+                    hiddenTeamRoles.id = 'hiddenTeamRoles';
+                    hiddenTeamRoles.name = 'Input.TeamRoles';
+                    document.querySelector('form').appendChild(hiddenTeamRoles);
+                }
+
+                hiddenTeamIds.value = JSON.stringify(teamIds);
+                hiddenTeamRoles.value = JSON.stringify(teamRoles);
+            }
+
+            addTeamBtn.addEventListener('click', function () {
+                const newAssignment = document.querySelector('.team-assignment').cloneNode(true);
+                newAssignment.querySelector('.team-select').value = '';
+                newAssignment.querySelector('.team-role').value = '';
+
+                const removeBtn = newAssignment.querySelector('.remove-team');
+                removeBtn.addEventListener('click', function () {
+                    newAssignment.remove();
+                    updateTeamAssignments();
+                });
+
+                teamsContainer.appendChild(newAssignment);
+                updateTeamAssignments();
+            });
+
+            document.querySelectorAll('.remove-team').forEach(btn => {
+                btn.addEventListener('click', function () {
+                    this.closest('.team-assignment').remove();
+                    updateTeamAssignments();
+                });
+            });
+
+            document.addEventListener('change', function (e) {
+                if (e.target.classList.contains('team-select') || e.target.classList.contains('team-role')) {
+                    updateTeamAssignments();
+                }
+            });
+
+            updateTeamAssignments();
+        });
+    </script>
+}

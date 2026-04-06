@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using PMTool.Application.Services.User;
+using PMTool.Application.Interfaces;
 using PMTool.Infrastructure.Repositories.Interfaces;
 using PMTool.Infrastructure.Services.Interfaces;
 using System.ComponentModel.DataAnnotations;

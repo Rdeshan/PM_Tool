@@ -2,10 +2,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PMTool.Application.DTOs.User;
-using PMTool.Application.Services.User;
-using PMTool.Application.Services.RBAC;
 using PMTool.Application.Services.Team;
 using System.Security.Claims;
+using PMTool.Application.Interfaces;
 
 namespace PMTool.Web.Pages.Admin.Users;
 

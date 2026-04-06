@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PMTool.Application.DTOs.Auth;
-using PMTool.Application.Services.Auth;
 using PMTool.Application.Validators.Auth;
 using System.Security.Claims;
 
@@ -12,14 +11,14 @@ namespace PMTool.Web.Pages.Auth;
 [AllowAnonymous]
 public class LoginModel : PageModel
 {
-    private readonly PMTool.Application.Services.Auth.IAuthenticationService _authService;
+    private readonly Application.Interfaces.IAuthenticationService _authService;
 
     [BindProperty]
     public LoginRequest Input { get; set; } = new();
 
     public string ErrorMessage { get; set; } = string.Empty;
 
-    public LoginModel(PMTool.Application.Services.Auth.IAuthenticationService authService)
+    public LoginModel(Application.Interfaces.IAuthenticationService authService)
     {
         _authService = authService;
     }

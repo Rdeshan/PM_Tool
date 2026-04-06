@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using PMTool.Application.Services.Auth;
+using PMTool.Application.Interfaces;
 
 namespace PMTool.Web.Pages.Auth;
 

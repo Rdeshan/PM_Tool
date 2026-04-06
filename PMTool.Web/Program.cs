@@ -6,7 +6,6 @@ using PMTool.Application.Services.RBAC;
 using PMTool.Application.Services.Project;
 using PMTool.Application.Services.Product;
 using PMTool.Application.Services.SubProject;
-using PMTool.Application.Services.User;
 using PMTool.Application.Services.Team;
 using PMTool.Application.Services.Admin;
 using PMTool.Application.DTOs.Product;
@@ -19,6 +18,7 @@ using PMTool.Infrastructure.Repositories.Interfaces;
 using PMTool.Infrastructure.Services;
 using PMTool.Infrastructure.Services.Interfaces;
 using PMTool.Infrastructure.Settings;
+using PMTool.Application.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
