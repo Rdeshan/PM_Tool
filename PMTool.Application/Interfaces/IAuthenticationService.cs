@@ -1,6 +1,6 @@
 using PMTool.Application.DTOs.Auth;
 
-namespace PMTool.Application.Services.Auth;
+namespace PMTool.Application.Interfaces;
 
 public interface IAuthenticationService
 {

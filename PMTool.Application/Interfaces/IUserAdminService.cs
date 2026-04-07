@@ -1,6 +1,6 @@
 using PMTool.Application.DTOs.User;
 
-namespace PMTool.Application.Services.User;
+namespace PMTool.Application.Interfaces;
 
 public interface IUserAdminService
 {

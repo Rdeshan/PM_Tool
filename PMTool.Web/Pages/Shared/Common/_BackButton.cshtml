@@ -1,0 +1,20 @@
+@* Common Back Button Component *@
+@{
+    string pageRoute = ViewData["PageRoute"] as string ?? "./Index";
+    string buttonText = ViewData["ButtonText"] as string ?? "Back";
+    string cssClass = ViewData["CssClass"] as string ?? "btn btn-secondary";
+    var productId = ViewData["ProductId"] as Guid?;
+}
+
+@if (productId != null)
+{
+    <a asp-page="@pageRoute" asp-route-productId="@productId" class="@cssClass">
+        <i class="bi bi-arrow-left"></i> @buttonText
+    </a>
+}
+else
+{
+    <a asp-page="@pageRoute" class="@cssClass">
+        <i class="bi bi-arrow-left"></i> @buttonText
+    </a>
+}

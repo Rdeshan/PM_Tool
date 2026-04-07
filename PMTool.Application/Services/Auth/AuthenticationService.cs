@@ -5,6 +5,7 @@ using PMTool.Infrastructure.Repositories.Interfaces;
 using PMTool.Infrastructure.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System.Web;
+using PMTool.Application.Interfaces;
 
 namespace PMTool.Application.Services.Auth;
 

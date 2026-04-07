@@ -1,0 +1,10 @@
+@* Common Cancel Button Component *@
+@{
+    string pageRoute = ViewData["PageRoute"] as string ?? "./Index";
+    string buttonText = ViewData["ButtonText"] as string ?? "Cancel";
+    string cssClass = ViewData["CssClass"] as string ?? "btn btn-secondary btn-lg";
+}
+
+<a asp-page="@pageRoute" class="@cssClass">
+    @buttonText
+</a>

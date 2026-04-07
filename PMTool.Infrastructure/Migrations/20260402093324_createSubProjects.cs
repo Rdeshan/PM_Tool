@@ -1,5 +1,4 @@
-﻿using System;
-using Microsoft.EntityFrameworkCore.Migrations;
+﻿using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -9,6 +8,8 @@ namespace PMTool.Infrastructure.Migrations
     public partial class createSubProjects : Migration
     {
         /// <inheritdoc />
+        /// 
+        /* testing commit */
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<Guid>(

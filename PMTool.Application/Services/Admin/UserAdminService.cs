@@ -1,9 +1,9 @@
+using Microsoft.Extensions.Configuration;
 using PMTool.Application.DTOs.User;
-using PMTool.Application.Services.User;
+using PMTool.Application.Interfaces;
 using PMTool.Domain.Entities;
 using PMTool.Infrastructure.Repositories.Interfaces;
 using PMTool.Infrastructure.Services.Interfaces;
-using Microsoft.Extensions.Configuration;
 
 namespace PMTool.Application.Services.Admin;
 
