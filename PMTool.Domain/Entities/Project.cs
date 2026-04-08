@@ -22,4 +22,5 @@ public class Project
     public ICollection<UserRole> TeamMembers { get; set; } = new List<UserRole>();
     public ICollection<ProjectBacklog> Backlogs { get; set; } = new List<ProjectBacklog>();
     public ICollection<Product> Products { get; set; } = new List<Product>();
+    public ICollection<ProjectDocument> Documents { get; set; } = new List<ProjectDocument>();
 }

@@ -1,0 +1,56 @@
+﻿@model PMTool.Web.Pages.Projects.DetailsModel
+@{
+    var canManageDocuments = User.IsInRole("Administrator") || User.IsInRole("Project Manager");
+}
+
+@if (Model.ProjectDocuments.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Document</th>
+                    <th>File</th>
+                    <th>Submitted By</th>
+                    <th>Submitted At</th>
+                    @if (canManageDocuments)
+                    {
+                        <th class="text-end">Action</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var doc in Model.ProjectDocuments)
+                {
+                    <tr>
+                        <td>@doc.DocumentName</td>
+                        <td>
+                            <a href="@doc.FilePath" target="_blank" rel="noopener noreferrer">@doc.OriginalFileName</a>
+                        </td>
+                        <td>
+                            @doc.SubmittedBy<br />
+                            <small class="text-muted">@doc.SubmittedByEmail</small>
+                        </td>
+                        <td>@doc.SubmittedAt.ToLocalTime().ToString("MMM dd, yyyy HH:mm")</td>
+                        @if (canManageDocuments)
+                        {
+                            <td class="text-end">
+                                <form method="post" asp-page-handler="DeleteDocument" style="display:inline;">
+                                    <input type="hidden" name="id" value="@Model.Project?.Id" />
+                                    <input type="hidden" name="documentId" value="@doc.Id" />
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this document?')">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <p class="text-muted mb-0">No documents uploaded yet.</p>
+}
