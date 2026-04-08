@@ -1,13 +1,6 @@
 @page "{productId:guid}"
 @model PMTool.Web.Pages.SubProjects.IndexModel
-@{
-    ViewData["PageRoute"] = "Pages/Projects/index.cshtml";
-    ViewData["ProductId"] = Model.ProductId;
-    ViewData["ButtonText"] = "Go Back";
-    ViewData["CssClass"] = "btn btn-secondary";
-}
 
-<partial name="~/Pages/Shared/Common/_BackButton.cshtml" />
 
 
 <div class="container-fluid mt-4">
