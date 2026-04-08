@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PMTool.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using PMTool.Infrastructure.Data;
 namespace PMTool.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260408054704_ReAddOwnerId")]
+    partial class ReAddOwnerId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -235,55 +238,6 @@ namespace PMTool.Infrastructure.Migrations
                     b.HasIndex("SubProjectId");
 
                     b.ToTable("ProjectBacklogs");
-                });
-
-            modelBuilder.Entity("PMTool.Domain.Entities.ProjectDocument", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("ContentType")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("DocumentName")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("FilePath")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<long>("FileSize")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("OriginalFileName")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
-                    b.Property<Guid>("ProjectId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("SubmittedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("GETUTCDATE()");
-
-                    b.Property<Guid>("SubmittedByUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ProjectId");
-
-                    b.HasIndex("SubmittedByUserId");
-
-                    b.ToTable("ProjectDocuments");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.ReleaseNotes", b =>
@@ -775,25 +729,6 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("SubProject");
                 });
 
-            modelBuilder.Entity("PMTool.Domain.Entities.ProjectDocument", b =>
-                {
-                    b.HasOne("PMTool.Domain.Entities.Project", "Project")
-                        .WithMany("Documents")
-                        .HasForeignKey("ProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("PMTool.Domain.Entities.User", "SubmittedByUser")
-                        .WithMany()
-                        .HasForeignKey("SubmittedByUserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Project");
-
-                    b.Navigation("SubmittedByUser");
-                });
-
             modelBuilder.Entity("PMTool.Domain.Entities.ReleaseNotes", b =>
                 {
                     b.HasOne("PMTool.Domain.Entities.User", "CreatedByUser")
@@ -943,8 +878,6 @@ namespace PMTool.Infrastructure.Migrations
             modelBuilder.Entity("PMTool.Domain.Entities.Project", b =>
                 {
                     b.Navigation("Backlogs");
-
-                    b.Navigation("Documents");
 
                     b.Navigation("Products");
 

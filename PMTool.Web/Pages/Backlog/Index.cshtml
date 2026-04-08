@@ -1,0 +1,388 @@
+@page "{productId:guid?}"
+@using PMTool.Domain.Enums
+@model PMTool.Web.Pages.Backlog.IndexModel
+@{
+    ViewData["Title"] = "Backlog";
+}
+
+<div class="container-fluid mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="mb-0"><i class="bi bi-kanban"></i> Backlog</h2>
+        <button id="createIssueBtn" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-circle"></i> Create issue...
+        </button>
+    </div>
+
+    <form method="get" class="row g-2 mb-3">
+        <div class="col-md-4">
+            <label class="form-label">Project</label>
+            <select name="projectId" id="projectFilter" class="form-select" onchange="this.form.submit()">
+                @foreach (var project in Model.Projects)
+                {
+                    <option value="@project.Id" selected="@(project.Id == Model.SelectedProjectId)">@project.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Product</label>
+            <select name="productId" id="productFilter" class="form-select" onchange="this.form.submit()">
+                <option value="">Project-level backlog</option>
+                @foreach (var product in Model.Products)
+                {
+                    <option value="@product.Id" selected="@(Model.SelectedProductId == product.Id)">@product.VersionName</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Status</label>
+            <select name="status" id="statusFilter" class="form-select" onchange="this.form.submit()">
+                <option value="">All</option>
+                <option value="1" selected="@(Model.SelectedStatus == 1)">Draft</option>
+                <option value="2" selected="@(Model.SelectedStatus == 2)">Approved</option>
+                <option value="3" selected="@(Model.SelectedStatus == 3)">In Progress</option>
+                <option value="4" selected="@(Model.SelectedStatus == 4)">Done</option>
+            </select>
+        </div>
+    </form>
+
+    <div id="toast" class="alert d-none py-2 px-3 mb-2"></div>
+
+    <div class="table-responsive">
+        <table class="table table-sm table-hover align-middle" id="backlogTable"
+               data-project-id="@Model.SelectedProjectId"
+               data-product-id="@Model.SelectedProductId">
+            <thead class="table-light">
+                <tr>
+                    <th style="width:32px;"><input type="checkbox" id="selectAll" /></th>
+                    <th style="width:36px;"></th>
+                    <th>Title</th>
+                    <th>Type</th>
+                    <th>Status</th>
+                    <th>Owner</th>
+                    <th style="width:110px;">Priority</th>
+                    <th style="width:90px;"></th>
+                </tr>
+            </thead>
+            <tbody id="createRow" class="d-none">
+                <tr>
+                    <td></td>
+                    <td></td>
+                    <td><input class="form-control form-control-sm" id="newTitle" placeholder="Issue title" /></td>
+                    <td>
+                        <select class="form-select form-select-sm" id="newType">
+                            <option value="1">BRD</option>
+                            <option value="2" selected>UserStory</option>
+                            <option value="3">UseCase</option>
+                            <option value="4">Epic</option>
+                            <option value="5">ChangeRequest</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm" id="newStatus">
+                            <option value="1" selected>Draft</option>
+                            <option value="2">Approved</option>
+                            <option value="3">In Progress</option>
+                            <option value="4">Done</option>
+                        </select>
+                    </td>
+                    <td>
+                        <select class="form-select form-select-sm" id="newOwner">
+                            <option value="">Unassigned</option>
+                            @foreach (var owner in Model.Owners)
+                            {
+                                <option value="@owner.Id">@owner.FirstName @owner.LastName</option>
+                            }
+                        </select>
+                    </td>
+                    <td>-</td>
+                    <td class="text-end">
+                        <button id="saveNewIssue" class="btn btn-sm btn-success" type="button">Save</button>
+                    </td>
+                </tr>
+            </tbody>
+            <tbody id="skeletonRows">
+                @for (var i = 0; i < 4; i++)
+                {
+                    <tr>
+                        <td colspan="8"><div class="skeleton-line"></div></td>
+                    </tr>
+                }
+            </tbody>
+            <tbody id="rows" class="d-none">
+                @foreach (var item in Model.Items)
+                {
+                    <tr draggable="true" data-id="@item.Id">
+                        <td><input type="checkbox" class="row-check" /></td>
+                        <td class="text-muted drag-handle"><i class="bi bi-grip-vertical"></i></td>
+                        <td class="editable" data-field="title">@item.Title</td>
+                        <td class="editable-select" data-field="type" data-value="@item.Type">
+                            <span class="badge @Model.GetTypeBadgeClass(item.Type)">@item.TypeName</span>
+                        </td>
+                        <td class="editable-select" data-field="status" data-value="@item.Status">@item.StatusName</td>
+                        <td class="editable-select" data-field="owner" data-value="@item.OwnerId">@(string.IsNullOrWhiteSpace(item.OwnerName) ? "Unassigned" : item.OwnerName)</td>
+                        <td class="priority-cell">@item.Priority</td>
+                        <td class="text-end">
+                            <button class="btn btn-sm btn-outline-danger delete-btn" type="button">Delete</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Styles {
+    <style>
+        #backlogTable {
+            background: #fff;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        #backlogTable thead th {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            color: #6c757d;
+        }
+        #backlogTable tbody tr:hover {
+            background-color: #f8fbff;
+        }
+        #createRow tr {
+            background-color: #f5faff;
+        }
+        .editable, .editable-select {
+            cursor: pointer;
+        }
+        .skeleton-line { height: 18px; border-radius: 6px; background: linear-gradient(90deg,#ececec 25%,#f8f8f8 37%,#ececec 63%); background-size: 400% 100%; animation: shimmer 1.2s infinite; }
+        @@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
+        .drag-over { outline: 2px dashed #0d6efd; }
+        .drag-handle { cursor: move; }
+        .bg-purple { background-color: #6f42c1 !important; }
+    </style>
+}
+
+@section Scripts {
+<script>
+(() => {
+    const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+    const createBtn = document.getElementById('createIssueBtn');
+    const createRow = document.getElementById('createRow');
+    const saveNewBtn = document.getElementById('saveNewIssue');
+    const rowsBody = document.getElementById('rows');
+    const skeleton = document.getElementById('skeletonRows');
+    const table = document.getElementById('backlogTable');
+
+    setTimeout(() => { skeleton.classList.add('d-none'); rowsBody.classList.remove('d-none'); }, 300);
+
+    const notify = (message, ok = true) => {
+        const toast = document.getElementById('toast');
+        toast.className = `alert ${ok ? 'alert-success' : 'alert-danger'} py-2 px-3 mb-2`;
+        toast.textContent = message;
+        toast.classList.remove('d-none');
+        setTimeout(() => toast.classList.add('d-none'), 1800);
+    };
+
+    const postJson = async (handler, payload) => {
+        const response = await fetch(`?handler=${handler}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
+            body: JSON.stringify(payload)
+        });
+        return response.json();
+    };
+
+    createBtn.addEventListener('click', () => {
+        createRow.classList.toggle('d-none');
+        const input = document.getElementById('newTitle');
+        input.focus();
+    });
+
+    document.getElementById('newTitle').addEventListener('keydown', async (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            saveNewBtn.click();
+        }
+        if (e.key === 'Escape') {
+            createRow.classList.add('d-none');
+        }
+    });
+
+    saveNewBtn.addEventListener('click', async () => {
+        const title = document.getElementById('newTitle').value.trim();
+        if (!title) {
+            notify('Title is required.', false);
+            return;
+        }
+
+        const payload = {
+            projectId: table.dataset.projectId,
+            productId: table.dataset.productId || null,
+            title,
+            type: parseInt(document.getElementById('newType').value),
+            status: parseInt(document.getElementById('newStatus').value),
+            ownerId: document.getElementById('newOwner').value || null,
+            description: ''
+        };
+
+        const result = await postJson('Create', payload);
+        notify(result.message, result.success);
+        if (result.success) {
+            location.reload();
+        }
+    });
+
+    const startEditText = (cell) => {
+        if (cell.querySelector('input')) return;
+        const original = cell.textContent.trim();
+        const input = document.createElement('input');
+        input.className = 'form-control form-control-sm';
+        input.value = original;
+        cell.textContent = '';
+        cell.appendChild(input);
+        input.focus();
+
+        const save = async () => {
+            const row = cell.closest('tr');
+            const field = cell.dataset.field;
+            const value = input.value;
+            cell.textContent = value;
+            const result = await postJson('UpdateField', { itemId: row.dataset.id, field, value });
+            notify(result.message, result.success);
+        };
+
+        input.addEventListener('blur', save);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') save();
+            if (e.key === 'Escape') cell.textContent = original;
+        });
+    };
+
+    const getSelectOptions = (field) => {
+        if (field === 'type') {
+            return [
+                { value: 1, label: 'BRD' },
+                { value: 2, label: 'UserStory' },
+                { value: 3, label: 'UseCase' },
+                { value: 4, label: 'Epic' },
+                { value: 5, label: 'ChangeRequest' }
+            ];
+        }
+        if (field === 'status') {
+            return [
+                { value: 1, label: 'Draft' },
+                { value: 2, label: 'Approved' },
+                { value: 3, label: 'InProgress' },
+                { value: 4, label: 'Done' }
+            ];
+        }
+        if (field === 'owner') {
+            const owners = [{ value: '', label: 'Unassigned' }];
+            @foreach (var owner in Model.Owners)
+            {
+                @:owners.push({ value: '@owner.Id', label: '@owner.FirstName @owner.LastName' });
+            }
+            return owners;
+        }
+        return [];
+    };
+
+    const startEditSelect = (cell) => {
+        if (cell.querySelector('select')) return;
+        const row = cell.closest('tr');
+        const field = cell.dataset.field;
+        const current = cell.dataset.value || '';
+        const originalText = cell.textContent.trim();
+        const select = document.createElement('select');
+        select.className = 'form-select form-select-sm';
+
+        const options = getSelectOptions(field);
+        options.forEach(o => {
+            const option = document.createElement('option');
+            option.value = o.value;
+            option.textContent = o.label;
+            if ((o.value + '') === (current + '')) option.selected = true;
+            select.appendChild(option);
+        });
+
+        cell.innerHTML = '';
+        cell.appendChild(select);
+        select.focus();
+
+        const save = async () => {
+            const value = select.value;
+            const label = select.options[select.selectedIndex].text;
+            cell.dataset.value = value;
+            cell.textContent = label;
+            const result = await postJson('UpdateField', { itemId: row.dataset.id, field, value });
+            notify(result.message, result.success);
+        };
+
+        select.addEventListener('change', save);
+        select.addEventListener('blur', () => { if (cell.querySelector('select')) save(); });
+        select.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') cell.textContent = originalText;
+            if (e.key === 'Enter') save();
+        });
+    };
+
+    rowsBody.addEventListener('click', async (e) => {
+        const textCell = e.target.closest('.editable');
+        if (textCell) {
+            startEditText(textCell);
+            return;
+        }
+
+        const selectCell = e.target.closest('.editable-select');
+        if (selectCell) {
+            startEditSelect(selectCell);
+            return;
+        }
+
+        const deleteBtn = e.target.closest('.delete-btn');
+        if (deleteBtn) {
+            const row = deleteBtn.closest('tr');
+            const result = await postJson('Delete', { itemId: row.dataset.id });
+            notify(result.message, result.success);
+            if (result.success) {
+                row.remove();
+                updatePriorityCells();
+            }
+        }
+    });
+
+    const updatePriorityCells = () => {
+        [...rowsBody.querySelectorAll('tr')].forEach((r, i) => {
+            r.querySelector('.priority-cell').textContent = i + 1;
+        });
+    };
+
+    let dragged = null;
+    rowsBody.querySelectorAll('tr').forEach(row => {
+        row.addEventListener('dragstart', () => { dragged = row; });
+        row.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            row.classList.add('drag-over');
+        });
+        row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+        row.addEventListener('drop', async () => {
+            row.classList.remove('drag-over');
+            if (!dragged || dragged === row) return;
+            row.parentNode.insertBefore(dragged, row.nextSibling);
+            updatePriorityCells();
+
+            const orderedIds = [...rowsBody.querySelectorAll('tr')].map(r => r.dataset.id);
+            const payload = {
+                projectId: table.dataset.projectId,
+                productId: table.dataset.productId || null,
+                itemIds: orderedIds
+            };
+            const result = await postJson('Reorder', payload);
+            notify(result.message, result.success);
+        });
+    });
+})();
+</script>
+}

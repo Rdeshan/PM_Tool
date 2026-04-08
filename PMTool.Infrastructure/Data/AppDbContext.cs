@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<RolePermission> RolePermissions { get; set; } = null!;
     public DbSet<Project> Projects { get; set; } = null!;
     public DbSet<ProjectBacklog> ProjectBacklogs { get; set; } = null!;
+    public DbSet<ProjectDocument> ProjectDocuments { get; set; } = null!;
     public DbSet<Product> Products { get; set; } = null!;
     public DbSet<ReleaseNotes> ReleaseNotes { get; set; } = null!;
     public DbSet<SubProject> SubProjects { get; set; } = null!;
@@ -187,6 +188,41 @@ public class AppDbContext : DbContext
                 .WithOne(pb => pb.Project)
                 .HasForeignKey(pb => pb.ProjectId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasMany(p => p.Documents)
+                .WithOne(d => d.Project)
+                .HasForeignKey(d => d.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // ProjectDocument configuration
+        modelBuilder.Entity<ProjectDocument>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.DocumentName)
+                .IsRequired()
+                .HasMaxLength(200);
+
+            entity.Property(e => e.OriginalFileName)
+                .IsRequired()
+                .HasMaxLength(255);
+
+            entity.Property(e => e.FilePath)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            entity.Property(e => e.ContentType)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.SubmittedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasOne(d => d.SubmittedByUser)
+                .WithMany()
+                .HasForeignKey(d => d.SubmittedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Product configuration
@@ -252,7 +288,12 @@ public class AppDbContext : DbContext
             entity.HasOne(pb => pb.Product)
                 .WithMany(p => p.Backlogs)
                 .HasForeignKey(pb => pb.ProductId)
-                .OnDelete(DeleteBehavior.NoAction); 
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(pb => pb.Owner)
+                .WithMany()
+                .HasForeignKey(pb => pb.OwnerId)
+                .OnDelete(DeleteBehavior.SetNull);
         });
 
         // ReleaseNotes configuration
