@@ -31,15 +31,16 @@ public class IndexModel : PageModel
         }
         else
         {
-            var allProjects = await _projectService.GetActiveProjectsAsync();
-            
+            var nonArchivedProjects = (await _projectService.GetAllProjectsAsync())
+                .Where(p => !p.IsArchived);
+
             if (!string.IsNullOrEmpty(status) && int.TryParse(status, out var statusValue))
             {
-                Projects = allProjects.Where(p => p.Status == statusValue);
+                Projects = nonArchivedProjects.Where(p => p.Status == statusValue);
             }
             else
             {
-                Projects = allProjects;
+                Projects = nonArchivedProjects.Where(p => p.Status == 1);
             }
         }
     }

@@ -4,6 +4,8 @@
 @{
     ViewData["Title"] = "Projects";
     var canEditProject = User.IsInRole("Administrator") || User.IsInRole("Project Manager");
+    var isOnHoldTab = !Model.ShowArchived && Model.FilterStatus == "2";
+    var isActiveTab = !Model.ShowArchived && !isOnHoldTab;
 }
 
 <div class="container-fluid mt-4">
@@ -36,8 +38,13 @@
     <!-- Filter Tabs -->
     <ul class="nav nav-tabs mb-4" role="tablist">
         <li class="nav-item" role="presentation">
-            <a class="nav-link @(!Model.ShowArchived ? "active" : "")" href="@Url.Page("./Index", new { archived = false })">
+            <a class="nav-link @(isActiveTab ? "active" : "")" href="@Url.Page("./Index", new { archived = false })">
                 Active Projects
+            </a>
+        </li>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link @(isOnHoldTab ? "active" : "")" href="@Url.Page("./Index", new { archived = false, status = 2 })">
+                On Hold
             </a>
         </li>
         <li class="nav-item" role="presentation">
