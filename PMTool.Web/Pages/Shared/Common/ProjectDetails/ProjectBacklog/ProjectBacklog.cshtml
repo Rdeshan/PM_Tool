@@ -1,0 +1,28 @@
+﻿@model PMTool.Web.Pages.Projects.DetailsModel
+
+@{
+    ViewData["Title"] = Model.Project?.Name ?? "Project Details";
+    var canEditProject = User.IsInRole("Administrator") || User.IsInRole("Project Manager");
+    var canDeleteProject = User.IsInRole("Administrator") || User.IsInRole("Project Manager");
+}
+
+<div class="card-header bg-light d-flex justify-content-between align-items-center">
+    <h5 class="mb-0"><i class="bi bi-list-check"></i> Project Backlog</h5>
+    @if (canEditProject)
+    {
+        <a href="/Backlog?projectId=@Model.Project.Id" class="btn btn-sm btn-primary">
+            <i class="bi bi-plus-circle"></i> Add Item
+        </a>
+    }
+</div>
+<div class="card-body">
+    <div class="text-center py-4">
+
+        <a asp-page="/Backlog/Index" asp-route-projectId="@Model.Project.Id">View Backlog</a>
+        @*
+                            <a href="/Backlog?projectId=@Model.Project.Id" class="btn btn-outline-primary">
+                                <i class="bi bi-kanban"></i> Open Project Backlog
+                            </a>
+                            *@
+    </div>
+</div>
