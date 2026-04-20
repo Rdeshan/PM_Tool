@@ -34,6 +34,7 @@ public class CreateModel : PageModel
     {
         ProjectId = projectId;
         Input.ProjectId = projectId;
+        var isEmbedded = string.Equals(Request.Query["embedded"], "true", StringComparison.OrdinalIgnoreCase);
 
         // Validate using FluentValidation
         var validationResult = await _validator.ValidateAsync(Input);
@@ -51,6 +52,13 @@ public class CreateModel : PageModel
         {
             ModelState.AddModelError("", "Failed to create product. Version name may already exist in this project.");
             return Page();
+        }
+
+        if (isEmbedded)
+        {
+            var targetUrl = Url.Page("./Index", new { projectId, created = true }) ?? $"/Products/{projectId}?created=true";
+            var html = $"<script>window.parent.location.href='{targetUrl}';</script>";
+            return Content(html, "text/html");
         }
 
         return RedirectToPage("./Index", new { projectId });

@@ -6,6 +6,7 @@ public class TeamDTO
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public bool IsActive { get; set; }
+    public string ColorCode { get; set; } = "#007bff";
     public int MemberCount { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

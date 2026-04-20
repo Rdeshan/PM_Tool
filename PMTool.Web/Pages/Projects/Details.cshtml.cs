@@ -3,8 +3,12 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using PMTool.Application.DTOs.Project;
+using PMTool.Application.DTOs.Team;
 using PMTool.Application.Services.Project;
+using PMTool.Application.Services.Team;
+using PMTool.Domain.Enums;
 using PMTool.Infrastructure.Data;
+using PMTool.Infrastructure.Repositories.Interfaces;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
@@ -18,20 +22,25 @@ public class DetailsModel : PageModel
     private readonly IProjectService _projectService;
     private readonly AppDbContext _context;
     private readonly IWebHostEnvironment _environment;
+    private readonly ITeamService _teamService;
 
     public ProjectDTO? Project { get; set; }
     public IEnumerable<Domain.Entities.User> TeamMembers { get; set; } = new List<Domain.Entities.User>();
+    public Dictionary<Guid, List<TeamBadgeViewModel>> MemberTeams { get; set; } = new();
     public IEnumerable<ProjectDocumentViewModel> ProjectDocuments { get; set; } = new List<ProjectDocumentViewModel>();
+
+    public IEnumerable<TeamDTO> Teams { get; set; } = new List<TeamDTO>();
     public string? ErrorMessage { get; set; }
 
     [BindProperty]
     public UploadDocumentInput UploadDocument { get; set; } = new();
 
-    public DetailsModel(IProjectService projectService, AppDbContext context, IWebHostEnvironment environment)
+    public DetailsModel(IProjectService projectService, AppDbContext context, IWebHostEnvironment environment , ITeamService teamService)
     {
         _projectService = projectService;
         _context = context;
         _environment = environment;
+        _teamService = teamService;
     }
 
     public async Task<IActionResult> OnGetAsync(Guid id)
@@ -42,6 +51,7 @@ public class DetailsModel : PageModel
 
         return Page();
     }
+ 
 
     public async Task<IActionResult> OnPostUploadDocumentAsync(Guid id)
     {
@@ -97,6 +107,100 @@ public class DetailsModel : PageModel
 
         _context.ProjectDocuments.Add(document);
         await _context.SaveChangesAsync();
+
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostRemoveTeamMemberAsync(Guid id, Guid userId)
+    {
+        if (!User.IsInRole("Administrator") && !User.IsInRole("Project Manager"))
+        {
+            return Forbid();
+        }
+
+        await _projectService.RemoveTeamMemberAsync(id, userId);
+        return RedirectToPage(new { id });
+    }
+
+    public async Task<IActionResult> OnPostAddTeamMembersAsync(Guid id, Guid teamId)
+    {
+        if (!User.IsInRole("Administrator") && !User.IsInRole("Project Manager"))
+        {
+            return Forbid();
+        }
+
+        var loaded = await LoadProjectDataAsync(id);
+        if (!loaded)
+        {
+            return NotFound();
+        }
+
+        var teamUserIds = await _context.TeamMembers
+            .Where(tm => tm.TeamId == teamId)
+            .Select(tm => tm.UserId)
+            .Distinct()
+            .ToListAsync();
+
+        if (!teamUserIds.Any())
+        {
+            ErrorMessage = "Selected team has no members.";
+            return Page();
+        }
+
+        var existingProjectUserIds = await _context.UserRoles
+            .Where(ur => ur.ProjectId == id && ur.IsActive && teamUserIds.Contains(ur.UserId))
+            .Select(ur => ur.UserId)
+            .Distinct()
+            .ToListAsync();
+
+        var orgRoleMap = await _context.UserRoles
+            .Where(ur => ur.ProjectId == null && ur.IsActive && teamUserIds.Contains(ur.UserId))
+            .GroupBy(ur => ur.UserId)
+            .Select(g => new { UserId = g.Key, RoleId = g.OrderBy(x => x.AssignedAt).Select(x => x.RoleId).FirstOrDefault() })
+            .ToDictionaryAsync(x => x.UserId, x => x.RoleId);
+
+        var fallbackRoleId = await _context.Roles
+            .Where(r => r.IsActive && r.RoleType == (int)RoleType.Developer)
+            .Select(r => r.Id)
+            .FirstOrDefaultAsync();
+
+        if (fallbackRoleId == Guid.Empty)
+        {
+            ErrorMessage = "No active fallback role is configured.";
+            return Page();
+        }
+
+        var now = DateTime.UtcNow;
+        var userRolesToAdd = new List<Domain.Entities.UserRole>();
+
+        foreach (var userId in teamUserIds)
+        {
+            if (existingProjectUserIds.Contains(userId))
+            {
+                continue;
+            }
+
+            var roleId = orgRoleMap.TryGetValue(userId, out var mappedRoleId) && mappedRoleId != Guid.Empty
+                ? mappedRoleId
+                : fallbackRoleId;
+
+            userRolesToAdd.Add(new Domain.Entities.UserRole
+            {
+                Id = Guid.NewGuid(),
+                UserId = userId,
+                RoleId = roleId,
+                ProjectId = id,
+                IsActive = true,
+                AssignedAt = now,
+                UpdatedAt = now
+            });
+        }
+
+        if (userRolesToAdd.Count > 0)
+        {
+            _context.UserRoles.AddRange(userRolesToAdd);
+            await _context.SaveChangesAsync();
+        }
 
         return RedirectToPage(new { id });
     }
@@ -158,6 +262,29 @@ public class DetailsModel : PageModel
             return false;
 
         TeamMembers = await _projectService.GetProjectTeamAsync(id);
+        Teams = await _teamService.GetAllTeamsAsync();
+
+        var teamMemberUserIds = TeamMembers.Select(u => u.Id).Distinct().ToList();
+        var teamMemberships = await _context.TeamMembers
+            .Where(tm => teamMemberUserIds.Contains(tm.UserId))
+            .Include(tm => tm.Team)
+            .Select(tm => new
+            {
+                tm.UserId,
+                TeamName = tm.Team != null ? tm.Team.Name : string.Empty,
+                TeamColorCode = tm.Team != null ? tm.Team.ColorCode : "#6c757d"
+            })
+            .ToListAsync();
+
+        MemberTeams = teamMemberships
+            .GroupBy(x => x.UserId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.Select(x => new TeamBadgeViewModel
+                {
+                    TeamName = x.TeamName,
+                    TeamColorCode = string.IsNullOrWhiteSpace(x.TeamColorCode) ? "#6c757d" : x.TeamColorCode
+                }).ToList());
 
         ProjectDocuments = await _context.ProjectDocuments
             .Where(d => d.ProjectId == id)
@@ -197,5 +324,11 @@ public class DetailsModel : PageModel
         public DateTime SubmittedAt { get; set; }
         public string SubmittedBy { get; set; } = string.Empty;
         public string SubmittedByEmail { get; set; } = string.Empty;
+    }
+
+    public class TeamBadgeViewModel
+    {
+        public string TeamName { get; set; } = string.Empty;
+        public string TeamColorCode { get; set; } = "#6c757d";
     }
 }
