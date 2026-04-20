@@ -6,8 +6,8 @@
     ViewData["Title"] = "Products";
 }
 
-<div class="container-fluid mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-4">
+<div class="container-fluid mt-1">
+    <div class="d-flex justify-content-end align-items-center mb-1">
        
         @if (Model.CanCreateProduct)
         {
@@ -45,8 +45,16 @@
         </div>
     }
 
+    @if (string.IsNullOrEmpty(Model.SuccessMessage) == false)
+    {
+        <div id="successMessageAlert" class="alert alert-success alert-dismissible fade show" role="alert">
+            @Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <!-- Tabs for filtering -->
-    <ul class="nav nav-tabs mb-4" role="tablist">
+    <ul class="nav nav-tabs mb-3" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link @(Model.FilterStatus == "all" ? "active" : "")" 
                     asp-route-projectId="@Model.ProjectId" 
@@ -217,3 +225,17 @@
         box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
     }
 </style>
+
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const successAlert = document.getElementById('successMessageAlert');
+            if (successAlert) {
+                setTimeout(() => {
+                    const alert = bootstrap.Alert.getOrCreateInstance(successAlert);
+                    alert.close();
+                }, 3000);
+            }
+        });
+    </script>
+}

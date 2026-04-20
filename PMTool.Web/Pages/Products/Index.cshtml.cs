@@ -19,14 +19,19 @@ public class IndexModel : PageModel
     public Guid ProjectId { get; set; }
     public List<ProductDTO> Products { get; set; } = new();
     public string FilterStatus { get; set; } = "all";
+    public string SuccessMessage { get; set; } = string.Empty;
     public string ErrorMessage { get; set; } = string.Empty;
     public bool CanCreateProduct { get; set; }
 
-    public async Task<IActionResult> OnGetAsync(Guid projectId, string status = "all")
+    public async Task<IActionResult> OnGetAsync(Guid projectId, string status = "all", bool created = false)
     {
         ProjectId = projectId;
         FilterStatus = status;
         CanCreateProduct = User.IsInRole("Administrator") || User.IsInRole("Project Manager");
+        if (created)
+        {
+            SuccessMessage = "Product added successfully.";
+        }
 
         try
         {

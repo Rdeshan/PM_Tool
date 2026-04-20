@@ -20,6 +20,10 @@
     </div>
 
     <form method="get" class="row g-2 mb-3">
+        @if (isEmbedded)
+        {
+            <input type="hidden" name="embedded" value="true" />
+        }
         <div class="col-md-4">
             <label class="form-label">Project</label>
             <select name="projectId" id="projectFilter" class="form-select" onchange="this.form.submit()">
