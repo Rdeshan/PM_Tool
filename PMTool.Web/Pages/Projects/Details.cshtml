@@ -102,4 +102,29 @@
     }
 </style>
 
+@section Scripts {
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            // Read ?tab= from the URL and activate that tab
+            const params = new URLSearchParams(window.location.search);
+            const tabParam = params.get('tab');
 
+            if (tabParam) {
+                // Map param value to the tab button ID
+                const tabMap = {
+                    'summary':  'summary-tab',
+                    'backlog':  'backlog-tab',
+                    'products': 'products-tab'
+                };
+                const tabId = tabMap[tabParam.toLowerCase()];
+                if (tabId) {
+                    const tabEl = document.getElementById(tabId);
+                    if (tabEl) {
+                        const bsTab = new bootstrap.Tab(tabEl);
+                        bsTab.show();
+                    }
+                }
+            }
+        });
+    </script>
+}

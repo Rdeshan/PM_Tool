@@ -34,6 +34,7 @@ public class CreateModel : PageModel
 
     public async Task<IActionResult> OnPostAsync()
     {
+        var isEmbedded = string.Equals(Request.Query["embedded"], "true", StringComparison.OrdinalIgnoreCase);
         var validator = new CreateProjectRequestValidator();
         var validationResult = await validator.ValidateAsync(Input);
 
@@ -53,6 +54,12 @@ public class CreateModel : PageModel
         }
 
         SuccessMessage = "Project created successfully!";
+
+        if (isEmbedded)
+        {
+            return Content("<script>window.parent.location.reload();</script>", "text/html");
+        }
+
         return RedirectToPage("./Index");
     }
 }

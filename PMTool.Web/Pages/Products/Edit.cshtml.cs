@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PMTool.Application.DTOs.Product;
 using PMTool.Application.Services.Product;
+using PMTool.Application.Services.Project;
 using FluentValidation;
 
 namespace PMTool.Web.Pages.Products;
@@ -11,15 +12,18 @@ namespace PMTool.Web.Pages.Products;
 public class EditModel : PageModel
 {
     private readonly IProductService _productService;
+    private readonly IProjectService _projectService;
     private readonly IValidator<UpdateProductRequest> _validator;
 
-    public EditModel(IProductService productService, IValidator<UpdateProductRequest> validator)
+    public EditModel(IProductService productService, IProjectService projectService, IValidator<UpdateProductRequest> validator)
     {
         _productService = productService;
+        _projectService = projectService;
         _validator = validator;
     }
 
     public Guid ProjectId { get; set; }
+    public string ProjectName { get; set; } = string.Empty;
     public ProductDTO? Product { get; set; }
 
     [BindProperty]
@@ -28,6 +32,9 @@ public class EditModel : PageModel
     public async Task<IActionResult> OnGetAsync(Guid projectId, Guid id)
     {
         ProjectId = projectId;
+        var project = await _projectService.GetProjectByIdAsync(projectId);
+        ProjectName = project?.Name ?? string.Empty;
+
         Product = await _productService.GetProductByIdAsync(id);
         
         if (Product == null)
@@ -47,6 +54,9 @@ public class EditModel : PageModel
     public async Task<IActionResult> OnPostAsync(Guid projectId, Guid id)
     {
         ProjectId = projectId;
+        var project = await _projectService.GetProjectByIdAsync(projectId);
+        ProjectName = project?.Name ?? string.Empty;
+
         Product = await _productService.GetProductByIdAsync(id);
         
         if (Product == null)

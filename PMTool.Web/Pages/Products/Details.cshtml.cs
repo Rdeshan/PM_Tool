@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PMTool.Application.DTOs.Product;
 using PMTool.Application.Services.Product;
+using PMTool.Application.Services.Project;
 using System.Security.Claims;
 
 namespace PMTool.Web.Pages.Products;
@@ -11,13 +12,17 @@ namespace PMTool.Web.Pages.Products;
 public class DetailsModel : PageModel
 {
     private readonly IProductService _productService;
+    private readonly IProjectService _projectService;
 
-    public DetailsModel(IProductService productService)
+    public DetailsModel(IProductService productService, IProjectService projectService)
     {
         _productService = productService;
+        _projectService = projectService;
     }
 
     public Guid ProjectId { get; set; }
+    public string Tab { get; set; }
+    public string ProjectName { get; set; } = string.Empty;
     public ProductDTO? Product { get; set; }
     public List<ReleaseNotesDTO> ReleaseNotes { get; set; } = new();
     public bool CanEditProduct { get; set; }
@@ -26,6 +31,9 @@ public class DetailsModel : PageModel
     {
         ProjectId = projectId;
         CanEditProduct = User.IsInRole("Administrator") || User.IsInRole("Project Manager");
+
+        var project = await _projectService.GetProjectByIdAsync(projectId);
+        ProjectName = project?.Name ?? string.Empty;
 
         Product = await _productService.GetProductByIdAsync(id);
         if (Product == null)
@@ -45,7 +53,7 @@ public class DetailsModel : PageModel
         if (!result)
             return NotFound();
 
-        return RedirectToPage("./Index", new { projectId });
+        return RedirectToPage("/Projects/Details", new { id = projectId, tab = "products" });
     }
 
     public async Task<IActionResult> OnPostAddReleaseNotesAsync(Guid projectId, Guid id, string title, string content)

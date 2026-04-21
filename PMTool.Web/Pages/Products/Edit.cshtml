@@ -94,8 +94,8 @@
             else
             {
                 <div class="alert alert-warning">Product not found.</div>
-                <a asp-page="./Index" asp-route-projectId="@Model.ProjectId" class="btn btn-secondary">
-                    Back to Products
+                <a asp-page="/Projects/Details" asp-route-id="@Model.ProjectId" asp-route-tab="products" class="btn btn-secondary">
+                    Back to @(string.IsNullOrEmpty(Model.ProjectName) ? "Project" : Model.ProjectName)
                 </a>
             }
         </div>

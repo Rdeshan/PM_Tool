@@ -16,9 +16,9 @@
         <div class="col-md-4 text-end">
             @if (canEditProject)
             {
-                <a asp-page="./Create" class="btn btn-primary me-2">
+                <button type="button" class="btn btn-primary me-2" data-bs-toggle="modal" data-bs-target="#createProjectModal">
                     <i class="bi bi-plus-circle"></i> New Project
-                </a>
+                </button>
             }
             @if (User.IsInRole("Administrator"))
             {
@@ -141,3 +141,20 @@
             box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
         }
 </style>
+
+<!-- Create Project Modal -->
+<div class="modal fade" id="createProjectModal" tabindex="-1" aria-labelledby="createProjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="createProjectModalLabel">Add New Project</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <iframe src="@Url.Page("./Create", new { embedded = true })"
+                        title="Create Project"
+                        style="width:100%; height:600px; border:0;"></iframe>
+            </div>
+        </div>
+    </div>
+</div>

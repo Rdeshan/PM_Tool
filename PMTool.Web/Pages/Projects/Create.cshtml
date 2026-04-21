@@ -1,107 +1,183 @@
 @page
 @model PMTool.Web.Pages.Projects.CreateModel
 @{
+    var isEmbedded = string.Equals(Request.Query["embedded"], "true", StringComparison.OrdinalIgnoreCase);
+    if (isEmbedded)
+    {
+        Layout = "_EmbeddedLayout";
+    }
     ViewData["Title"] = "Create Project";
 }
 
-<div class="container-fluid mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0">Create New Project</h4>
+@if (isEmbedded)
+{
+    <div class="p-4 w-100">
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <i class="bi bi-exclamation-circle"></i> @Model.ErrorMessage
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+        }
+
+        <form method="post">
+            <!-- Project Name -->
+            <div class="mb-3">
+                <label asp-for="Input.Name" class="form-label">Project Name <span class="text-danger">*</span></label>
+                <input asp-for="Input.Name" class="form-control" placeholder="e.g., User Management System" />
+                <span asp-validation-for="Input.Name" class="text-danger small"></span>
+            </div>
+
+            <!-- Project Code -->
+            <div class="mb-3">
+                <label asp-for="Input.ProjectCode" class="form-label">Project Code <span class="text-danger">*</span></label>
+                <input asp-for="Input.ProjectCode" class="form-control" placeholder="e.g., UMS" />
+                <span asp-validation-for="Input.ProjectCode" class="text-danger small"></span>
+            </div>
+
+            <!-- Description -->
+            <div class="mb-3">
+                <label asp-for="Input.Description" class="form-label">Description</label>
+                <textarea asp-for="Input.Description" class="form-control" rows="2" placeholder="Brief description"></textarea>
+                <span asp-validation-for="Input.Description" class="text-danger small"></span>
+            </div>
+
+            <!-- Client Name -->
+            <div class="mb-3">
+                <label asp-for="Input.ClientName" class="form-label">Client Name <span class="text-danger">*</span></label>
+                <input asp-for="Input.ClientName" class="form-control" placeholder="e.g., ABC Corporation" />
+                <span asp-validation-for="Input.ClientName" class="text-danger small"></span>
+            </div>
+
+            <!-- Dates -->
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.StartDate" class="form-label">Start Date <span class="text-danger">*</span></label>
+                    <input asp-for="Input.StartDate" type="date" class="form-control" />
                 </div>
-                <div class="card-body p-4">
-                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-                    {
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="bi bi-exclamation-circle"></i> @Model.ErrorMessage
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    }
+                <div class="col-md-6 mb-3">
+                    <label asp-for="Input.ExpectedEndDate" class="form-label">End Date <span class="text-danger">*</span></label>
+                    <input asp-for="Input.ExpectedEndDate" type="date" class="form-control" />
+                </div>
+            </div>
 
-                    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
-                    {
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="bi bi-check-circle"></i> @Model.SuccessMessage
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    }
+             <!-- Colour Code -->
+            <div class="mb-3">
+                <label asp-for="Input.ColourCode" class="form-label">Project Colour</label>
+                <div class="input-group">
+                    <input asp-for="Input.ColourCode" type="color" class="form-control form-control-color" title="Choose project colour" />
+                    <input asp-for="Input.ColourCode" type="text" class="form-control" value="@Model.Input.ColourCode" readonly />
+                </div>
+            </div>
 
-                    <div class="alert alert-info alert-sm mb-3">
-                        <i class="bi bi-shield-lock"></i>
-                        <strong>Project Creation</strong> is restricted to Administrators and Project Managers only.
+            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                <button type="button" class="btn btn-secondary" onclick="window.parent.bootstrap.Modal.getInstance(window.parent.document.getElementById('createProjectModal')).hide();">Cancel</button>
+                <button type="submit" class="btn btn-primary">Create Project</button>
+            </div>
+        </form>
+    </div>
+}
+else
+{
+    <div class="container-fluid mt-4">
+        <div class="row justify-content-center">
+            <div class="col-md-8">
+                <div class="card shadow">
+                    <div class="card-header bg-primary text-white">
+                        <h4 class="mb-0">Create New Project</h4>
                     </div>
+                    <div class="card-body p-4">
+                        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+                        {
+                            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                <i class="bi bi-exclamation-circle"></i> @Model.ErrorMessage
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        }
 
-                    <form method="post">
-                        <!-- Project Name -->
-                        <div class="mb-3">
-                            <label asp-for="Input.Name" class="form-label">Project Name <span class="text-danger">*</span></label>
-                            <input asp-for="Input.Name" class="form-control form-control-lg" placeholder="e.g., User Management System" />
-                            <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+                        {
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                <i class="bi bi-check-circle"></i> @Model.SuccessMessage
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        }
+
+                        <div class="alert alert-info alert-sm mb-3">
+                            <i class="bi bi-shield-lock"></i>
+                            <strong>Project Creation</strong> is restricted to Administrators and Project Managers only.
                         </div>
 
-                        <!-- Project Code -->
-                        <div class="mb-3">
-                            <label asp-for="Input.ProjectCode" class="form-label">Project Code <span class="text-danger">*</span></label>
-                            <input asp-for="Input.ProjectCode" class="form-control form-control-lg" placeholder="e.g., UMS (3-20 uppercase letters/numbers)" />
-                            <span asp-validation-for="Input.ProjectCode" class="text-danger small"></span>
-                            <small class="form-text text-muted">Used as prefix for ticket IDs (e.g., UMS-001)</small>
-                        </div>
+                        <form method="post">
+                            <!-- Project Name -->
+                            <div class="mb-3">
+                                <label asp-for="Input.Name" class="form-label">Project Name <span class="text-danger">*</span></label>
+                                <input asp-for="Input.Name" class="form-control form-control-lg" placeholder="e.g., User Management System" />
+                                <span asp-validation-for="Input.Name" class="text-danger small"></span>
+                            </div>
 
-                        <!-- Description -->
-                        <div class="mb-3">
-                            <label asp-for="Input.Description" class="form-label">Description</label>
-                            <textarea asp-for="Input.Description" class="form-control" rows="3" placeholder="Brief description of the project"></textarea>
-                            <span asp-validation-for="Input.Description" class="text-danger small"></span>
-                        </div>
+                            <!-- Project Code -->
+                            <div class="mb-3">
+                                <label asp-for="Input.ProjectCode" class="form-label">Project Code <span class="text-danger">*</span></label>
+                                <input asp-for="Input.ProjectCode" class="form-control form-control-lg" placeholder="e.g., UMS (3-20 uppercase letters/numbers)" />
+                                <span asp-validation-for="Input.ProjectCode" class="text-danger small"></span>
+                                <small class="form-text text-muted">Used as prefix for ticket IDs (e.g., UMS-001)</small>
+                            </div>
 
-                        <!-- Client Name -->
-                        <div class="mb-3">
-                            <label asp-for="Input.ClientName" class="form-label">Client Name <span class="text-danger">*</span></label>
-                            <input asp-for="Input.ClientName" class="form-control form-control-lg" placeholder="e.g., ABC Corporation" />
-                            <span asp-validation-for="Input.ClientName" class="text-danger small"></span>
-                        </div>
+                            <!-- Description -->
+                            <div class="mb-3">
+                                <label asp-for="Input.Description" class="form-label">Description</label>
+                                <textarea asp-for="Input.Description" class="form-control" rows="3" placeholder="Brief description of the project"></textarea>
+                                <span asp-validation-for="Input.Description" class="text-danger small"></span>
+                            </div>
 
-                        <!-- Start Date -->
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label asp-for="Input.StartDate" class="form-label">Start Date <span class="text-danger">*</span></label>
-                                    <input asp-for="Input.StartDate" type="date" class="form-control form-control-lg" />
-                                    <span asp-validation-for="Input.StartDate" class="text-danger small"></span>
+                            <!-- Client Name -->
+                            <div class="mb-3">
+                                <label asp-for="Input.ClientName" class="form-label">Client Name <span class="text-danger">*</span></label>
+                                <input asp-for="Input.ClientName" class="form-control form-control-lg" placeholder="e.g., ABC Corporation" />
+                                <span asp-validation-for="Input.ClientName" class="text-danger small"></span>
+                            </div>
+
+                            <!-- Start Date -->
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label asp-for="Input.StartDate" class="form-label">Start Date <span class="text-danger">*</span></label>
+                                        <input asp-for="Input.StartDate" type="date" class="form-control form-control-lg" />
+                                        <span asp-validation-for="Input.StartDate" class="text-danger small"></span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-3">
+                                        <label asp-for="Input.ExpectedEndDate" class="form-label">Expected End Date <span class="text-danger">*</span></label>
+                                        <input asp-for="Input.ExpectedEndDate" type="date" class="form-control form-control-lg" />
+                                        <span asp-validation-for="Input.ExpectedEndDate" class="text-danger small"></span>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label asp-for="Input.ExpectedEndDate" class="form-label">Expected End Date <span class="text-danger">*</span></label>
-                                    <input asp-for="Input.ExpectedEndDate" type="date" class="form-control form-control-lg" />
-                                    <span asp-validation-for="Input.ExpectedEndDate" class="text-danger small"></span>
+
+                            <!-- Colour Code -->
+                            <div class="mb-3">
+                                <label asp-for="Input.ColourCode" class="form-label">Project Colour</label>
+                                <div class="input-group">
+                                    <input asp-for="Input.ColourCode" type="color" class="form-control form-control-color" title="Choose project colour" />
+                                    <input asp-for="Input.ColourCode" type="text" class="form-control" placeholder="#FF5733" readonly />
                                 </div>
+                                <span asp-validation-for="Input.ColourCode" class="text-danger small"></span>
                             </div>
-                        </div>
 
-                        <!-- Colour Code -->
-                        <div class="mb-3">
-                            <label asp-for="Input.ColourCode" class="form-label">Project Colour</label>
-                            <div class="input-group">
-                                <input asp-for="Input.ColourCode" type="color" class="form-control form-control-color" title="Choose project colour" />
-                                <input asp-for="Input.ColourCode" type="text" class="form-control" placeholder="#FF5733" readonly />
+                            <!-- Submit -->
+                            <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                <a asp-page="./Index" class="btn btn-secondary btn-lg">Cancel</a>
+                                <button type="submit" class="btn btn-primary btn-lg">Create Project</button>
                             </div>
-                            <span asp-validation-for="Input.ColourCode" class="text-danger small"></span>
-                        </div>
-
-                        <!-- Submit -->
-                        <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                            <a asp-page="./Index" class="btn btn-secondary btn-lg">Cancel</a>
-                            <button type="submit" class="btn btn-primary btn-lg">Create Project</button>
-                        </div>
-                    </form>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
+}
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
