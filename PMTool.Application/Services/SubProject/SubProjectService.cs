@@ -197,6 +197,7 @@ public class SubProjectService : ISubProjectService
             Name = subProject.Name,
             Description = subProject.Description,
             Status = subProject.Status,
+            ModuleOwnerId = subProject.ModuleOwnerId,
             ModuleOwnerName = subProject.ModuleOwner?.FirstName + " " + subProject.ModuleOwner?.LastName ?? string.Empty,
             StartDate = subProject.StartDate,
             DueDate = subProject.DueDate,

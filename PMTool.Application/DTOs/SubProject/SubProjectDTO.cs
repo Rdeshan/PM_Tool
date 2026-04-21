@@ -7,6 +7,7 @@ public class SubProjectDTO
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public int Status { get; set; } // SubProjectStatus enum value
+    public Guid ModuleOwnerId { get; set; }
     public string ModuleOwnerName { get; set; } = string.Empty;
     public DateTime? StartDate { get; set; }
     public DateTime? DueDate { get; set; }

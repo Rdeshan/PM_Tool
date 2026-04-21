@@ -70,7 +70,7 @@ public class IndexModel : PageModel
         SelectedStatus = status;
 
         Products = (await _productRepository.GetByProjectAsync(SelectedProjectId)).ToList();
-        Items = await _backlogService.GetBacklogItemsAsync(SelectedProjectId, SelectedProductId, SelectedStatus);
+        Items = await _backlogService.GetBacklogItemsAsync(SelectedProjectId, SelectedProductId, null, SelectedStatus);
 
         return Page();
     }

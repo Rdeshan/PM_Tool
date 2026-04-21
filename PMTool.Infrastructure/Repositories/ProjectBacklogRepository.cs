@@ -21,7 +21,7 @@ public class ProjectBacklogRepository : IProjectBacklogRepository
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
-    public async Task<List<ProjectBacklog>> GetByFilterAsync(Guid projectId, Guid? productId, int? status)
+    public async Task<List<ProjectBacklog>> GetByFilterAsync(Guid projectId, Guid? productId, Guid? subProjectId, int? status)
     {
         var query = _context.ProjectBacklogs
             .Include(x => x.Owner)
@@ -30,6 +30,11 @@ public class ProjectBacklogRepository : IProjectBacklogRepository
         if (productId.HasValue)
         {
             query = query.Where(x => x.ProductId == productId);
+        }
+
+        if (subProjectId.HasValue)
+        {
+            query = query.Where(x => x.SubProjectId == subProjectId);
         }
 
         if (status.HasValue)

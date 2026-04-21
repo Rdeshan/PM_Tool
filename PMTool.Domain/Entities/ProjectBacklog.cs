@@ -12,6 +12,8 @@ public class ProjectBacklog
     public int Type { get; set; } // BRD, UserStory, Requirement, etc.
     public int Priority { get; set; } // Used as rank/order for prioritization
     public int Status { get; set; } // Draft, Approved, InProgress, Done
+    public DateTime? StartDate { get; set; }
+    public DateTime? DueDate { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

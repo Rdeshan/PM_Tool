@@ -14,6 +14,8 @@ public class BacklogItemDTO
     public int Priority { get; set; }
     public int Status { get; set; }
     public string StatusName { get; set; } = string.Empty;
+    public DateTime? StartDate { get; set; }
+    public DateTime? DueDate { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

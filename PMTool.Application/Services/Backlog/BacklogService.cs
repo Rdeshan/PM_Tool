@@ -17,9 +17,9 @@ public class BacklogService : IBacklogService
         _userRepository = userRepository;
     }
 
-    public async Task<List<BacklogItemDTO>> GetBacklogItemsAsync(Guid projectId, Guid? productId, int? status)
+    public async Task<List<BacklogItemDTO>> GetBacklogItemsAsync(Guid projectId, Guid? productId, Guid? subProjectId, int? status)
     {
-        var items = await _backlogRepository.GetByFilterAsync(projectId, productId, status);
+        var items = await _backlogRepository.GetByFilterAsync(projectId, productId, subProjectId, status);
         return items
             .OrderBy(i => i.Priority)
             .Select(MapToDto)
@@ -40,12 +40,15 @@ public class BacklogService : IBacklogService
             Id = Guid.NewGuid(),
             ProjectId = request.ProjectId,
             ProductId = request.ProductId,
+            SubProjectId = request.SubProjectId,
             Title = request.Title.Trim(),
             Description = request.Description?.Trim() ?? string.Empty,
             Type = request.Type,
             Status = request.Status,
             Priority = nextPriority,
             OwnerId = request.OwnerId,
+            StartDate = request.StartDate,
+            DueDate = request.DueDate,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -96,6 +99,12 @@ public class BacklogService : IBacklogService
                     item.Priority = priority;
                 }
                 break;
+            case "startdate":
+                item.StartDate = DateTime.TryParse(request.Value, out var startDate) ? startDate : null;
+                break;
+            case "duedate":
+                item.DueDate = DateTime.TryParse(request.Value, out var dueDate) ? dueDate : null;
+                break;
         }
 
         item.UpdatedAt = DateTime.UtcNow;
@@ -116,7 +125,7 @@ public class BacklogService : IBacklogService
 
     public async Task<bool> ReorderItemsAsync(Guid projectId, Guid? productId, List<ReorderBacklogItemRequest> items)
     {
-        var backlogItems = await _backlogRepository.GetByFilterAsync(projectId, productId, null);
+        var backlogItems = await _backlogRepository.GetByFilterAsync(projectId, productId, null, null);
         var map = items.ToDictionary(x => x.ItemId, x => x.Priority);
 
         foreach (var item in backlogItems)
@@ -156,6 +165,8 @@ public class BacklogService : IBacklogService
             StatusName = Enum.IsDefined(typeof(BacklogItemStatus), item.Status)
                 ? ((BacklogItemStatus)item.Status).ToString()
                 : "Unknown",
+            StartDate = item.StartDate,
+            DueDate = item.DueDate,
             CreatedAt = item.CreatedAt,
             UpdatedAt = item.UpdatedAt
         };

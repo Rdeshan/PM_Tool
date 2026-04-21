@@ -93,6 +93,139 @@
                     </div>
                 </div>
 
+                <!-- Sub-Projects Section -->
+                <div class="card mb-4">
+                    <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">Functional Modules / Sub-Projects (@Model.SubProjects.Count)</h5>
+                        @if (Model.CanEditProduct)
+                        {
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addSubProjectModal">
+                                <i class="bi bi-plus"></i> New Sub-Project
+                            </button>
+                        }
+                    </div>
+                    <div class="card-body">
+                        @if (Model.SubProjects.Count == 0)
+                        {
+                            <div class="text-center py-4">
+                                <i class="bi bi-diagram-3 fs-1 text-muted"></i>
+                                <p class="text-muted mt-2">No sub-projects defined for this product version yet.</p>
+                                @if (Model.CanEditProduct)
+                                {
+                                    <button type="button" class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#addSubProjectModal">
+                                        Create one now
+                                    </button>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="row row-cols-1 row-cols-md-2 g-4">
+                                @foreach (var sub in Model.SubProjects)
+                                {
+                                    <div class="col">
+                                        <div class="card h-100 border-0 shadow-sm">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <div>
+                                                        <h6 class="card-title fw-bold mb-0">@sub.Name</h6>
+                                                        <small class="text-muted">Owner: @sub.ModuleOwnerName</small>
+                                                    </div>
+                                                    <span class="badge @Model.GetSubProjectStatusBadgeClass(sub.Status)">
+                                                        @Model.GetSubProjectStatusLabel(sub.Status)
+                                                    </span>
+                                                </div>
+                                                
+                                                <p class="card-text small text-secondary mb-3">@sub.Description</p>
+                                                
+                                                <div class="mb-3">
+                                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                                        <small class="fw-bold">Progress</small>
+                                                        <small class="text-muted">@sub.Progress% (@sub.CompletedTicketCount/@sub.TicketCount tickets)</small>
+                                                    </div>
+                                                    <div class="progress" style="height: 8px;">
+                                                        <div class="progress-bar @Model.GetProgressColorClass(sub.Progress)" 
+                                                             role="progressbar" 
+                                                             style="width: @sub.Progress%" 
+                                                             aria-valuenow="@sub.Progress" 
+                                                             aria-valuemin="0" 
+                                                             aria-valuemax="100"></div>
+                                                    </div>
+                                                </div>
+
+                                                <div class="d-flex flex-wrap gap-1 mb-3">
+                                                    @foreach (var team in sub.Teams)
+                                                    {
+                                                        <span class="badge bg-light text-dark border" title="Role: @team.Role">
+                                                            <i class="bi bi-people-fill small"></i> @team.TeamName
+                                                        </span>
+                                                    }
+                                                </div>
+
+                                                @if (sub.Dependencies.Count > 0)
+                                                {
+                                                    <div class="mb-3">
+                                                        <small class="fw-bold text-muted d-block mb-1">Dependencies:</small>
+                                                        <div class="d-flex flex-wrap gap-1">
+                                                            @foreach (var dep in sub.Dependencies)
+                                                            {
+                                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning" title="@dep.Notes">
+                                                                    <i class="bi bi-link-45deg"></i> @dep.DependsOnSubProjectName
+                                                                </span>
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                }
+
+                                                <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
+                                                    <div class="small text-muted">
+                                                        <i class="bi bi-calendar3"></i> 
+                                                        @(sub.StartDate?.ToShortDateString() ?? "N/A") - @(sub.DueDate?.ToShortDateString() ?? "N/A")
+                                                    </div>
+                                                    @if (Model.CanEditProduct)
+                                                    {
+                                                        <div class="dropdown">
+                                                            <button class="btn btn-sm btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                                                <i class="bi bi-three-dots-vertical"></i>
+                                                            </button>
+                                                            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                                                <li>
+                                                                    <button type="button" class="dropdown-item" 
+                                                                            onclick="openEditSubProjectModal('@sub.Id', '@Html.Raw(sub.Name)', '@Html.Raw(sub.Description)', '@sub.ModuleOwnerId', '@sub.Status', '@(sub.StartDate?.ToString("yyyy-MM-dd") ?? "")', '@(sub.DueDate?.ToString("yyyy-MM-dd") ?? "")', '@string.Join(",", sub.Teams.Select(t => t.TeamId))')">
+                                                                        <i class="bi bi-pencil small me-2"></i> Edit Details
+                                                                    </button>
+                                                                </li>
+                                                                <li>
+                                                                    <button type="button" class="dropdown-item" 
+                                                                            onclick="openTimelineModal('@sub.Id', '@Html.Raw(sub.Name)')">
+                                                                        <i class="bi bi-clock-history small me-2"></i> View Timeline
+                                                                    </button>
+                                                                </li>
+                                                                <li>
+                                                                    <button type="button" class="dropdown-item" 
+                                                                            onclick="openDependenciesModal('@sub.Id', '@Html.Raw(sub.Name)', '@string.Join("|", sub.Dependencies.Select(d => d.Id + ":" + d.DependsOnSubProjectName + ":" + d.Notes))')">
+                                                                        <i class="bi bi-link-45deg small me-2"></i> Dependencies
+                                                                    </button>
+                                                                </li>
+                                                                <li><hr class="dropdown-divider"></li>
+                                                                <li>
+                                                                    <button type="button" class="dropdown-item text-danger" onclick="deleteSubProject('@sub.Id')">
+                                                                        <i class="bi bi-trash small me-2"></i> Delete
+                                                                    </button>
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                    }
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
                 <!-- Release Notes Section -->
                 <div class="card">
                     <div class="card-header bg-light d-flex justify-content-between align-items-center">
@@ -245,7 +378,247 @@
             </div>
         }
     }
+
+    <!-- Add Sub-Project Modal -->
+    <div class="modal fade" id="addSubProjectModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Create New Sub-Project</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" asp-page-handler="AddSubProject">
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-7">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Sub-Project Name <span class="text-danger">*</span></label>
+                                    <input type="text" name="request.Name" class="form-control" placeholder="e.g., Student Registration Portal" required />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Description</label>
+                                    <textarea name="request.Description" class="form-control" rows="4" placeholder="Briefly describe the module scope..."></textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Module Owner <span class="text-danger">*</span></label>
+                                    <select name="request.ModuleOwnerId" class="form-select" required>
+                                        <option value="">-- Select Owner --</option>
+                                        @foreach (var manager in Model.ProjectManagers)
+                                        {
+                                            <option value="@manager.Id">@manager.FirstName @manager.LastName</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Start Date</label>
+                                    <input type="date" name="request.StartDate" class="form-control" />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Due Date</label>
+                                    <input type="date" name="request.DueDate" class="form-control" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr />
+                        
+                        <div class="mb-0">
+                            <label class="form-label fw-bold">Assign Teams</label>
+                            <div class="row row-cols-2">
+                                @foreach (var team in Model.AvailableTeams)
+                                {
+                                    <div class="col mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="request.TeamIds" value="@team.Id" id="team_@team.Id">
+                                            <label class="form-check-label small" for="team_@team.Id">
+                                                @team.Name
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Create Sub-Project</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Sub-Project Modal -->
+    <div class="modal fade" id="editSubProjectModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Edit Sub-Project</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <form method="post" asp-page-handler="UpdateSubProject">
+                    <input type="hidden" name="subProjectId" id="editSubProjectId" />
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col-md-7">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Sub-Project Name <span class="text-danger">*</span></label>
+                                    <input type="text" name="request.Name" id="editSubProjectName" class="form-control" required />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Description</label>
+                                    <textarea name="request.Description" id="editSubProjectDescription" class="form-control" rows="4"></textarea>
+                                </div>
+                            </div>
+                            <div class="col-md-5">
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Status <span class="text-danger">*</span></label>
+                                    <select name="request.Status" id="editSubProjectStatus" class="form-select" required>
+                                        <option value="1">Not Started</option>
+                                        <option value="2">In Progress</option>
+                                        <option value="3">In Review</option>
+                                        <option value="4">Completed</option>
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Module Owner <span class="text-danger">*</span></label>
+                                    <select name="request.ModuleOwnerId" id="editSubProjectOwner" class="form-select" required>
+                                        @foreach (var manager in Model.ProjectManagers)
+                                        {
+                                            <option value="@manager.Id">@manager.FirstName @manager.LastName</option>
+                                        }
+                                    </select>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Start Date</label>
+                                    <input type="date" name="request.StartDate" id="editSubProjectStartDate" class="form-control" />
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Due Date</label>
+                                    <input type="date" name="request.DueDate" id="editSubProjectDueDate" class="form-control" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <hr />
+                        
+                        <div class="mb-0">
+                            <label class="form-label fw-bold">Assigned Teams</label>
+                            <div class="row row-cols-2">
+                                @foreach (var team in Model.AvailableTeams)
+                                {
+                                    <div class="col mb-2">
+                                        <div class="form-check">
+                                            <input class="form-check-input edit-team-checkbox" type="checkbox" name="request.TeamIds" value="@team.Id" id="edit_team_@team.Id">
+                                            <label class="form-check-label small" for="edit_team_@team.Id">
+                                                @team.Name
+                                            </label>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Changes</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- Manage Dependencies Modal -->
+    <div class="modal fade" id="dependenciesModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title">Sub-Project Dependencies</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <h6 id="depSubProjectName" class="fw-bold mb-3"></h6>
+                    
+                    <div id="dependencyList" class="mb-4">
+                        <!-- Populated by JS -->
+                    </div>
+
+                    <form method="post" asp-page-handler="AddDependency" class="border-top pt-3">
+                        <input type="hidden" name="subProjectId" id="depSubProjectId" />
+                        <label class="form-label fw-bold">Add Dependency</label>
+                        <div class="mb-3">
+                            <select name="dependsOnSubProjectId" class="form-select mb-2" required>
+                                <option value="">-- Select Sub-Project --</option>
+                                @foreach (var otherSub in Model.SubProjects)
+                                {
+                                    <option value="@otherSub.Id">@otherSub.Name</option>
+                                }
+                            </select>
+                            <input type="text" name="notes" class="form-control" placeholder="Optional notes (e.g., API must be ready)" />
+                        </div>
+                        <button type="submit" class="btn btn-primary w-100">Add Dependency Link</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+        </div>
+    </div>
+
+    <!-- Timeline Modal -->
+    <div class="modal fade" id="timelineModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header bg-dark text-white">
+                    <h5 class="modal-title"><i class="bi bi-clock-history me-2"></i> Sub-Project Timeline</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body overflow-auto">
+                    <h5 id="timelineSubProjectName" class="fw-bold mb-4"></h5>
+                    
+                    <div id="timelineContainer" class="position-relative" style="min-height: 300px;">
+                        <!-- Timeline will be rendered here -->
+                        <div class="text-center py-5" id="timelineLoading">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading timeline data...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+    .timeline-item-bar {
+        height: 24px;
+        border-radius: 12px;
+        position: relative;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+    .timeline-item-bar:hover {
+        transform: scaleY(1.2);
+        z-index: 10;
+    }
+    .timeline-grid-line {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        border-left: 1px dashed #dee2e6;
+        width: 1px;
+    }
+    .timeline-date-label {
+        font-size: 0.7rem;
+        color: #6c757d;
+        transform: translateX(-50%);
+        white-space: nowrap;
+    }
+</style>
 
 @section Scripts {
     <script>
@@ -281,6 +654,196 @@
                 document.body.appendChild(form);
                 form.submit();
             }
+        }
+
+        function deleteSubProject(subProjectId) {
+            if (confirm('Delete this sub-project? All associated backlog items will be unlinked.')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '@Html.Raw(Url.Page("./Details", new { handler = "DeleteSubProject" }))';
+                
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'subProjectId';
+                input.value = subProjectId;
+                
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+
+        function openEditSubProjectModal(id, name, description, ownerId, status, startDate, dueDate, teamIds) {
+            document.getElementById('editSubProjectId').value = id;
+            document.getElementById('editSubProjectName').value = name;
+            document.getElementById('editSubProjectDescription').value = description;
+            document.getElementById('editSubProjectOwner').value = ownerId;
+            document.getElementById('editSubProjectStatus').value = status;
+            document.getElementById('editSubProjectStartDate').value = startDate;
+            document.getElementById('editSubProjectDueDate').value = dueDate;
+            
+            // Handle checkboxes
+            const teamsList = teamIds.split(',');
+            const checkboxes = document.querySelectorAll('.edit-team-checkbox');
+            checkboxes.forEach(cb => {
+                cb.checked = teamsList.includes(cb.value);
+            });
+            
+            const modal = new bootstrap.Modal(document.getElementById('editSubProjectModal'));
+            modal.show();
+        }
+
+        function openDependenciesModal(id, name, dependenciesRaw) {
+            document.getElementById('depSubProjectId').value = id;
+            document.getElementById('depSubProjectName').innerText = "Managing for: " + name;
+            
+            const listDiv = document.getElementById('dependencyList');
+            listDiv.innerHTML = '<label class="form-label text-muted">Current Dependencies</label>';
+            
+            if (!dependenciesRaw) {
+                listDiv.innerHTML += '<p class="small text-muted italic">No dependencies defined.</p>';
+            } else {
+                const deps = dependenciesRaw.split('|');
+                deps.forEach(d => {
+                    const parts = d.split(':');
+                    const depId = parts[0];
+                    const depName = parts[1];
+                    const depNotes = parts[2] || "";
+                    
+                    const item = document.createElement('div');
+                    item.className = 'd-flex justify-content-between align-items-center p-2 mb-1 bg-light rounded border';
+                    item.innerHTML = `
+                        <div>
+                            <span class="fw-bold small">${depName}</span>
+                            ${depNotes ? `<br><small class="text-muted">${depNotes}</small>` : ''}
+                        </div>
+                        <button type="button" class="btn btn-sm text-danger" onclick="removeDependency('${depId}')">
+                            <i class="bi bi-x-circle"></i>
+                        </button>
+                    `;
+                    listDiv.appendChild(item);
+                });
+            }
+            
+            const modal = new bootstrap.Modal(document.getElementById('dependenciesModal'));
+            modal.show();
+        }
+
+        function removeDependency(dependencyId) {
+            if (confirm('Remove this dependency link?')) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '@Html.Raw(Url.Page("./Details", new { handler = "RemoveDependency" }))';
+                
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'dependencyId';
+                input.value = dependencyId;
+                
+                form.appendChild(input);
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+                form.submit();
+            }
+        }
+
+        function openTimelineModal(subId, name) {
+            document.getElementById('timelineSubProjectName').innerText = name;
+            document.getElementById('timelineContainer').innerHTML = `
+                <div class="text-center py-5" id="timelineLoading">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading timeline data...</p>
+                </div>`;
+            
+            const modal = new bootstrap.Modal(document.getElementById('timelineModal'));
+            modal.show();
+
+            // Fetch data
+            fetch(`?handler=SubProjectBacklog&projectId=@Model.ProjectId&id=@Model.Product.Id&subId=${subId}`)
+                .then(response => response.json())
+                .then(data => {
+                    renderTimeline(data);
+                })
+                .catch(err => {
+                    document.getElementById('timelineContainer').innerHTML = `<div class="alert alert-danger">Error loading timeline data.</div>`;
+                    console.error(err);
+                });
+        }
+
+        function renderTimeline(items) {
+            const container = document.getElementById('timelineContainer');
+            
+            if (!items || items.length === 0) {
+                container.innerHTML = `<div class="text-center py-5"><i class="bi bi-info-circle fs-3 text-muted"></i><p class="text-muted mt-2">No backlog items found for this sub-project.</p></div>`;
+                return;
+            }
+
+            // Filter items with dates
+            const datedItems = items.filter(i => i.startDate || i.dueDate || i.createdAt);
+            
+            if (datedItems.length === 0) {
+                container.innerHTML = `<div class="text-center py-5"><i class="bi bi-calendar-x fs-3 text-muted"></i><p class="text-muted mt-2">No items with dates found to plot on timeline.</p></div>`;
+                return;
+            }
+
+            // Determine date range
+            let minDate = new Date();
+            let maxDate = new Date();
+            datedItems.forEach(i => {
+                const start = new Date(i.startDate || i.createdAt);
+                const end = new Date(i.dueDate || i.startDate || i.createdAt);
+                if (start < minDate) minDate = start;
+                if (end > maxDate) maxDate = end;
+            });
+
+            // Buffer range
+            minDate.setDate(minDate.getDate() - 2);
+            maxDate.setDate(maxDate.getDate() + 5);
+
+            const totalDays = (maxDate - minDate) / (1000 * 60 * 60 * 24);
+            const pixelsPerDay = Math.max(10, container.clientWidth / totalDays);
+            
+            let html = `<div class="position-relative" style="width: ${totalDays * pixelsPerDay}px; padding-top: 30px;">`;
+            
+            // Draw grid lines
+            for (let i = 0; i < totalDays; i++) {
+                const current = new Date(minDate);
+                current.setDate(current.getDate() + i);
+                if (current.getDay() === 1 || i === 0) { // Mondays or first day
+                    const left = i * pixelsPerDay;
+                    html += `
+                        <div class="timeline-grid-line" style="left: ${left}px"></div>
+                        <div class="timeline-date-label position-absolute" style="left: ${left}px; top: 0;">${current.toLocaleDateString(undefined, {month:'short', day:'numeric'})}</div>
+                    `;
+                }
+            }
+
+            // Draw items
+            datedItems.forEach((item, index) => {
+                const start = new Date(item.startDate || item.createdAt);
+                const end = new Date(item.dueDate || item.startDate || item.createdAt);
+                const left = ((start - minDate) / (1000 * 60 * 60 * 24)) * pixelsPerDay;
+                const width = Math.max(20, (((end - start) / (1000 * 60 * 60 * 24)) * pixelsPerDay));
+                const top = 50 + (index * 40);
+                
+                const colorClass = item.status === 4 ? 'bg-success' : (item.status === 3 ? 'bg-warning' : 'bg-primary');
+
+                html += `
+                    <div class="timeline-item-bar ${colorClass} shadow-sm d-flex align-items-center px-2 text-white small" 
+                         style="left: ${left}px; width: ${width}px; top: ${top}px; position: absolute;"
+                         title="${item.title} (${item.statusName})">
+                        <span class="text-truncate">${item.title}</span>
+                    </div>
+                `;
+            });
+
+            html += '</div>';
+            container.innerHTML = html;
+            container.style.minHeight = (100 + (datedItems.length * 40)) + "px";
         }
     </script>
 }
