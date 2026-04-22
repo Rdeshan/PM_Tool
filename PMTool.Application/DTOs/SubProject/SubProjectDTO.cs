@@ -11,6 +11,7 @@ public class SubProjectDTO
     public string ModuleOwnerName { get; set; } = string.Empty;
     public DateTime? StartDate { get; set; }
     public DateTime? DueDate { get; set; }
+    public string? ColorCode { get; set; }
     public int Progress { get; set; } // 0-100
     public int TicketCount { get; set; }
     public int CompletedTicketCount { get; set; }

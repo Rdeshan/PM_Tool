@@ -50,6 +50,8 @@ public class EditModel : PageModel
 
     public async Task<IActionResult> OnPostAsync(Guid id)
     {
+        var isEmbedded = string.Equals(Request.Query["embedded"], "true", StringComparison.OrdinalIgnoreCase);
+
         var validator = new CreateProjectRequestValidator();
         var validationResult = await validator.ValidateAsync(new CreateProjectRequest
         {
@@ -78,6 +80,11 @@ public class EditModel : PageModel
             Project = await _projectService.GetProjectByIdAsync(id);
             ProjectId = id;
             return Page();
+        }
+
+        if (isEmbedded)
+        {
+            return Content("<script>window.parent.location.reload();</script>", "text/html");
         }
 
         return RedirectToPage("./Details", new { id });

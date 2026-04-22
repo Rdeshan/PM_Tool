@@ -23,7 +23,7 @@
                 </div>
             }
 
-            <form method="post">
+            <form method="post" asp-route-id="@Model.ProjectId" asp-route-embedded="true">
                 <div class="mb-3">
                     <label asp-for="Input.Name" class="form-label">Project Name <span class="text-danger">*</span></label>
                     <input asp-for="Input.Name" class="form-control form-control-lg" />
@@ -111,7 +111,7 @@ else
                         </div>
                     }
 
-                    <form method="post">
+                    <form method="post" asp-route-id="@Model.ProjectId">
                         <div class="mb-3">
                             <label asp-for="Input.Name" class="form-label">Project Name <span class="text-danger">*</span></label>
                             <input asp-for="Input.Name" class="form-control form-control-lg" />

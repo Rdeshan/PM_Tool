@@ -61,36 +61,7 @@
                             </div>
                         </div>
 
-                        <!-- Team Assignment -->
-                        <div class="mb-4">
-                            <label class="form-label">Assign Teams</label>
-                            <div id="teamsContainer">
-                                <div class="team-assignment mb-2">
-                                    <div class="row align-items-end">
-                                        <div class="col-md-7">
-                                            <select class="form-select team-select" name="teamId">
-                                                <option value="">-- Select Team --</option>
-                                                @foreach (var team in Model.Teams)
-                                                {
-                                                    <option value="@team.Value">@team.Text</option>
-                                                }
-                                            </select>
-                                        </div>
-                                        <div class="col-md-4">
-                                            <input type="text" class="form-control team-role" name="teamRole" placeholder="Role (e.g., Development, QA)" />
-                                        </div>
-                                        <div class="col-md-1">
-                                            <button type="button" class="btn btn-outline-danger btn-sm remove-team" title="Remove team">
-                                                <i class="bi bi-trash"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" id="addTeamBtn">
-                                <i class="bi bi-plus"></i> Add Team
-                            </button>
-                        </div>
+                      
 
                         <!-- Form Actions -->
                          <div class="d-flex gap-2">

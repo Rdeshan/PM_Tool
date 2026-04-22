@@ -86,9 +86,9 @@
                     <div class="card-footer bg-white d-flex justify-content-end">
                         @if (Model.CanEditProduct)
                         {
-                            <a asp-page="./Edit" asp-route-projectId="@Model.ProjectId" asp-route-id="@Model.Product.Id" class="btn btn-sm btn-primary">
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#editProductModal">
                                 <i class="bi bi-pencil"></i> Edit
-                            </a>
+                            </button>
                         }
                     </div>
                 </div>
@@ -124,98 +124,100 @@
                                 @foreach (var sub in Model.SubProjects)
                                 {
                                     <div class="col">
-                                        <div class="card h-100 border-0 shadow-sm">
+                                        <div class="card h-100 border-0 shadow-sm custom-card-bg foldable-sub-project-card" style="background-color: @(string.IsNullOrWhiteSpace(sub.ColorCode) ? "#D7FCFC" : sub.ColorCode)">
                                             <div class="card-body">
-                                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                                    <div>
+                                                <div class="d-flex justify-content-between align-items-start sub-project-card-header">
+                                                    <div class="me-2">
                                                         <h6 class="card-title fw-bold mb-0">@sub.Name</h6>
                                                         <small class="text-muted">Owner: @sub.ModuleOwnerName</small>
                                                     </div>
-                                                    <span class="badge @Model.GetSubProjectStatusBadgeClass(sub.Status)">
-                                                        @Model.GetSubProjectStatusLabel(sub.Status)
-                                                    </span>
-                                                </div>
-                                                
-                                                <p class="card-text small text-secondary mb-3">@sub.Description</p>
-                                                
-                                                <div class="mb-3">
-                                                    <div class="d-flex justify-content-between align-items-center mb-1">
-                                                        <small class="fw-bold">Progress</small>
-                                                        <small class="text-muted">@sub.Progress% (@sub.CompletedTicketCount/@sub.TicketCount tickets)</small>
-                                                    </div>
-                                                    <div class="progress" style="height: 8px;">
-                                                        <div class="progress-bar @Model.GetProgressColorClass(sub.Progress)" 
-                                                             role="progressbar" 
-                                                             style="width: @sub.Progress%" 
-                                                             aria-valuenow="@sub.Progress" 
-                                                             aria-valuemin="0" 
-                                                             aria-valuemax="100"></div>
-                                                    </div>
-                                                </div>
-
-                                                <div class="d-flex flex-wrap gap-1 mb-3">
-                                                    @foreach (var team in sub.Teams)
-                                                    {
-                                                        <span class="badge bg-light text-dark border" title="Role: @team.Role">
-                                                            <i class="bi bi-people-fill small"></i> @team.TeamName
+                                                    <div class="d-flex align-items-center gap-2 flex-shrink-0">
+                                                        <span class="badge @Model.GetSubProjectStatusBadgeClass(sub.Status)">
+                                                            @Model.GetSubProjectStatusLabel(sub.Status)
                                                         </span>
-                                                    }
+                                                        @if (Model.CanEditProduct)
+                                                        {
+                                                            <div class="dropdown">
+                                                                <button class="btn btn-sm btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
+                                                                    <i class="bi bi-three-dots-vertical"></i>
+                                                                </button>
+                                                                <ul class="dropdown-menu dropdown-menu-end shadow border-0">
+                                                                    <li>
+                                                                        <button type="button" class="dropdown-item"
+                                                                                onclick="openEditSubProjectModal('@sub.Id', '@Html.Raw(sub.Name)', '@Html.Raw(sub.Description)', '@sub.ModuleOwnerId', '@sub.Status', '@(sub.StartDate?.ToString("yyyy-MM-dd") ?? "")', '@(sub.DueDate?.ToString("yyyy-MM-dd") ?? "")', '@string.Join(",", sub.Teams.Select(t => t.TeamId))')">
+                                                                            <i class="bi bi-pencil small me-2"></i> Edit Details
+                                                                        </button>
+                                                                    </li>
+                                                                    <li>
+                                                                        <button type="button" class="dropdown-item"
+                                                                                onclick="openTimelineModal('@sub.Id', '@Html.Raw(sub.Name)')">
+                                                                            <i class="bi bi-clock-history small me-2"></i> View Timeline
+                                                                        </button>
+                                                                    </li>
+                                                                    <li>
+                                                                        <button type="button" class="dropdown-item"
+                                                                                onclick="openDependenciesModal('@sub.Id', '@Html.Raw(sub.Name)', '@string.Join("|", sub.Dependencies.Select(d => d.Id + ":" + d.DependsOnSubProjectName + ":" + d.Notes))')">
+                                                                            <i class="bi bi-link-45deg small me-2"></i> Dependencies
+                                                                        </button>
+                                                                    </li>
+                                                                    <li><hr class="dropdown-divider"></li>
+                                                                    <li>
+                                                                        <button type="button" class="dropdown-item text-danger" onclick="deleteSubProject('@sub.Id')">
+                                                                            <i class="bi bi-trash small me-2"></i> Delete
+                                                                        </button>
+                                                                    </li>
+                                                                </ul>
+                                                            </div>
+                                                        }
+                                                    </div>
                                                 </div>
 
-                                                @if (sub.Dependencies.Count > 0)
-                                                {
+                                                <div class="sub-project-card-details">
+                                                    <p class="card-text small text-secondary mb-3">@sub.Description</p>
+
                                                     <div class="mb-3">
-                                                        <small class="fw-bold text-muted d-block mb-1">Dependencies:</small>
-                                                        <div class="d-flex flex-wrap gap-1">
-                                                            @foreach (var dep in sub.Dependencies)
-                                                            {
-                                                                <span class="badge bg-warning-subtle text-warning-emphasis border border-warning" title="@dep.Notes">
-                                                                    <i class="bi bi-link-45deg"></i> @dep.DependsOnSubProjectName
-                                                                </span>
-                                                            }
+                                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                                            <small class="fw-bold">Progress</small>
+                                                            <small class="text-muted">@sub.Progress% (@sub.CompletedTicketCount/@sub.TicketCount tickets)</small>
+                                                        </div>
+                                                        <div class="progress" style="height: 8px;">
+                                                            <div class="progress-bar @Model.GetProgressColorClass(sub.Progress)"
+                                                                 role="progressbar"
+                                                                 style="width: @sub.Progress%"
+                                                                 aria-valuenow="@sub.Progress"
+                                                                 aria-valuemin="0"
+                                                                 aria-valuemax="100"></div>
                                                         </div>
                                                     </div>
-                                                }
 
-                                                <div class="d-flex justify-content-between align-items-center mt-auto pt-2 border-top">
-                                                    <div class="small text-muted">
-                                                        <i class="bi bi-calendar3"></i> 
+                                                    <div class="d-flex flex-wrap gap-1 mb-3">
+                                                        @foreach (var team in sub.Teams)
+                                                        {
+                                                            <span class="badge bg-light text-dark border" title="Role: @team.Role">
+                                                                <i class="bi bi-people-fill small"></i> @team.TeamName
+                                                            </span>
+                                                        }
+                                                    </div>
+
+                                                    @if (sub.Dependencies.Count > 0)
+                                                    {
+                                                        <div class="mb-3">
+                                                            <small class="fw-bold text-muted d-block mb-1">Dependencies:</small>
+                                                            <div class="d-flex flex-wrap gap-1">
+                                                                @foreach (var dep in sub.Dependencies)
+                                                                {
+                                                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning" title="@dep.Notes">
+                                                                        <i class="bi bi-link-45deg"></i> @dep.DependsOnSubProjectName
+                                                                    </span>
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    }
+
+                                                    <div class="small text-muted mt-auto pt-2 border-top">
+                                                        <i class="bi bi-calendar3"></i>
                                                         @(sub.StartDate?.ToShortDateString() ?? "N/A") - @(sub.DueDate?.ToShortDateString() ?? "N/A")
                                                     </div>
-                                                    @if (Model.CanEditProduct)
-                                                    {
-                                                        <div class="dropdown">
-                                                            <button class="btn btn-sm btn-link text-muted p-0" type="button" data-bs-toggle="dropdown">
-                                                                <i class="bi bi-three-dots-vertical"></i>
-                                                            </button>
-                                                            <ul class="dropdown-menu dropdown-menu-end shadow border-0">
-                                                                <li>
-                                                                    <button type="button" class="dropdown-item" 
-                                                                            onclick="openEditSubProjectModal('@sub.Id', '@Html.Raw(sub.Name)', '@Html.Raw(sub.Description)', '@sub.ModuleOwnerId', '@sub.Status', '@(sub.StartDate?.ToString("yyyy-MM-dd") ?? "")', '@(sub.DueDate?.ToString("yyyy-MM-dd") ?? "")', '@string.Join(",", sub.Teams.Select(t => t.TeamId))')">
-                                                                        <i class="bi bi-pencil small me-2"></i> Edit Details
-                                                                    </button>
-                                                                </li>
-                                                                <li>
-                                                                    <button type="button" class="dropdown-item" 
-                                                                            onclick="openTimelineModal('@sub.Id', '@Html.Raw(sub.Name)')">
-                                                                        <i class="bi bi-clock-history small me-2"></i> View Timeline
-                                                                    </button>
-                                                                </li>
-                                                                <li>
-                                                                    <button type="button" class="dropdown-item" 
-                                                                            onclick="openDependenciesModal('@sub.Id', '@Html.Raw(sub.Name)', '@string.Join("|", sub.Dependencies.Select(d => d.Id + ":" + d.DependsOnSubProjectName + ":" + d.Notes))')">
-                                                                        <i class="bi bi-link-45deg small me-2"></i> Dependencies
-                                                                    </button>
-                                                                </li>
-                                                                <li><hr class="dropdown-divider"></li>
-                                                                <li>
-                                                                    <button type="button" class="dropdown-item text-danger" onclick="deleteSubProject('@sub.Id')">
-                                                                        <i class="bi bi-trash small me-2"></i> Delete
-                                                                    </button>
-                                                                </li>
-                                                            </ul>
-                                                        </div>
-                                                    }
                                                 </div>
                                             </div>
                                         </div>
@@ -342,6 +344,23 @@
         </div>
 
         <!-- Add Release Notes Modal -->
+        <div class="modal fade" id="editProductModal" tabindex="-1">
+            <div class="modal-dialog modal-lg" style="max-width: 700px;">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5 class="modal-title"><i class="bi bi-pencil"></i> Edit Product</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-0">
+                        <iframe src="@Url.Page("./Edit", new { projectId = Model.ProjectId, id = Model.Product.Id, embedded = true })"
+                                title="Edit Product"
+                                style="width:100%; height:620px; border:0;"></iframe>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Add Release Notes Modal -->
         <div class="modal fade" id="addReleaseNotesModal" tabindex="-1">
             <div class="modal-dialog modal-lg">
                 <div class="modal-content">
@@ -419,27 +438,51 @@
                                     <label class="form-label fw-bold">Due Date</label>
                                     <input type="date" name="request.DueDate" class="form-control" />
                                 </div>
+
+                                <div class="mb-0">
+                                    <label class="form-label fw-bold">Card Color <small class="text-muted fw-normal">(Optional)</small></label>
+                                    <div class="d-flex flex-wrap gap-2 align-items-center subproject-color-options">
+                                        <label class="subproject-color-option" title="No color (default)">
+                                            <input type="radio" name="request.ColorCode" value="" />
+                                            <span class="subproject-color-circle subproject-color-none"><i class="bi bi-slash"></i></span>
+                                        </label>
+                                        <label class="subproject-color-option" title="#D7FCFC">
+                                            <input type="radio" name="request.ColorCode" value="#D7FCFC" />
+                                            <span class="subproject-color-circle" style="background-color: #D7FCFC;"></span>
+                                        </label>
+                                        <label class="subproject-color-option" title="#F7F6DA">
+                                            <input type="radio" name="request.ColorCode" value="#F7F6DA" />
+                                            <span class="subproject-color-circle" style="background-color: #F7F6DA;"></span>
+                                        </label>
+                                        <label class="subproject-color-option" title="#F7DADD">
+                                            <input type="radio" name="request.ColorCode" value="#F7DADD" />
+                                            <span class="subproject-color-circle" style="background-color: #F7DADD;"></span>
+                                        </label>
+                                        <label class="subproject-color-option" title="#F0DAF7">
+                                            <input type="radio" name="request.ColorCode" value="#F0DAF7" />
+                                            <span class="subproject-color-circle" style="background-color: #F0DAF7;"></span>
+                                        </label>
+                                        <label class="subproject-color-option" title="#D9FFD9">
+                                            <input type="radio" name="request.ColorCode" value="#D9FFD9" />
+                                            <span class="subproject-color-circle" style="background-color: #D9FFD9;"></span>
+                                        </label>
+                                        <label class="subproject-color-option" title="#FEFFCF">
+                                            <input type="radio" name="request.ColorCode" value="#FEFFCF" />
+                                            <span class="subproject-color-circle" style="background-color: #FEFFCF;"></span>
+                                        </label>
+                                        <label class="subproject-color-option" title="#E3E7FC">
+                                            <input type="radio" name="request.ColorCode" value="#E3E7FC" />
+                                            <span class="subproject-color-circle" style="background-color: #E3E7FC;"></span>
+                                        </label>
+                                        <label class="subproject-color-option" title="#E8E8E8">
+                                            <input type="radio" name="request.ColorCode" value="#E8E8E8" />
+                                            <span class="subproject-color-circle" style="background-color: #E8E8E8;"></span>
+                                        </label>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <hr />
-                        
-                        <div class="mb-0">
-                            <label class="form-label fw-bold">Assign Teams</label>
-                            <div class="row row-cols-2">
-                                @foreach (var team in Model.AvailableTeams)
-                                {
-                                    <div class="col mb-2">
-                                        <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="request.TeamIds" value="@team.Id" id="team_@team.Id">
-                                            <label class="form-check-label small" for="team_@team.Id">
-                                                @team.Name
-                                            </label>
-                                        </div>
-                                    </div>
-                                }
-                            </div>
-                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
@@ -618,6 +661,63 @@
         transform: translateX(-50%);
         white-space: nowrap;
     }
+                    
+    .custom-card-bg {
+        background-color: #D7FCFC;
+    }
+
+    .foldable-sub-project-card {
+        cursor: pointer;
+    }
+
+    .foldable-sub-project-card .sub-project-card-details {
+        max-height: 0;
+        opacity: 0;
+        overflow: hidden;
+        transition: max-height 0.28s ease, opacity 0.2s ease, margin-top 0.2s ease;
+        margin-top: 0;
+        pointer-events: none;
+    }
+
+    .foldable-sub-project-card:hover .sub-project-card-details,
+    .foldable-sub-project-card.is-expanded .sub-project-card-details {
+        max-height: 700px;
+        opacity: 1;
+        margin-top: 0.75rem;
+        pointer-events: auto;
+    }
+
+    .subproject-color-options .subproject-color-option {
+        cursor: pointer;
+        margin: 0;
+    }
+
+    .subproject-color-options .subproject-color-option input {
+        display: none;
+    }
+
+    .subproject-color-options .subproject-color-circle {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        border: 1px solid #adb5bd;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .subproject-color-options .subproject-color-none {
+        background-color: #fff;
+        color: #6c757d;
+        font-size: 0.75rem;
+    }
+
+    .subproject-color-options .subproject-color-option input:checked + .subproject-color-circle {
+        transform: scale(1.08);
+        box-shadow: 0 0 0 2px #0d6efd;
+    }
+
 </style>
 
 @section Scripts {
@@ -745,9 +845,6 @@
                 form.submit();
             }
         }
-                form.submit();
-            }
-        }
 
         function openTimelineModal(subId, name) {
             document.getElementById('timelineSubProjectName').innerText = name;
@@ -845,5 +942,23 @@
             container.innerHTML = html;
             container.style.minHeight = (100 + (datedItems.length * 40)) + "px";
         }
+
+        function initializeFoldableSubProjectCards() {
+            const cards = document.querySelectorAll('.foldable-sub-project-card');
+            cards.forEach(card => {
+                card.addEventListener('click', event => {
+                    if (event.target.closest('.dropdown, .dropdown-menu, .dropdown-item, button, a, input, select, textarea, label, [data-bs-toggle="dropdown"]')) {
+                        return;
+                    }
+
+                    card.classList.toggle('is-expanded');
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', initializeFoldableSubProjectCards);
     </script>
 }
+
+   
+

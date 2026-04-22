@@ -10,6 +10,7 @@ public class SubProject
     public Guid ModuleOwnerId { get; set; } // The project manager/lead for this sub-project
     public DateTime? StartDate { get; set; }
     public DateTime? DueDate { get; set; }
+    public string? ColorCode { get; set; }
     public int Progress { get; set; } = 0; // 0-100, calculated from ticket completion ratio
     
     public DateTime CreatedAt { get; set; }

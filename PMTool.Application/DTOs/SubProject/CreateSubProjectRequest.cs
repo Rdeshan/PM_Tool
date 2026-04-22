@@ -8,6 +8,7 @@ public class CreateSubProjectRequest
     public Guid ModuleOwnerId { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? DueDate { get; set; }
+    public string? ColorCode { get; set; }
     public List<Guid> TeamIds { get; set; } = new(); // IDs of teams to assign
     public List<string> TeamRoles { get; set; } = new(); // Roles for each team (Development, QA, etc.)
 }

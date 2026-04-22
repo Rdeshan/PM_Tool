@@ -53,6 +53,8 @@ public class EditModel : PageModel
 
     public async Task<IActionResult> OnPostAsync(Guid projectId, Guid id)
     {
+        var isEmbedded = string.Equals(Request.Query["embedded"], "true", StringComparison.OrdinalIgnoreCase);
+
         ProjectId = projectId;
         var project = await _projectService.GetProjectByIdAsync(projectId);
         ProjectName = project?.Name ?? string.Empty;
@@ -78,6 +80,11 @@ public class EditModel : PageModel
         {
             ModelState.AddModelError("", "Failed to update product. Version name may already exist in this project.");
             return Page();
+        }
+
+        if (isEmbedded)
+        {
+            return Content("<script>if(window.parent){window.parent.bootstrap?.Modal.getInstance(window.parent.document.getElementById('editProductModal'))?.hide();window.parent.location.reload();}</script>", "text/html");
         }
 
         return RedirectToPage("./Details", new { projectId, id });

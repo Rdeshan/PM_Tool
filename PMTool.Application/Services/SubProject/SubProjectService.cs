@@ -20,6 +20,18 @@ public interface ISubProjectService
 
 public class SubProjectService : ISubProjectService
 {
+    private static readonly HashSet<string> AllowedSubProjectColors = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "#D7FCFC",
+        "#F7F6DA",
+        "#F7DADD",
+        "#F0DAF7",
+        "#D9FFD9",
+        "#FEFFCF",
+        "#E3E7FC",
+        "#E8E8E8"
+    };
+
     private readonly ISubProjectRepository _repository;
     private readonly IProjectRepository _projectRepository;
     private readonly IUserRepository _userRepository;
@@ -51,6 +63,7 @@ public class SubProjectService : ISubProjectService
                 ModuleOwnerId = request.ModuleOwnerId,
                 StartDate = request.StartDate,
                 DueDate = request.DueDate,
+                ColorCode = NormalizeSubProjectColor(request.ColorCode),
                 Progress = 0,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
@@ -201,6 +214,7 @@ public class SubProjectService : ISubProjectService
             ModuleOwnerName = subProject.ModuleOwner?.FirstName + " " + subProject.ModuleOwner?.LastName ?? string.Empty,
             StartDate = subProject.StartDate,
             DueDate = subProject.DueDate,
+            ColorCode = subProject.ColorCode,
             Progress = subProject.Progress,
             TicketCount = ticketCount,
             CompletedTicketCount = completedTickets,
@@ -209,5 +223,16 @@ public class SubProjectService : ISubProjectService
             CreatedAt = subProject.CreatedAt,
             UpdatedAt = subProject.UpdatedAt
         };
+    }
+
+    private static string? NormalizeSubProjectColor(string? colorCode)
+    {
+        if (string.IsNullOrWhiteSpace(colorCode))
+        {
+            return null;
+        }
+
+        var normalized = colorCode.Trim().ToUpperInvariant();
+        return AllowedSubProjectColors.Contains(normalized) ? normalized : null;
     }
 }

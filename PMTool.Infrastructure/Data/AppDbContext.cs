@@ -393,6 +393,9 @@ public class AppDbContext : DbContext
             entity.Property(e => e.Description)
                 .HasMaxLength(1000);
 
+            entity.Property(e => e.ColorCode)
+                .HasMaxLength(7);
+
             entity.Property(e => e.Progress)
                 .HasDefaultValue(0); // 0-100 based on ticket completion
 

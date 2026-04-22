@@ -123,6 +123,8 @@ public class DetailsModel : PageModel
         if (!User.IsInRole("Administrator") && !User.IsInRole("Project Manager"))
             return Forbid();
 
+        request.TeamIds = new List<Guid>();
+        request.TeamRoles = new List<string>();
         request.ProductId = id;
         var result = await _subProjectService.CreateSubProjectAsync(request);
 
