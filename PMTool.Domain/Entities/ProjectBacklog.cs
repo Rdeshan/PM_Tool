@@ -6,6 +6,7 @@ public class ProjectBacklog
     public Guid ProjectId { get; set; }
     public Guid? ProductId { get; set; } // Optional: if null, backlog is for project; if set, backlog is for product
     public Guid? SubProjectId { get; set; } // Optional: if set, backlog is for sub-project
+    public Guid? ParentBacklogItemId { get; set; }
     public Guid? OwnerId { get; set; }
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
@@ -22,5 +23,7 @@ public class ProjectBacklog
     public Project? Project { get; set; }
     public Product? Product { get; set; }
     public SubProject? SubProject { get; set; }
+    public ProjectBacklog? ParentBacklogItem { get; set; }
+    public ICollection<ProjectBacklog> ChildBacklogItems { get; set; } = new List<ProjectBacklog>();
     public User? Owner { get; set; }
 }

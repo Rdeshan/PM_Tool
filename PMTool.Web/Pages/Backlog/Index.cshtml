@@ -69,6 +69,7 @@
                     <th>Type</th>
                     <th>Status</th>
                     <th>Owner</th>
+                    <th>Parent</th>
                     <th style="width:110px;">Priority</th>
                     <th style="width:90px;"></th>
                 </tr>
@@ -81,9 +82,9 @@
                     <td>
                         <select class="form-select form-select-sm" id="newType">
                             <option value="1">BRD</option>
-                            <option value="2" selected>UserStory</option>
+                            <option value="2">UserStory</option>
                             <option value="3">UseCase</option>
-                            <option value="4">Epic</option>
+                            <option value="4" selected>Epic</option>
                             <option value="5">ChangeRequest</option>
                         </select>
                     </td>
@@ -104,6 +105,19 @@
                             }
                         </select>
                     </td>
+                    <td>
+                        <select class="form-select form-select-sm" id="newParent">
+                            <option value="">No Parent</option>
+                            @foreach (var brd in Model.Brds)
+                            {
+                                <option value="@brd.Id">BRD: @brd.Title</option>
+                            }
+                            @foreach (var epic in Model.Epics)
+                            {
+                                <option value="@epic.Id">Epic: @epic.Title</option>
+                            }
+                        </select>
+                    </td>
                     <td>-</td>
                     <td class="text-end">
                         <button id="saveNewIssue" class="btn btn-sm btn-success" type="button">Save</button>
@@ -114,22 +128,29 @@
                 @for (var i = 0; i < 4; i++)
                 {
                     <tr>
-                        <td colspan="8"><div class="skeleton-line"></div></td>
+                        <td colspan="9"><div class="skeleton-line"></div></td>
                     </tr>
                 }
             </tbody>
             <tbody id="rows" class="d-none">
-                @foreach (var item in Model.Items)
+                @foreach (var item in Model.OrderedItems)
                 {
-                    <tr draggable="true" data-id="@item.Id">
+                    <tr draggable="true" data-id="@item.Id" data-type="@item.Type">
                         <td><input type="checkbox" class="row-check" /></td>
                         <td class="text-muted drag-handle"><i class="bi bi-grip-vertical"></i></td>
-                        <td class="editable" data-field="title">@item.Title</td>
+                        <td class="editable" data-field="title" style="padding-left:@(0.75 + (Model.GetIndentLevel(item) * 1.25))rem;">
+                            @if (Model.GetIndentLevel(item) > 0)
+                            {
+                                <span class="text-muted me-1">↳</span>
+                            }
+                            @item.Title
+                        </td>
                         <td class="editable-select" data-field="type" data-value="@item.Type">
                             <span class="badge @Model.GetTypeBadgeClass(item.Type)">@item.TypeName</span>
                         </td>
                         <td class="editable-select" data-field="status" data-value="@item.Status">@item.StatusName</td>
                         <td class="editable-select" data-field="owner" data-value="@item.OwnerId">@(string.IsNullOrWhiteSpace(item.OwnerName) ? "Unassigned" : item.OwnerName)</td>
+                        <td class="editable-select" data-field="parentbacklogitemid" data-value="@item.ParentBacklogItemId">@(Model.Items.FirstOrDefault(x => x.Id == item.ParentBacklogItemId)?.Title ?? "None")</td>
                         <td class="priority-cell">@item.Priority</td>
                         <td class="text-end">
                             <button class="btn btn-sm btn-outline-danger delete-btn" type="button">Delete</button>
@@ -181,6 +202,8 @@
     const createBtn = document.getElementById('createIssueBtn');
     const createRow = document.getElementById('createRow');
     const saveNewBtn = document.getElementById('saveNewIssue');
+    const newType = document.getElementById('newType');
+    const newParent = document.getElementById('newParent');
     const rowsBody = document.getElementById('rows');
     const skeleton = document.getElementById('skeletonRows');
     const table = document.getElementById('backlogTable');
@@ -206,9 +229,39 @@
 
     createBtn.addEventListener('click', () => {
         createRow.classList.toggle('d-none');
+        refreshCreateParentOptions();
         const input = document.getElementById('newTitle');
         input.focus();
     });
+
+    newType.addEventListener('change', refreshCreateParentOptions);
+
+    function refreshCreateParentOptions() {
+        const type = parseInt(newType.value);
+        const options = [{ value: '', label: 'No Parent' }];
+
+        if (type === 4) {
+            @foreach (var brd in Model.Brds)
+            {
+                @:options.push({ value: '@brd.Id', label: 'BRD: @brd.Title' });
+            }
+        }
+
+        if (type === 2) {
+            @foreach (var epic in Model.Epics)
+            {
+                @:options.push({ value: '@epic.Id', label: 'Epic: @epic.Title' });
+            }
+        }
+
+        newParent.innerHTML = '';
+        options.forEach(o => {
+            const option = document.createElement('option');
+            option.value = o.value;
+            option.textContent = o.label;
+            newParent.appendChild(option);
+        });
+    }
 
     document.getElementById('newTitle').addEventListener('keydown', async (e) => {
         if (e.key === 'Enter') {
@@ -234,6 +287,7 @@
             type: parseInt(document.getElementById('newType').value),
             status: parseInt(document.getElementById('newStatus').value),
             ownerId: document.getElementById('newOwner').value || null,
+            parentBacklogItemId: document.getElementById('newParent').value || null,
             description: ''
         };
 
@@ -270,7 +324,7 @@
         });
     };
 
-    const getSelectOptions = (field) => {
+    const getSelectOptions = (field, rowType) => {
         if (field === 'type') {
             return [
                 { value: 1, label: 'BRD' },
@@ -296,6 +350,26 @@
             }
             return owners;
         }
+        if (field === 'parentbacklogitemid') {
+            const parents = [{ value: '', label: 'None' }];
+            if (rowType === 4) {
+                @foreach (var brd in Model.Brds)
+                {
+                    @:parents.push({ value: '@brd.Id', label: 'BRD: @brd.Title' });
+                }
+            }
+            if (rowType === 2) {
+                @foreach (var epic in Model.Epics)
+                {
+                    @:parents.push({ value: '@epic.Id', label: 'Epic: @epic.Title' });
+                }
+            }
+            if (rowType !== 2 && rowType !== 4)
+            {
+                return [{ value: '', label: 'None' }];
+            }
+            return parents;
+        }
         return [];
     };
 
@@ -303,12 +377,13 @@
         if (cell.querySelector('select')) return;
         const row = cell.closest('tr');
         const field = cell.dataset.field;
+        const rowType = parseInt(row.dataset.type || '0');
         const current = cell.dataset.value || '';
         const originalText = cell.textContent.trim();
         const select = document.createElement('select');
         select.className = 'form-select form-select-sm';
 
-        const options = getSelectOptions(field);
+        const options = getSelectOptions(field, rowType);
         options.forEach(o => {
             const option = document.createElement('option');
             option.value = o.value;

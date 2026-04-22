@@ -41,6 +41,7 @@ public class BacklogService : IBacklogService
             ProjectId = request.ProjectId,
             ProductId = request.ProductId,
             SubProjectId = request.SubProjectId,
+            ParentBacklogItemId = request.ParentBacklogItemId,
             Title = request.Title.Trim(),
             Description = request.Description?.Trim() ?? string.Empty,
             Type = request.Type,
@@ -92,6 +93,9 @@ public class BacklogService : IBacklogService
                 break;
             case "owner":
                 item.OwnerId = Guid.TryParse(request.Value, out var ownerId) ? ownerId : null;
+                break;
+            case "parentbacklogitemid":
+                item.ParentBacklogItemId = Guid.TryParse(request.Value, out var parentId) ? parentId : null;
                 break;
             case "priority":
                 if (int.TryParse(request.Value, out var priority))
@@ -152,6 +156,7 @@ public class BacklogService : IBacklogService
             Id = item.Id,
             ProjectId = item.ProjectId,
             ProductId = item.ProductId,
+            ParentBacklogItemId = item.ParentBacklogItemId,
             OwnerId = item.OwnerId,
             OwnerName = item.Owner == null ? null : $"{item.Owner.FirstName} {item.Owner.LastName}".Trim(),
             Title = item.Title,

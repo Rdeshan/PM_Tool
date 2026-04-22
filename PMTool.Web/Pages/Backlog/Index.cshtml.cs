@@ -30,6 +30,31 @@ public class IndexModel : PageModel
     }
 
     public List<BacklogItemDTO> Items { get; set; } = new();
+    public List<BacklogItemDTO> Brds => Items
+        .Where(x => x.Type == (int)BacklogItemType.BRD)
+        .OrderBy(x => x.Priority)
+        .ToList();
+
+    public List<BacklogItemDTO> Epics => Items
+        .Where(x => x.Type == (int)BacklogItemType.Epic)
+        .OrderBy(x => x.Priority)
+        .ToList();
+
+    public List<BacklogItemDTO> UserStories => Items
+        .Where(x => x.Type == (int)BacklogItemType.UserStory)
+        .OrderBy(x => x.Priority)
+        .ToList();
+
+    public List<BacklogItemDTO> UseCases => Items
+        .Where(x => x.Type == (int)BacklogItemType.UseCase)
+        .OrderBy(x => x.Priority)
+        .ToList();
+
+    public List<BacklogItemDTO> ChangeRequests => Items
+        .Where(x => x.Type == (int)BacklogItemType.ChangeRequest)
+        .OrderBy(x => x.Priority)
+        .ToList();
+    public List<BacklogItemDTO> OrderedItems => BuildOrderedItems();
     public List<Project> Projects { get; set; } = new();
     public List<Product> Products { get; set; } = new();
     public List<User> Owners { get; set; } = new();
@@ -90,6 +115,54 @@ public class IndexModel : PageModel
         if (request.Status == 0)
         {
             request.Status = (int)BacklogItemStatus.Draft;
+        }
+
+        var currentItems = await _backlogService.GetBacklogItemsAsync(request.ProjectId, request.ProductId, null, null);
+        var brdItems = currentItems.Where(x => x.Type == (int)BacklogItemType.BRD).ToList();
+
+        if (request.Type == (int)BacklogItemType.BRD)
+        {
+            if (brdItems.Count > 0)
+            {
+                return new JsonResult(new { success = false, message = "Only one BRD is allowed per backlog." });
+            }
+
+            request.ParentBacklogItemId = null;
+        }
+        else
+        {
+            if (brdItems.Count == 0)
+            {
+                return new JsonResult(new { success = false, message = "Create BRD first." });
+            }
+        }
+
+        if (request.Type == (int)BacklogItemType.Epic)
+        {
+            if (!request.ParentBacklogItemId.HasValue)
+            {
+                request.ParentBacklogItemId = brdItems[0].Id;
+            }
+
+            var parentBrd = currentItems.FirstOrDefault(x => x.Id == request.ParentBacklogItemId.Value && x.Type == (int)BacklogItemType.BRD);
+            if (parentBrd == null)
+            {
+                return new JsonResult(new { success = false, message = "Epic must belong to BRD." });
+            }
+        }
+
+        if (request.Type == (int)BacklogItemType.UserStory)
+        {
+            if (!request.ParentBacklogItemId.HasValue)
+            {
+                return new JsonResult(new { success = false, message = "User Story must belong to an Epic." });
+            }
+
+            var parentEpic = currentItems.FirstOrDefault(x => x.Id == request.ParentBacklogItemId.Value && x.Type == (int)BacklogItemType.Epic);
+            if (parentEpic == null)
+            {
+                return new JsonResult(new { success = false, message = "User Story must belong to an Epic." });
+            }
         }
 
         var created = await _backlogService.CreateBacklogItemAsync(request);
@@ -166,6 +239,70 @@ public class IndexModel : PageModel
             (int)BacklogItemType.ChangeRequest => "bg-warning text-dark",
             _ => "bg-secondary"
         };
+    }
+
+    public List<BacklogItemDTO> GetStoriesForEpic(Guid epicId)
+    {
+        return UserStories.Where(x => x.ParentBacklogItemId == epicId).ToList();
+    }
+
+    public List<BacklogItemDTO> GetEpicsForBrd(Guid brdId)
+    {
+        return Epics.Where(x => x.ParentBacklogItemId == brdId).ToList();
+    }
+
+    public List<BacklogItemDTO> GetUseCasesForStory(Guid storyId)
+    {
+        return UseCases.Where(x => x.ParentBacklogItemId == storyId).ToList();
+    }
+
+    public List<BacklogItemDTO> GetChangeRequestsForStory(Guid storyId)
+    {
+        return ChangeRequests.Where(x => x.ParentBacklogItemId == storyId).ToList();
+    }
+
+    public int GetIndentLevel(BacklogItemDTO item)
+    {
+        return item.Type switch
+        {
+            (int)BacklogItemType.BRD => 0,
+            (int)BacklogItemType.Epic => 1,
+            (int)BacklogItemType.UserStory => 2,
+            _ => 0
+        };
+    }
+
+    private List<BacklogItemDTO> BuildOrderedItems()
+    {
+        var ordered = new List<BacklogItemDTO>();
+        var added = new HashSet<Guid>();
+
+        foreach (var brd in Brds)
+        {
+            ordered.Add(brd);
+            added.Add(brd.Id);
+
+            var epics = GetEpicsForBrd(brd.Id);
+            foreach (var epic in epics)
+            {
+                ordered.Add(epic);
+                added.Add(epic.Id);
+
+                var stories = GetStoriesForEpic(epic.Id);
+                foreach (var story in stories)
+                {
+                    ordered.Add(story);
+                    added.Add(story.Id);
+                }
+            }
+        }
+
+        var remaining = Items
+            .Where(x => !added.Contains(x.Id))
+            .OrderBy(x => x.Priority);
+
+        ordered.AddRange(remaining);
+        return ordered;
     }
 
     public class ReorderRequest

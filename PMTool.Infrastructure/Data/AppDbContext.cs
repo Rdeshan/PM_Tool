@@ -290,6 +290,11 @@ public class AppDbContext : DbContext
                 .HasForeignKey(pb => pb.ProductId)
                 .OnDelete(DeleteBehavior.NoAction);
 
+            entity.HasOne(pb => pb.ParentBacklogItem)
+                .WithMany(pb => pb.ChildBacklogItems)
+                .HasForeignKey(pb => pb.ParentBacklogItemId)
+                .OnDelete(DeleteBehavior.NoAction);
+
             entity.HasOne(pb => pb.Owner)
                 .WithMany()
                 .HasForeignKey(pb => pb.OwnerId)

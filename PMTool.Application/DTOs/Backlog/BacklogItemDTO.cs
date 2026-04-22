@@ -5,6 +5,7 @@ public class BacklogItemDTO
     public Guid Id { get; set; }
     public Guid ProjectId { get; set; }
     public Guid? ProductId { get; set; }
+    public Guid? ParentBacklogItemId { get; set; }
     public Guid? OwnerId { get; set; }
     public string? OwnerName { get; set; }
     public string Title { get; set; } = string.Empty;
