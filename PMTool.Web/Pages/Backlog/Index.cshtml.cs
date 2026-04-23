@@ -165,6 +165,40 @@ public class IndexModel : PageModel
             }
         }
 
+        if (request.Type == (int)BacklogItemType.UseCase)
+        {
+            if (!request.ParentBacklogItemId.HasValue)
+            {
+                return new JsonResult(new { success = false, message = "Use Case must belong to a User Story." });
+            }
+
+            var parentStory = currentItems.FirstOrDefault(x => x.Id == request.ParentBacklogItemId.Value && x.Type == (int)BacklogItemType.UserStory);
+            if (parentStory == null)
+            {
+                return new JsonResult(new { success = false, message = "Use Case must belong to a User Story." });
+            }
+        }
+
+        if (request.Type == (int)BacklogItemType.ChangeRequest)
+        {
+            if (!request.ParentBacklogItemId.HasValue)
+            {
+                return new JsonResult(new { success = false, message = "Change Request must belong to a User Story." });
+            }
+
+            var parentStory = currentItems.FirstOrDefault(x => x.Id == request.ParentBacklogItemId.Value && x.Type == (int)BacklogItemType.UserStory);
+            if (parentStory == null)
+            {
+                return new JsonResult(new { success = false, message = "Change Request must belong to a User Story." });
+            }
+
+            if (!request.Title.Trim().StartsWith("CR-", StringComparison.OrdinalIgnoreCase))
+            {
+                var nextCrNumber = currentItems.Count(x => x.Type == (int)BacklogItemType.ChangeRequest) + 1;
+                request.Title = $"CR-{nextCrNumber:000} {request.Title.Trim()}";
+            }
+        }
+
         var created = await _backlogService.CreateBacklogItemAsync(request);
         if (created == null)
         {
@@ -228,6 +262,34 @@ public class IndexModel : PageModel
         });
     }
 
+    public async Task<IActionResult> OnPostDeleteManyAsync([FromBody] DeleteManyRequest request)
+    {
+        if (request.ItemIds.Count == 0)
+        {
+            return new JsonResult(new { success = false, message = "No items selected." });
+        }
+
+        var deletedCount = 0;
+        foreach (var itemId in request.ItemIds.Where(x => x != Guid.Empty).Distinct())
+        {
+            if (await _backlogService.DeleteItemAsync(itemId))
+            {
+                deletedCount++;
+            }
+        }
+
+        if (deletedCount == 0)
+        {
+            return new JsonResult(new { success = false, message = "Failed to delete selected items." });
+        }
+
+        return new JsonResult(new
+        {
+            success = true,
+            message = $"Deleted {deletedCount} item(s)."
+        });
+    }
+
     public string GetTypeBadgeClass(int type)
     {
         return type switch
@@ -268,8 +330,15 @@ public class IndexModel : PageModel
             (int)BacklogItemType.BRD => 0,
             (int)BacklogItemType.Epic => 1,
             (int)BacklogItemType.UserStory => 2,
+            (int)BacklogItemType.UseCase => 3,
+            (int)BacklogItemType.ChangeRequest => 3,
             _ => 0
         };
+    }
+
+    public bool HasChildren(BacklogItemDTO item)
+    {
+        return Items.Any(x => x.ParentBacklogItemId == item.Id);
     }
 
     private List<BacklogItemDTO> BuildOrderedItems()
@@ -293,6 +362,20 @@ public class IndexModel : PageModel
                 {
                     ordered.Add(story);
                     added.Add(story.Id);
+
+                    var useCases = GetUseCasesForStory(story.Id);
+                    foreach (var useCase in useCases)
+                    {
+                        ordered.Add(useCase);
+                        added.Add(useCase.Id);
+                    }
+
+                    var changeRequests = GetChangeRequestsForStory(story.Id);
+                    foreach (var changeRequest in changeRequests)
+                    {
+                        ordered.Add(changeRequest);
+                        added.Add(changeRequest.Id);
+                    }
                 }
             }
         }
@@ -315,5 +398,10 @@ public class IndexModel : PageModel
     public class DeleteRequest
     {
         public Guid ItemId { get; set; }
+    }
+
+    public class DeleteManyRequest
+    {
+        public List<Guid> ItemIds { get; set; } = new();
     }
 }

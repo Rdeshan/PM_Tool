@@ -2,14 +2,14 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PMTool.Application.DTOs.Product;
+using PMTool.Application.DTOs.SubProject;
+using PMTool.Application.DTOs.Team;
+using PMTool.Application.DTOs.User;
+using PMTool.Application.Interfaces;
 using PMTool.Application.Services.Product;
 using PMTool.Application.Services.Project;
 using PMTool.Application.Services.SubProject;
 using PMTool.Application.Services.Team;
-using PMTool.Application.Interfaces;
-using PMTool.Application.DTOs.SubProject;
-using PMTool.Application.DTOs.Team;
-using PMTool.Application.DTOs.User;
 using System.Security.Claims;
 
 namespace PMTool.Web.Pages.Products;
@@ -25,7 +25,7 @@ public class DetailsModel : PageModel
     private readonly IBacklogService _backlogService;
 
     public DetailsModel(
-        IProductService productService, 
+        IProductService productService,
         IProjectService projectService,
         ISubProjectService subProjectService,
         ITeamService teamService,
@@ -64,7 +64,7 @@ public class DetailsModel : PageModel
 
         ReleaseNotes = (await _productService.GetReleaseNotesAsync(id)).ToList();
         SubProjects = await _subProjectService.GetSubProjectsByProductAsync(id);
-        
+
         if (CanEditProduct)
         {
             AvailableTeams = (await _teamService.GetActiveTeamsAsync()).ToList();

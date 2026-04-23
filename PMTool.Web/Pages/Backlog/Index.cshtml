@@ -13,10 +13,14 @@
 
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-         
-        <button id="createIssueBtn" class="btn btn-sm btn-primary">
-            <i class="bi bi-plus-circle"></i> Create issue...
-        </button>
+        <div class="d-flex align-items-center gap-2">
+            <button id="createIssueBtn" class="btn btn-sm btn-primary">
+                <i class="bi bi-plus-circle"></i> Create issue...
+            </button>
+            <button id="bulkDeleteBtn" class="btn btn-sm btn-outline-danger d-none" type="button" title="Delete selected">
+                <i class="bi bi-trash"></i>
+            </button>
+        </div>
     </div>
 
     <form method="get" class="row g-2 mb-3">
@@ -24,16 +28,7 @@
         {
             <input type="hidden" name="embedded" value="true" />
         }
-        <div class="col-md-4">
-            <label class="form-label">Project</label>
-            <select name="projectId" id="projectFilter" class="form-select" onchange="this.form.submit()">
-                @foreach (var project in Model.Projects)
-                {
-                    <option value="@project.Id" selected="@(project.Id == Model.SelectedProjectId)">@project.Name</option>
-                }
-            </select>
-        </div>
-        <div class="col-md-4">
+        <div class="col-md-6">
             <label class="form-label">Product</label>
             <select name="productId" id="productFilter" class="form-select" onchange="this.form.submit()">
                 <option value="">Project-level backlog</option>
@@ -43,7 +38,7 @@
                 }
             </select>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-6">
             <label class="form-label">Status</label>
             <select name="status" id="statusFilter" class="form-select" onchange="this.form.submit()">
                 <option value="">All</option>
@@ -78,7 +73,12 @@
                 <tr>
                     <td></td>
                     <td></td>
-                    <td><input class="form-control form-control-sm" id="newTitle" placeholder="Issue title" /></td>
+                    <td>
+                        <input class="form-control form-control-sm" id="newTitle" placeholder="Issue title" />
+                        <div id="newDescriptionWrap" class="mt-2 d-none">
+                            <textarea id="newDescription" class="form-control form-control-sm" rows="2" placeholder="Use case description (optional)"></textarea>
+                        </div>
+                    </td>
                     <td>
                         <select class="form-select form-select-sm" id="newType">
                             <option value="1">BRD</option>
@@ -135,15 +135,27 @@
             <tbody id="rows" class="d-none">
                 @foreach (var item in Model.OrderedItems)
                 {
-                    <tr draggable="true" data-id="@item.Id" data-type="@item.Type">
+                    <tr draggable="true" data-id="@item.Id" data-type="@item.Type" data-parent-id="@item.ParentBacklogItemId" data-level="@Model.GetIndentLevel(item)">
                         <td><input type="checkbox" class="row-check" /></td>
                         <td class="text-muted drag-handle"><i class="bi bi-grip-vertical"></i></td>
-                        <td class="editable" data-field="title" style="padding-left:@(0.75 + (Model.GetIndentLevel(item) * 1.25))rem;">
+                        <td class="editable" data-field="title" style="padding-left:@(0.75 + (Model.GetIndentLevel(item) * 1.25) + (item.Type == (int)BacklogItemType.UseCase ? 1.85 : 0))rem;">
+                            @if (Model.HasChildren(item))
+                            {
+                                <button type="button" class="btn btn-sm p-0 me-4 fold-toggle" data-row-id="@item.Id" title="Collapse/Expand">
+                                    <i class="bi bi-caret-down-fill"></i>
+                                </button>
+                            }
                             @if (Model.GetIndentLevel(item) > 0)
                             {
-                                <span class="text-muted me-1">↳</span>
+                                <span class="text-muted me-1 hierarchy-indicator">↳</span>
                             }
                             @item.Title
+                            @if (item.Type == (int)BacklogItemType.UseCase)
+                            {
+                                <button type="button" class="btn btn-sm p-0 ms-2 usecase-desc-toggle" data-description="@item.Description" title="View description">
+                                    <i class="bi bi-three-dots"></i>
+                                </button>
+                            }
                         </td>
                         <td class="editable-select" data-field="type" data-value="@item.Type">
                             <span class="badge @Model.GetTypeBadgeClass(item.Type)">@item.TypeName</span>
@@ -152,8 +164,10 @@
                         <td class="editable-select" data-field="owner" data-value="@item.OwnerId">@(string.IsNullOrWhiteSpace(item.OwnerName) ? "Unassigned" : item.OwnerName)</td>
                         <td class="editable-select" data-field="parentbacklogitemid" data-value="@item.ParentBacklogItemId">@(Model.Items.FirstOrDefault(x => x.Id == item.ParentBacklogItemId)?.Title ?? "None")</td>
                         <td class="priority-cell">@item.Priority</td>
-                        <td class="text-end">
-                            <button class="btn btn-sm btn-outline-danger delete-btn" type="button">Delete</button>
+                        <td class="text-end action-cell">
+                            <button class="btn btn-sm btn-outline-danger delete-btn" type="button" title="Delete">
+                                <i class="bi bi-trash"></i>
+                            </button>
                         </td>
                     </tr>
                 }
@@ -181,6 +195,17 @@
         #backlogTable tbody tr:hover {
             background-color: #f8fbff;
         }
+        #backlogTable .delete-btn {
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.15s ease;
+            padding: 0.15rem 0.35rem;
+            line-height: 1;
+        }
+        #backlogTable tbody tr:hover .delete-btn {
+            opacity: 1;
+            visibility: visible;
+        }
         #createRow tr {
             background-color: #f5faff;
         }
@@ -192,6 +217,33 @@
         .drag-over { outline: 2px dashed #0d6efd; }
         .drag-handle { cursor: move; }
         .bg-purple { background-color: #6f42c1 !important; }
+        .fold-toggle {
+            color: #6c757d;
+            border: 0;
+            background: transparent;
+            vertical-align: middle;
+        }
+        .fold-toggle:hover {
+            color: #0d6efd;
+        }
+        .fold-hidden {
+            display: none;
+        }
+        .usecase-desc-toggle {
+            color: #6c757d;
+            border: 0;
+            background: transparent;
+            vertical-align: middle;
+        }
+        .usecase-desc-toggle:hover {
+            color: #0d6efd;
+        }
+        #usecaseDescCard {
+            position: fixed;
+            z-index: 1055;
+            width: min(320px, calc(100vw - 2rem));
+            display: none;
+        }
     </style>
 }
 
@@ -204,9 +256,19 @@
     const saveNewBtn = document.getElementById('saveNewIssue');
     const newType = document.getElementById('newType');
     const newParent = document.getElementById('newParent');
+    const newDescriptionWrap = document.getElementById('newDescriptionWrap');
+    const newDescription = document.getElementById('newDescription');
+    const selectAll = document.getElementById('selectAll');
+    const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
     const rowsBody = document.getElementById('rows');
     const skeleton = document.getElementById('skeletonRows');
     const table = document.getElementById('backlogTable');
+    const collapsedRows = new Set();
+    const usecaseDescCard = document.createElement('div');
+    usecaseDescCard.id = 'usecaseDescCard';
+    usecaseDescCard.className = 'card shadow-sm';
+    usecaseDescCard.innerHTML = '<div class="card-body py-2 px-3"><small class="text-muted d-block mb-1">Use Case Description</small><div id="usecaseDescText"></div></div>';
+    document.body.appendChild(usecaseDescCard);
 
     setTimeout(() => { skeleton.classList.add('d-none'); rowsBody.classList.remove('d-none'); }, 300);
 
@@ -227,6 +289,70 @@
         return response.json();
     };
 
+    const getChildRows = (parentId) => [...rowsBody.querySelectorAll(`tr[data-parent-id="${parentId}"]`)];
+
+    const hideDescendants = (parentId) => {
+        const children = getChildRows(parentId);
+        children.forEach(child => {
+            child.classList.add('fold-hidden');
+            hideDescendants(child.dataset.id);
+        });
+    };
+
+    const showDescendants = (parentId) => {
+        const children = getChildRows(parentId);
+        children.forEach(child => {
+            child.classList.remove('fold-hidden');
+            if (collapsedRows.has(child.dataset.id)) {
+                hideDescendants(child.dataset.id);
+            } else {
+                showDescendants(child.dataset.id);
+            }
+        });
+    };
+
+    const setToggleIcon = (btn, collapsed) => {
+        const icon = btn.querySelector('i');
+        if (!icon) return;
+        icon.className = collapsed ? 'bi bi-caret-right-fill' : 'bi bi-caret-down-fill';
+    };
+
+    const getSelectedRows = () => [...rowsBody.querySelectorAll('.row-check:checked')].map(c => c.closest('tr'));
+
+    const syncSelectionUi = () => {
+        const allChecks = [...rowsBody.querySelectorAll('.row-check')];
+        const checked = allChecks.filter(c => c.checked);
+        selectAll.checked = allChecks.length > 0 && checked.length === allChecks.length;
+        bulkDeleteBtn.classList.toggle('d-none', checked.length === 0);
+    };
+
+    selectAll.addEventListener('change', () => {
+        const checked = selectAll.checked;
+        rowsBody.querySelectorAll('.row-check').forEach(c => c.checked = checked);
+        syncSelectionUi();
+    });
+
+    bulkDeleteBtn.addEventListener('click', async () => {
+        const selectedRows = getSelectedRows();
+        if (selectedRows.length === 0) {
+            bulkDeleteBtn.classList.add('d-none');
+            return;
+        }
+
+        const confirmed = confirm(`Delete ${selectedRows.length} selected item(s)?`);
+        if (!confirmed) return;
+
+        const itemIds = selectedRows.map(r => r.dataset.id);
+        const result = await postJson('DeleteMany', { itemIds });
+        notify(result.message, result.success);
+
+        if (result.success) {
+            selectedRows.forEach(r => r.remove());
+            updatePriorityCells();
+            syncSelectionUi();
+        }
+    });
+
     createBtn.addEventListener('click', () => {
         createRow.classList.toggle('d-none');
         refreshCreateParentOptions();
@@ -234,11 +360,45 @@
         input.focus();
     });
 
+    rowsBody.addEventListener('change', (e) => {
+        if (e.target.classList.contains('row-check')) {
+            syncSelectionUi();
+        }
+    });
+
+    rowsBody.addEventListener('click', (e) => {
+        const toggleBtn = e.target.closest('.fold-toggle');
+        if (!toggleBtn) return;
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        const rowId = toggleBtn.dataset.rowId;
+        if (!rowId) return;
+
+        const isCollapsed = collapsedRows.has(rowId);
+        if (isCollapsed) {
+            collapsedRows.delete(rowId);
+            setToggleIcon(toggleBtn, false);
+            showDescendants(rowId);
+        } else {
+            collapsedRows.add(rowId);
+            setToggleIcon(toggleBtn, true);
+            hideDescendants(rowId);
+        }
+    });
+
     newType.addEventListener('change', refreshCreateParentOptions);
 
     function refreshCreateParentOptions() {
         const type = parseInt(newType.value);
         const options = [{ value: '', label: 'No Parent' }];
+        const isUseCase = type === 3;
+
+        newDescriptionWrap.classList.toggle('d-none', !isUseCase);
+        if (!isUseCase) {
+            newDescription.value = '';
+        }
 
         if (type === 4) {
             @foreach (var brd in Model.Brds)
@@ -251,6 +411,20 @@
             @foreach (var epic in Model.Epics)
             {
                 @:options.push({ value: '@epic.Id', label: 'Epic: @epic.Title' });
+            }
+        }
+
+        if (type === 3) {
+            @foreach (var story in Model.UserStories)
+            {
+                @:options.push({ value: '@story.Id', label: 'Story: @story.Title' });
+            }
+        }
+
+        if (type === 5) {
+            @foreach (var story in Model.UserStories)
+            {
+                @:options.push({ value: '@story.Id', label: 'Story: @story.Title' });
             }
         }
 
@@ -288,7 +462,7 @@
             status: parseInt(document.getElementById('newStatus').value),
             ownerId: document.getElementById('newOwner').value || null,
             parentBacklogItemId: document.getElementById('newParent').value || null,
-            description: ''
+            description: parseInt(document.getElementById('newType').value) === 3 ? (newDescription.value || '').trim() : ''
         };
 
         const result = await postJson('Create', payload);
@@ -300,7 +474,21 @@
 
     const startEditText = (cell) => {
         if (cell.querySelector('input')) return;
-        const original = cell.textContent.trim();
+        const existingFoldToggle = cell.querySelector('.fold-toggle');
+        const foldRowId = existingFoldToggle?.dataset.rowId;
+        const existingUsecaseDescToggle = cell.querySelector('.usecase-desc-toggle');
+        const usecaseDescription = existingUsecaseDescToggle?.dataset.description ?? '';
+        const hasIndicator = !!cell.querySelector('.hierarchy-indicator');
+        const original = [...cell.childNodes]
+            .filter(n => {
+                if (n.nodeType !== Node.ELEMENT_NODE) return true;
+                return !n.classList?.contains('hierarchy-indicator')
+                    && !n.classList?.contains('fold-toggle')
+                    && !n.classList?.contains('usecase-desc-toggle');
+            })
+            .map(n => n.textContent)
+            .join('')
+            .trim();
         const input = document.createElement('input');
         input.className = 'form-control form-control-sm';
         input.value = original;
@@ -308,11 +496,56 @@
         cell.appendChild(input);
         input.focus();
 
+        const setCellText = (text) => {
+            cell.innerHTML = '';
+            if (foldRowId) {
+                const toggle = document.createElement('button');
+                toggle.type = 'button';
+                toggle.className = 'btn btn-sm p-0 me-4 fold-toggle';
+                toggle.dataset.rowId = foldRowId;
+                toggle.title = 'Collapse/Expand';
+
+                const icon = document.createElement('i');
+                icon.className = collapsedRows.has(foldRowId) ? 'bi bi-caret-right-fill' : 'bi bi-caret-down-fill';
+                toggle.appendChild(icon);
+
+                cell.appendChild(toggle);
+            }
+
+            if (hasIndicator) {
+                const indicator = document.createElement('span');
+                indicator.className = 'text-muted me-1 hierarchy-indicator';
+                indicator.textContent = '↳';
+                cell.appendChild(indicator);
+            }
+            cell.appendChild(document.createTextNode(text));
+
+            if (existingUsecaseDescToggle) {
+                const descToggle = document.createElement('button');
+                descToggle.type = 'button';
+                descToggle.className = 'btn btn-sm p-0 ms-2 usecase-desc-toggle';
+                descToggle.dataset.description = usecaseDescription;
+                descToggle.title = 'View description';
+
+                const descIcon = document.createElement('i');
+                descIcon.className = 'bi bi-three-dots';
+                descToggle.appendChild(descIcon);
+
+                cell.appendChild(descToggle);
+            }
+        };
+
         const save = async () => {
             const row = cell.closest('tr');
             const field = cell.dataset.field;
-            const value = input.value;
-            cell.textContent = value;
+            const value = input.value.trim();
+
+            if (value === original) {
+                setCellText(original);
+                return;
+            }
+
+            setCellText(value);
             const result = await postJson('UpdateField', { itemId: row.dataset.id, field, value });
             notify(result.message, result.success);
         };
@@ -320,7 +553,7 @@
         input.addEventListener('blur', save);
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') save();
-            if (e.key === 'Escape') cell.textContent = original;
+            if (e.key === 'Escape') setCellText(original);
         });
     };
 
@@ -364,7 +597,19 @@
                     @:parents.push({ value: '@epic.Id', label: 'Epic: @epic.Title' });
                 }
             }
-            if (rowType !== 2 && rowType !== 4)
+            if (rowType === 3) {
+                @foreach (var story in Model.UserStories)
+                {
+                    @:parents.push({ value: '@story.Id', label: 'Story: @story.Title' });
+                }
+            }
+            if (rowType === 5) {
+                @foreach (var story in Model.UserStories)
+                {
+                    @:parents.push({ value: '@story.Id', label: 'Story: @story.Title' });
+                }
+            }
+            if (rowType !== 2 && rowType !== 3 && rowType !== 4 && rowType !== 5)
             {
                 return [{ value: '', label: 'None' }];
             }
@@ -378,10 +623,11 @@
         const row = cell.closest('tr');
         const field = cell.dataset.field;
         const rowType = parseInt(row.dataset.type || '0');
-        const current = cell.dataset.value || '';
+        const current = (cell.dataset.value || '') + '';
         const originalText = cell.textContent.trim();
         const select = document.createElement('select');
         select.className = 'form-select form-select-sm';
+        let saved = false;
 
         const options = getSelectOptions(field, rowType);
         options.forEach(o => {
@@ -397,7 +643,16 @@
         select.focus();
 
         const save = async () => {
+            if (saved) return;
             const value = select.value;
+
+            if ((value + '') === current) {
+                cell.dataset.value = current;
+                cell.textContent = originalText;
+                return;
+            }
+
+            saved = true;
             const label = select.options[select.selectedIndex].text;
             cell.dataset.value = value;
             cell.textContent = label;
@@ -414,6 +669,33 @@
     };
 
     rowsBody.addEventListener('click', async (e) => {
+        if (e.target.closest('.fold-toggle')) {
+            return;
+        }
+
+        const useCaseDescBtn = e.target.closest('.usecase-desc-toggle');
+        if (useCaseDescBtn) {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const rect = useCaseDescBtn.getBoundingClientRect();
+            const text = useCaseDescBtn.dataset.description?.trim() || 'No description provided.';
+            document.getElementById('usecaseDescText').textContent = text;
+
+            const currentlyOpen = usecaseDescCard.style.display === 'block' && usecaseDescCard.dataset.anchorId === useCaseDescBtn.closest('tr')?.dataset.id;
+            if (currentlyOpen) {
+                usecaseDescCard.style.display = 'none';
+                usecaseDescCard.dataset.anchorId = '';
+                return;
+            }
+
+            usecaseDescCard.style.left = `${Math.max(12, rect.left)}px`;
+            usecaseDescCard.style.top = `${rect.bottom + 8}px`;
+            usecaseDescCard.style.display = 'block';
+            usecaseDescCard.dataset.anchorId = useCaseDescBtn.closest('tr')?.dataset.id || '';
+            return;
+        }
+
         const textCell = e.target.closest('.editable');
         if (textCell) {
             startEditText(textCell);
@@ -468,6 +750,15 @@
             notify(result.message, result.success);
         });
     });
+
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.usecase-desc-toggle')) return;
+        if (e.target.closest('#usecaseDescCard')) return;
+        usecaseDescCard.style.display = 'none';
+        usecaseDescCard.dataset.anchorId = '';
+    });
+
+    refreshCreateParentOptions();
 })();
 </script>
 }
