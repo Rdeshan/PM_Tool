@@ -162,9 +162,18 @@
                                                                     </li>
                                                                     <li><hr class="dropdown-divider"></li>
                                                                     <li>
-                                                                        <button type="button" class="dropdown-item text-danger" onclick="deleteSubProject('@sub.Id')">
+                                                                        @* <button type="button" class="dropdown-item text-danger" onclick="deleteSubProject('@sub.Id')">
                                                                             <i class="bi bi-trash small me-2"></i> Delete
-                                                                        </button>
+                                                                        </button> *@
+                                                                         <form method="post" asp-page-handler="DeleteSubProject"
+          asp-route-projectId="@Model.ProjectId"
+          asp-route-id="@Model.Product.Id">
+        <input type="hidden" name="subProjectId" value="@sub.Id" />
+        <button type="submit" class="dropdown-item text-danger"
+                onclick="return confirm('Delete this sub-project? All associated backlog items will be unlinked.')">
+            <i class="bi bi-trash small me-2"></i> Delete
+        </button>
+    </form>
                                                                     </li>
                                                                 </ul>
                                                             </div>
@@ -267,16 +276,30 @@
                                             <div>
                                                 @if (!notes.IsPublished)
                                                 {
-                                                    <button type="button" class="btn btn-sm btn-success" 
-                                                            onclick="publishReleaseNotes(@notes.Id)">
-                                                        <i class="bi bi-check"></i> Publish
-                                                    </button>
+                                                   
+                                                                                                    <form method="post" asp-page-handler="PublishReleaseNotes"
+      asp-route-projectId="@Model.ProjectId"
+      asp-route-id="@Model.Product.Id">
+    <input type="hidden" name="releaseNotesId" value="@notes.Id" />
+    <button type="submit" class="btn btn-sm btn-success"
+            onclick="return confirm('Publish these release notes?')">
+        <i class="bi bi-check"></i> Publish
+    </button>
+</form>
+           
+
                                                 }
-                                                <button type="button" class="btn btn-sm btn-danger" 
-                                                        onclick="deleteReleaseNotes(@notes.Id)">
-                                                    <i class="bi bi-trash"></i> Delete
-                                                </button>
-                                            </div>
+                                                
+                                                                                                    <form method="post" asp-page-handler="DeleteReleaseNotes"
+      asp-route-projectId="@Model.ProjectId"
+      asp-route-id="@Model.Product.Id">
+    <input type="hidden" name="releaseNotesId" value="@notes.Id" />
+    <button type="submit" class="btn btn-sm btn-danger"
+            onclick="return confirm('Delete these release notes?')">
+        <i class="bi bi-trash"></i> Delete
+    </button>
+</form>
+                                 </div>
                                         }
                                     </div>
                                     <p class="mt-2 mb-0 text-wrap">@Html.Raw(System.Net.WebUtility.HtmlEncode(notes.Content).Replace("\n", "<br>"))</p>
@@ -756,22 +779,8 @@
             }
         }
 
-        function deleteSubProject(subProjectId) {
-            if (confirm('Delete this sub-project? All associated backlog items will be unlinked.')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '@Html.Raw(Url.Page("./Details", new { handler = "DeleteSubProject" }))';
-                
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'subProjectId';
-                input.value = subProjectId;
-                
-                form.appendChild(input);
-                document.body.appendChild(form);
-                form.submit();
-            }
-        }
+       
+}
 
         function openEditSubProjectModal(id, name, description, ownerId, status, startDate, dueDate, teamIds) {
             document.getElementById('editSubProjectId').value = id;
