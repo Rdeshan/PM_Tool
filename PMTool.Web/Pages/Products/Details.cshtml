@@ -144,20 +144,36 @@
                                                                 <ul class="dropdown-menu dropdown-menu-end shadow border-0">
                                                                     <li>
                                                                         <button type="button" class="dropdown-item"
-                                                                                onclick="openEditSubProjectModal('@sub.Id', '@Html.Raw(sub.Name)', '@Html.Raw(sub.Description)', '@sub.ModuleOwnerId', '@sub.Status', '@(sub.StartDate?.ToString("yyyy-MM-dd") ?? "")', '@(sub.DueDate?.ToString("yyyy-MM-dd") ?? "")', '@string.Join(",", sub.Teams.Select(t => t.TeamId))')">
-                                                                            <i class="bi bi-pencil small me-2"></i> Edit Details
+                                                                                @* onclick="openEditSubProjectModal('@sub.Id', '@Html.Raw(sub.Name)', '@Html.Raw(sub.Description)', '@sub.ModuleOwnerId', '@sub.Status', '@(sub.StartDate?.ToString("yyyy-MM-dd") ?? "")', '@(sub.DueDate?.ToString("yyyy-MM-dd") ?? "")', '@string.Join(",", sub.Teams.Select(t => t.TeamId))')"> *@
+                                                                                 onclick="initEditSubProject(this)"
+                                                                                data-id="@sub.Id"
+                                                                                data-name="@sub.Name"
+                                                                                data-description="@sub.Description"
+                                                                                data-owner="@sub.ModuleOwnerId"
+                                                                                data-status="@sub.Status"
+                                                                                data-start="@(sub.StartDate?.ToString("yyyy-MM-dd") ?? "")"
+                                                                                data-due="@(sub.DueDate?.ToString("yyyy-MM-dd") ?? "")"
+                                                                                data-teams="@string.Join(",", sub.Teams.Select(t => t.TeamId))">
+                                                                                <i class="bi bi-pencil small me-2"></i> Edit Details
                                                                         </button>
                                                                     </li>
                                                                     <li>
                                                                         <button type="button" class="dropdown-item"
-                                                                                onclick="openTimelineModal('@sub.Id', '@Html.Raw(sub.Name)')">
+                                                                                @* onclick="openTimelineModal('@sub.Id', '@Html.Raw(sub.Name)')"> *@
+                                                                                 onclick="initTimeline(this)"
+                                                                                data-id="@sub.Id"
+                                                                                data-name="@sub.Name">
                                                                             <i class="bi bi-clock-history small me-2"></i> View Timeline
                                                                         </button>
                                                                     </li>
                                                                     <li>
                                                                         <button type="button" class="dropdown-item"
-                                                                                onclick="openDependenciesModal('@sub.Id', '@Html.Raw(sub.Name)', '@string.Join("|", sub.Dependencies.Select(d => d.Id + ":" + d.DependsOnSubProjectName + ":" + d.Notes))')">
-                                                                            <i class="bi bi-link-45deg small me-2"></i> Dependencies
+                                                                                @* onclick="openDependenciesModal('@sub.Id', '@Html.Raw(sub.Name)', '@string.Join("|", sub.Dependencies.Select(d => d.Id + ":" + d.DependsOnSubProjectName + ":" + d.Notes))')"> *@
+                                                                                 onclick="initDependencies(this)"
+                                                                                data-id="@sub.Id"
+                                                                                data-name="@sub.Name"
+                                                                                data-deps="@string.Join("|", sub.Dependencies.Select(d => d.Id + ":" + d.DependsOnSubProjectName + ":" + d.Notes))">
+                                                                                <i class="bi bi-link-45deg small me-2"></i> Dependencies
                                                                         </button>
                                                                     </li>
                                                                     <li><hr class="dropdown-divider"></li>
@@ -592,7 +608,7 @@
                         <button type="submit" class="btn btn-primary">Save Changes</button>
                     </div>
                 </form>
-            </div>
+           
         </div>
         </div>
     </div>
@@ -627,7 +643,7 @@
                         </div>
                         <button type="submit" class="btn btn-primary w-100">Add Dependency Link</button>
                     </form>
-                </div>
+                
             </div>
         </div>
         </div>
@@ -745,39 +761,54 @@
 
 @section Scripts {
     <script>
-        function publishReleaseNotes(releaseNotesId) {
-            if (confirm('Publish these release notes?')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '@Html.Raw(Url.Page("./Details", new { handler = "PublishReleaseNotes" }))';
+        // function publishReleaseNotes(releaseNotesId) {
+        //     if (confirm('Publish these release notes?')) {
+        //         const form = document.createElement('form');
+        //         form.method = 'POST';
+        //         form.action = '@Html.Raw(Url.Page("./Details", new { handler = "PublishReleaseNotes" }))';
                 
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'releaseNotesId';
-                input.value = releaseNotesId;
+        //         const input = document.createElement('input');
+        //         input.type = 'hidden';
+        //         input.name = 'releaseNotesId';
+        //         input.value = releaseNotesId;
                 
-                form.appendChild(input);
-                document.body.appendChild(form);
-                form.submit();
-            }
+        //         form.appendChild(input);
+        //         document.body.appendChild(form);
+        //         form.submit();
+        //     }
+         function initEditSubProject(btn) {
+            const data = btn.dataset;
+            openEditSubProjectModal(data.id, data.name, data.description, data.owner, data.status, data.start, data.due, data.teams);
+        
+
         }
 
-        function deleteReleaseNotes(releaseNotesId) {
-            if (confirm('Delete these release notes?')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '@Html.Raw(Url.Page("./Details", new { handler = "DeleteReleaseNotes" }))';
+        // function deleteReleaseNotes(releaseNotesId) {
+        //     if (confirm('Delete these release notes?')) {
+        //         const form = document.createElement('form');
+        //         form.method = 'POST';
+        //         form.action = '@Html.Raw(Url.Page("./Details", new { handler = "DeleteReleaseNotes" }))';
                 
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'releaseNotesId';
-                input.value = releaseNotesId;
+        //         const input = document.createElement('input');
+        //         input.type = 'hidden';
+        //         input.name = 'releaseNotesId';
+        //         input.value = releaseNotesId;
                 
-                form.appendChild(input);
-                document.body.appendChild(form);
-                form.submit();
-            }
+        //         form.appendChild(input);
+        //         document.body.appendChild(form);
+        //         form.submit();
+        //     }
+        // }
+            function initTimeline(btn) {
+            const data = btn.dataset;
+            openTimelineModal(data.id, data.name);
         }
+
+        function initDependencies(btn) {
+            const data = btn.dataset;
+            openDependenciesModal(data.id, data.name, data.deps);
+        
+
 
        
 }
