@@ -62,6 +62,8 @@ public class IndexModel : PageModel
     public Guid SelectedProjectId { get; set; }
     public Guid? SelectedProductId { get; set; }
     public int? SelectedStatus { get; set; }
+    private Dictionary<Guid, string>? _displayPriorityMap;
+    private Dictionary<Guid, string>? _brdCodeMap;
 
     public async Task<IActionResult> OnGetAsync(Guid? productId = null, Guid? projectId = null, int? status = null)
     {
@@ -122,11 +124,6 @@ public class IndexModel : PageModel
 
         if (request.Type == (int)BacklogItemType.BRD)
         {
-            if (brdItems.Count > 0)
-            {
-                return new JsonResult(new { success = false, message = "Only one BRD is allowed per backlog." });
-            }
-
             request.ParentBacklogItemId = null;
         }
         else
@@ -341,6 +338,27 @@ public class IndexModel : PageModel
         return Items.Any(x => x.ParentBacklogItemId == item.Id);
     }
 
+    public string GetDisplayPriorityLabel(BacklogItemDTO item)
+    {
+        _displayPriorityMap ??= BuildDisplayPriorityMap();
+        return _displayPriorityMap.TryGetValue(item.Id, out var label)
+            ? label
+            : item.Priority.ToString();
+    }
+
+    public string GetItemDisplayCode(BacklogItemDTO item)
+    {
+        if (item.Type != (int)BacklogItemType.BRD)
+        {
+            return string.Empty;
+        }
+
+        _brdCodeMap ??= BuildBrdCodeMap();
+        return _brdCodeMap.TryGetValue(item.Id, out var code)
+            ? code
+            : string.Empty;
+    }
+
     private List<BacklogItemDTO> BuildOrderedItems()
     {
         var ordered = new List<BacklogItemDTO>();
@@ -386,6 +404,72 @@ public class IndexModel : PageModel
 
         ordered.AddRange(remaining);
         return ordered;
+    }
+
+    private Dictionary<Guid, string> BuildDisplayPriorityMap()
+    {
+        var map = new Dictionary<Guid, string>();
+        var added = new HashSet<Guid>();
+
+        var brdIndex = 0;
+        foreach (var brd in Brds)
+        {
+            brdIndex++;
+            var brdLabel = brdIndex.ToString();
+            map[brd.Id] = brdLabel;
+            added.Add(brd.Id);
+
+            var epics = GetEpicsForBrd(brd.Id).OrderBy(x => x.Priority).ToList();
+            for (var epicIndex = 0; epicIndex < epics.Count; epicIndex++)
+            {
+                var epic = epics[epicIndex];
+                var epicLabel = $"{brdLabel}.{epicIndex + 1}";
+                map[epic.Id] = epicLabel;
+                added.Add(epic.Id);
+
+                var stories = GetStoriesForEpic(epic.Id).OrderBy(x => x.Priority).ToList();
+                for (var storyIndex = 0; storyIndex < stories.Count; storyIndex++)
+                {
+                    var story = stories[storyIndex];
+                    var storyLabel = $"{epicLabel}.{storyIndex + 1}";
+                    map[story.Id] = storyLabel;
+                    added.Add(story.Id);
+
+                    var children = GetUseCasesForStory(story.Id)
+                        .Cast<BacklogItemDTO>()
+                        .Concat(GetChangeRequestsForStory(story.Id))
+                        .OrderBy(x => x.Priority)
+                        .ToList();
+
+                    for (var childIndex = 0; childIndex < children.Count; childIndex++)
+                    {
+                        var child = children[childIndex];
+                        map[child.Id] = $"{storyLabel}.{childIndex + 1}";
+                        added.Add(child.Id);
+                    }
+                }
+            }
+        }
+
+        foreach (var remaining in Items.Where(x => !added.Contains(x.Id)).OrderBy(x => x.Priority))
+        {
+            map[remaining.Id] = remaining.Priority.ToString();
+        }
+
+        return map;
+    }
+
+    private Dictionary<Guid, string> BuildBrdCodeMap()
+    {
+        var map = new Dictionary<Guid, string>();
+        var brds = Brds.OrderBy(x => x.Priority).ToList();
+
+        for (var i = 0; i < brds.Count; i++)
+        {
+            map[brds[i].Id] = $"BRD-{(i + 1):000}";
+        }
+
+        return map;
     }
 
     public class ReorderRequest
