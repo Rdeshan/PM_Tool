@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore.ChangeTracking.Internal;
 using PMTool.Application.DTOs.Backlog;
 using PMTool.Application.Interfaces;
+using PMTool.Domain.Enums;
 
 namespace PMTool.Web.Pages.Products;
 
@@ -57,5 +58,40 @@ public class BacklogModel : PageModel
         BacklogUrl = Url.Page("/Backlog/Index", new { projectId, productId = id, embedded = true }) ?? string.Empty;
 
         return Page();
+    }
+
+    public async Task<IActionResult> OnPostUpdateFieldAsync([FromBody] UpdateBacklogFieldRequest request)
+    {
+        if (request.ItemId == Guid.Empty || string.IsNullOrWhiteSpace(request.Field))
+        {
+            return new JsonResult(new { success = false, message = "Invalid update request." });
+        }
+
+        var updated = await _backlogService.UpdateBacklogFieldAsync(request);
+        if (updated == null)
+        {
+            return new JsonResult(new { success = false, message = "Failed to update item." });
+        }
+
+        return new JsonResult(new { success = true, item = updated, message = "Issue updated." });
+    }
+
+    public async Task<IActionResult> OnPostCreateAsync([FromBody] CreateBacklogItemRequest request)
+    {
+        if (request.ProjectId == Guid.Empty || string.IsNullOrWhiteSpace(request.Title))
+        {
+            return new JsonResult(new { success = false, message = "Project and title are required." });
+        }
+
+        if (request.Type == 0) request.Type = (int)BacklogItemType.UserStory;
+        if (request.Status == 0) request.Status = (int)BacklogItemStatus.Draft;
+
+        var created = await _backlogService.CreateBacklogItemAsync(request);
+        if (created == null)
+        {
+            return new JsonResult(new { success = false, message = "Failed to create backlog item." });
+        }
+
+        return new JsonResult(new { success = true, item = created, message = "Issue created." });
     }
 }

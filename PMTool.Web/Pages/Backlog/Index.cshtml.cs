@@ -294,8 +294,11 @@ public class IndexModel : PageModel
             (int)BacklogItemType.BRD => "bg-primary",
             (int)BacklogItemType.UserStory => "bg-info",
             (int)BacklogItemType.UseCase => "bg-secondary",
-            (int)BacklogItemType.Epic => "bg-purple",
+            (int)BacklogItemType.Feature => "bg-success",
+            (int)BacklogItemType.Improvement => "bg-info text-dark",
             (int)BacklogItemType.ChangeRequest => "bg-warning text-dark",
+            (int)BacklogItemType.TestCase => "bg-dark",
+            (int)BacklogItemType.Bug => "bg-danger",
             _ => "bg-secondary"
         };
     }

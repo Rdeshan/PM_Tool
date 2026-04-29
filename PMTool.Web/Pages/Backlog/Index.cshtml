@@ -69,7 +69,6 @@
                     <th>Status</th>
                     <th>Owner</th>
                     <th class="parent-column d-none">Parent</th>
-                    @* <th style="width:110px;">Priority</th> *@
                     <th style="width:90px;"></th>
                 </tr>
             </thead>
@@ -126,7 +125,6 @@
                         </select>
                     </td>
                     <td class="parent-column d-none"></td>
-                    @* <td>-</td> *@
                     <td class="text-end">
                         <div class="d-inline-flex align-items-center gap-2">
                             <button id="saveNewIssue" class="btn btn-sm btn-success" type="button">Save</button>
@@ -141,7 +139,7 @@
                 @for (var i = 0; i < 4; i++)
                 {
                     <tr>
-                        <td colspan="9"><div class="skeleton-line"></div></td>
+                        <td colspan="10"><div class="skeleton-line"></div></td>
                     </tr>
                 }
             </tbody>
@@ -180,7 +178,6 @@
                         <td class="editable-select" data-field="status" data-value="@item.Status">@item.StatusName</td>
                         <td class="editable-select" data-field="owner" data-value="@item.OwnerId">@(string.IsNullOrWhiteSpace(item.OwnerName) ? "Unassigned" : item.OwnerName)</td>
                         <td class="editable-select parent-column d-none" data-field="parentbacklogitemid" data-value="@item.ParentBacklogItemId">@(Model.Items.FirstOrDefault(x => x.Id == item.ParentBacklogItemId)?.Title ?? "None")</td>
-                        @* <td class="priority-cell">@Model.GetDisplayPriorityLabel(item)</td> *@
                         <td class="text-end action-cell">
                             <button class="btn btn-sm btn-outline-danger delete-btn" type="button" title="Delete">
                                 <i class="bi bi-trash"></i>
@@ -258,6 +255,22 @@
         .skeleton-line { height: 18px; border-radius: 6px; background: linear-gradient(90deg,#ececec 25%,#f8f8f8 37%,#ececec 63%); background-size: 400% 100%; animation: shimmer 1.2s infinite; }
         @@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
         .drag-over { outline: 2px dashed #0d6efd; }
+        .due-date-btn { font-size: 0.8rem; white-space: nowrap; text-decoration: none; }
+        .due-date-btn:hover { opacity: 0.75; }
+        #dueDatePicker {
+            position: fixed;
+            z-index: 1070;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            padding: 12px 14px;
+            min-width: 230px;
+            display: none;
+        }
+        #dueDatePicker h6 { font-size: 0.78rem; color: #6c757d; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+        #dueDatePicker input[type=date] { border-radius: 6px; font-size: 0.85rem; }
+        #dueDatePicker .due-date-clear { font-size: 0.78rem; }
         .drag-handle { cursor: move; }
         .bg-purple { background-color: #6f42c1 !important; }
         .fold-toggle {
@@ -948,6 +961,91 @@
         usecaseDescCard.style.display = 'none';
         usecaseDescCard.dataset.anchorId = '';
     });
+
+    // ── Due Date Picker ──────────────────────────────────────────────────
+    const dueDatePicker = document.createElement('div');
+    dueDatePicker.id = 'dueDatePicker';
+    dueDatePicker.innerHTML = `
+        <h6><i class="bi bi-calendar3 me-1"></i>Set Due Date</h6>
+        <input type="date" class="form-control form-control-sm mb-2" id="dueDateInput" />
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-primary flex-grow-1" id="dueDateSave">Apply</button>
+            <button class="btn btn-sm btn-link due-date-clear text-danger p-0" id="dueDateClear">Clear</button>
+        </div>`;
+    document.body.appendChild(dueDatePicker);
+
+    let activeDueDateRow = null;
+
+    const positionPicker = (anchor) => {
+        const rect = anchor.getBoundingClientRect();
+        const pickerH = 120;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const top = spaceBelow >= pickerH ? rect.bottom + 4 : rect.top - pickerH - 4;
+        dueDatePicker.style.top = top + 'px';
+        dueDatePicker.style.left = Math.min(rect.left, window.innerWidth - 250) + 'px';
+    };
+
+    const closePicker = () => {
+        dueDatePicker.style.display = 'none';
+        activeDueDateRow = null;
+    };
+
+    const saveDueDate = async (value) => {
+        if (!activeDueDateRow) return;
+        const itemId = activeDueDateRow.dataset.id;
+        const cell = activeDueDateRow.querySelector('.due-date-cell');
+        const result = await postJson('UpdateField', { itemId, field: 'duedate', value: value || '' });
+        notify(result.message, result.success);
+        if (result.success && cell) {
+            cell.dataset.due = value;
+            const btn = cell.querySelector('.due-date-btn');
+            const lbl = cell.querySelector('.due-date-label');
+            if (lbl && btn) {
+                if (value) {
+                    const d = new Date(value + 'T00:00:00');
+                    const isPast = d < new Date(new Date().toDateString());
+                    lbl.className = `due-date-label text-${isPast ? 'danger' : 'secondary'}`;
+                    lbl.innerHTML = `<i class="bi bi-calendar3"></i> ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+                } else {
+                    lbl.className = 'due-date-label text-muted';
+                    lbl.innerHTML = '<i class="bi bi-calendar3"></i>';
+                }
+            }
+        }
+        closePicker();
+    };
+
+    rowsBody.addEventListener('click', (e) => {
+        const btn = e.target.closest('.due-date-btn');
+        if (!btn) return;
+        e.stopPropagation();
+        const row = btn.closest('tr');
+        const cell = btn.closest('.due-date-cell');
+        if (activeDueDateRow === row) { closePicker(); return; }
+        activeDueDateRow = row;
+        document.getElementById('dueDateInput').value = cell?.dataset.due ?? '';
+        positionPicker(btn);
+        dueDatePicker.style.display = 'block';
+        document.getElementById('dueDateInput').focus();
+    });
+
+    document.getElementById('dueDateSave').addEventListener('click', () => {
+        saveDueDate(document.getElementById('dueDateInput').value);
+    });
+
+    document.getElementById('dueDateClear').addEventListener('click', () => {
+        saveDueDate('');
+    });
+
+    document.getElementById('dueDateInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); saveDueDate(e.target.value); }
+        if (e.key === 'Escape') closePicker();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#dueDatePicker') && !e.target.closest('.due-date-btn')) closePicker();
+    });
+    // ─────────────────────────────────────────────────────────────────────
 
     refreshCreateParentOptions();
     toggleAddBulkBtnState();
