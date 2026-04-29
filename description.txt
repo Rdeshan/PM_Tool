@@ -1,0 +1,451 @@
+================================================================================
+SOFTWARE COMPONENT PM TOOL — FEATURE REQUIREMENTS LIST
+Version 2.2  |  February 2026
+================================================================================
+
+Document Title  : Software Component PM Tool — Feature Requirements List
+Version         : 2.2
+Status          : Draft — For Review
+Date            : February 2026
+Primary Audience: Software Developers, Project Managers
+
+Changes in v2.2:
+  - Added: Delay Tracking (Section 14) — per-ticket and project-wide delay
+    visibility, delay reports, and escalation rules.
+  - Added: Email Notification Settings (Section 15) — configurable recipient
+    rules per event type, role-based routing, and per-project notification
+    settings.
+
+================================================================================
+1. SYSTEM HIERARCHY OVERVIEW
+================================================================================
+
+The system is organised in a four-level hierarchy:
+
+  Level 1 — Project      : Top-level container representing a client engagement
+                           or system. e.g. 'University Management System'
+  Level 2 — Product      : A release version within a project.
+                           e.g. 'UMS v1.0', 'UMS v2.0'
+  Level 3 — Sub-Project  : A functional module within a product.
+                           e.g. 'Student Registration Portal', 'Admin Portal'
+  Level 4 — Ticket       : An individual unit of work within a sub-project.
+                           e.g. a bug, task, feature, or improvement.
+
+================================================================================
+2. USER MANAGEMENT & ACCESS CONTROL
+================================================================================
+
+Internal team members only. Customers do not require a system login — their
+interactions are handled via email (see Section 8).
+
+2.1 Authentication
+------------------
+  - Email & password login
+  - OAuth single sign-on (Google or Microsoft)
+  - Multi-factor authentication (MFA) via authenticator app
+  - Session timeout (default: 30 minutes inactivity)
+  - Self-service password reset via time-limited email link
+  - Account lockout after 10 consecutive failed login attempts within 15 minutes
+
+2.2 Roles & Permissions
+-----------------------
+  - Administrator      : Full system access; manages users, projects, and
+                         organisation-wide settings.
+  - Project Manager    : Creates and manages projects, products, sub-projects,
+                         sprints, milestones, and team assignments.
+  - Developer          : Creates and updates tickets, logs time, and posts
+                         comments within assigned sub-projects.
+  - QA Engineer        : Creates and manages bug tickets, links test cases, and
+                         updates ticket status within assigned sub-projects.
+  - Business Analyst   : Creates and manages BRDs, user stories, and backlog
+                         items; can link requirements to tickets.
+  - Viewer/Stakeholder : Read-only access to dashboards, reports, and ticket
+                         lists.
+  - Guest              : Limited read-only access via shared invite link; no
+                         system account required.
+
+2.3 User Administration
+-----------------------
+  - Invite by email
+  - Deactivate accounts (historical data preserved)
+  - Role reassignment at any time
+  - Profile settings (display name, avatar, notification preferences)
+  - Team grouping (Development, QA, BA, DevOps, Design, etc.)
+
+================================================================================
+3. PROJECTS
+================================================================================
+
+3.1 Project Creation & Settings
+--------------------------------
+  - Create project with name, description, client name, start date, end date
+  - Auto-generated project code used as ticket ID prefix (e.g. UMS-001)
+  - Project status: Active, On Hold, or Completed
+  - Custom project avatar & colour
+  - Project archival (read-only, fully searchable)
+  - Team assignment controlling access
+  - Project-level backlog for BRDs, user stories, and high-level requirements
+
+================================================================================
+4. PRODUCTS (RELEASE VERSIONS)
+================================================================================
+
+4.1 Product Creation & Management
+----------------------------------
+  - Create product with version name, description, planned release date, and
+    release type (Major, Minor, Patch, Hotfix)
+  - Product status: Planned, In Development, In Testing, Released, Deprecated
+  - Multiple products per project
+  - Product backlog for BRDs, user stories, use cases, scope documents, and tickets
+  - Draft and publish release notes linked to completed tickets
+  - Product timeline showing all sub-projects and tickets
+
+================================================================================
+5. SUB-PROJECTS (MODULES)
+================================================================================
+
+5.1 Sub-Project Creation & Management
+--------------------------------------
+  - Create sub-project with name, description, assigned team(s), and module owner
+  - Sub-project status: Not Started, In Progress, In Review, Completed
+  - Team assignment (one or more teams)
+  - Real-time progress indicator (completed vs. total tickets)
+  - Timeline view (Gantt-style)
+  - Dependencies between sub-projects
+
+================================================================================
+6. BACKLOG & REQUIREMENTS MANAGEMENT
+================================================================================
+
+6.1 Backlog Structure
+---------------------
+  - Project-level backlog (spans all products)
+  - Product-level backlog (release-specific, can include tickets)
+  - Backlog item fields: title, description, type, priority, status, owner
+  - Drag-and-drop priority ordering
+
+6.2 Requirements Documentation
+--------------------------------
+  - BRD attachment (file upload or built-in rich-text editor)
+  - User stories with acceptance criteria
+  - Use case attachment or linking
+  - Version history with restore capability
+  - Approval workflow (approve, reject, request changes)
+  - Traceability linking to tickets (for RTM generation)
+
+================================================================================
+7. TICKETS
+================================================================================
+
+7.1 Ticket Categories
+---------------------
+  Task | Bug | Feature | Improvement | Change Request | User Story | Test Case
+
+7.2 Ticket Status (Default)
+----------------------------
+  Open         — Created but not yet assigned or scheduled
+  Not Started  — Assigned and scheduled but work not begun
+  Implementing — Active development underway
+  Paused       — Temporarily stopped (pause reason required)
+  In Review    — Awaiting code or peer review
+  QA           — Currently being tested
+  UAT          — In User Acceptance Testing
+  Completed    — All work, review, and testing done
+  Closed       — Formally closed or resolved
+  Cancelled    — Will not be actioned (cancellation reason required)
+  Reopened     — Previously closed ticket reopened
+
+  Additional: Custom statuses, workflow transition rules, status history,
+  reopen/pause with required reason, bulk status update.
+
+7.3 Key Ticket Fields
+---------------------
+  Required   : Ticket ID (auto), Title, Description, Category, Sub-Project,
+               Priority, Status, Assignee(s), Team
+  Optional   : Start Date, Expected Due Date, Actual End Date, Story Points,
+               Sprint, Milestone, BRD/Use Case/Test Case Number, Labels,
+               Linked Tickets, Attachments
+  Bug-only   : Severity, Steps to Reproduce, Expected vs Actual, Environment
+  Conditional: Pause/Cancel Reason
+
+7.4 Ticket Views
+----------------
+  Personal: My Tickets, My Activity, Watching
+  Team    : Team Board (Kanban), QA Board, Development Board, BA Board,
+            Team List View, Team Workload Summary
+  Project : Sub-project board/list/table/timeline, Project overview
+
+7.5 Ticket Attachments
+-----------------------
+  - File upload (any type, max 25 MB per file, unlimited files)
+  - Documents: PDF, DOCX, XLSX, PPTX, TXT (max 25 MB)
+  - Screenshots/Images: PNG, JPG, GIF, WEBP (max 10 MB, clipboard paste supported)
+  - External links (any URL, unlimited)
+  - Inline in description/comments
+  - Version history for re-uploaded files
+  - Attachment search via global search
+
+7.6 Ticket Search & Filtering
+------------------------------
+  - Global search (titles, descriptions, comments, attachment filenames)
+  - Filter by: sub-project, category, priority, status, assignee, team,
+    sprint, milestone, BRD/use case/test case number, label, date range
+  - Saved & shared filter views
+  - Quick filter presets
+
+7.7 Ticket Comments & Collaboration
+-------------------------------------
+  - Threaded comments with markdown, code blocks, images, @mentions
+  - @mention email + in-app notifications
+  - Emoji reactions
+  - Immutable activity log
+  - Watchers (subscribe without being assignee)
+  - Internal notes (team-only, not visible to customers/guests)
+
+7.8 Ticket Automation
+----------------------
+  - Auto-block on overdue dependency
+  - Due date reminders (48 hours before)
+  - Auto-set Actual End Date on completion
+  - Recurring tickets (daily, weekly, or monthly)
+
+7.9 Bulk Operations
+--------------------
+  Multi-select tickets to: change status, change priority, reassign, add/remove
+  label, move to sprint, return to backlog, archive, delete.
+
+================================================================================
+8. CUSTOMER BUG REPORTING (EMAIL-TO-TICKET)
+================================================================================
+
+  - Customers report bugs via a structured email template (no login required)
+  - Template fields: Subject/Title, Description, Steps to Reproduce,
+    Expected vs Actual, Environment, Severity, Attachments
+  - Each project has a dedicated intake email address
+  - Auto-reply with generated ticket ID on receipt
+  - Automatic ticket creation, categorisation (Bug/Open), and assignment
+  - Email attachment handling
+  - Duplicate detection and invalid format handling
+  - Automated status update emails to customers at key milestones
+  - Resolution email with fix summary and target release version
+
+================================================================================
+9. SPRINT PLANNING
+================================================================================
+
+  - Create sprints with name, goal, start/end dates, and story point capacity
+  - One active sprint per sub-project/product at a time
+  - Drag-and-drop ticket population with real-time capacity indicators
+  - Capacity warning when planned points exceed sprint capacity
+  - Per-member availability adjustment per sprint
+  - Sprint goal displayed prominently on board
+  - Mid-sprint scope changes logged
+  - Sprint closure with disposition options for incomplete tickets
+  - Auto-generated sprint summary on closure
+  - Full sprint history
+
+================================================================================
+10. VISUALISATIONS & CHARTS
+================================================================================
+
+10.1 Gantt Chart
+  - Ticket, sub-project, and product level views
+  - Dependency lines and critical path highlighting
+  - Drag-to-reschedule with dependent ticket shifting
+  - Today marker | Export as PDF or PNG
+
+10.2 Kanban Board
+  - Per sub-project and per team
+  - Drag-and-drop status changes
+  - WIP limits with visual highlighting
+  - Swimlanes by assignee, team, priority, or epic
+  - Configurable card information
+
+10.3 Burndown Chart
+  - Ideal vs. actual remaining story points (real-time)
+  - Scope change markers
+  - Archived burndowns for completed sprints
+
+10.4 Velocity Chart
+  - Planned vs. completed story points per sprint (last 10 sprints)
+  - Rolling average (3, 5, or 10 sprints)
+  - Projected delivery date forecast
+
+10.5 Summary Charts
+  - Ticket status distribution | Ticket category breakdown
+  - Team workload chart | Milestone progress bar | Bug trend chart
+
+================================================================================
+11. OUTPUTS & REPORTS
+================================================================================
+
+11.1 Requirements Traceability Matrix (RTM)
+  - Auto-generated cross-reference: BRDs, user stories, use cases, tickets,
+    test cases, and statuses
+  - Coverage gap highlighting
+  - Filter by sub-project | Export: PDF or Excel
+
+11.2 Dependency Matrix
+  - Auto-generated ticket-to-ticket and sub-project-to-sub-project grid
+  - Blocked item highlighting
+  - Export: PDF or Excel
+
+11.3 Costing & Budget Report
+  - Developer hourly/daily rate configuration
+  - Time-based cost calculation per ticket
+  - Cost aggregation by sub-project, product, project, and team
+  - Budget vs. actual comparison
+  - Effort summary and cost forecast
+  - Export: PDF or Excel
+
+11.4 Additional Reports
+  - Sprint report | Bug report | Workload report | Ticket age report
+  - Change request log | Scheduled delivery (weekly/monthly email)
+  - Export formats: PDF, CSV, or Excel (.xlsx)
+
+================================================================================
+12. NOTIFICATIONS
+================================================================================
+
+12.1 In-App Notifications
+  - Notification bell with unread count
+  - Events: ticket assigned, comment posted, @mention, status change,
+    due date approaching, ticket blocked/paused, sprint events,
+    milestone at risk, approval requests
+
+12.2 Email Notifications
+  - Email equivalents for all in-app events (configurable per user per project)
+  - Daily digest option
+  - Automated customer notifications (see Section 8)
+
+================================================================================
+13. SYSTEM & TECHNICAL REQUIREMENTS
+================================================================================
+
+13.1 Performance
+  - Page load       : Boards/lists/dashboards within 2 seconds (up to 1,000 tickets)
+  - Search          : Results within 1 second (up to 10,000 tickets)
+  - Report gen      : RTM/dependency/costing reports within 5 seconds
+  - Concurrent users: At least 200 without degradation
+
+13.2 Security
+  - TLS 1.2+ for all client-server communication
+  - AES-256 encryption at rest
+  - Role-based access control
+  - Immutable audit log (12-month retention)
+  - OWASP Top 10 hardened
+
+13.3 Reliability & Availability
+  - 99.9% uptime target
+  - Automated backups every 6 hours, retained 30 days
+  - RTO: 4 hours | RPO: 6 hours
+
+13.4 Usability & Accessibility
+  - WCAG 2.1 Level AA compliant
+  - Full keyboard navigation
+  - Responsive design (768px and above)
+  - Latest 2 versions of Chrome, Firefox, Edge, and Safari
+
+13.5 API & Integration
+  - RESTful API (OpenAPI 3.0 specification)
+  - API versioning maintained for 12 months post-supersession
+  - Webhook support for third-party integration
+
+================================================================================
+14. DELAY TRACKING
+================================================================================
+
+14.1 Delay Types
+  - Overdue Ticket         : Due date passed, status not Completed/Closed/Cancelled
+  - Not Started — Late     : Start date passed, still Open or Not Started
+  - Paused — Extended      : Paused for longer than configurable threshold (default: 3 days)
+  - Sprint Overrun         : Projected completion exceeds sprint end date
+  - Milestone At Risk      : Projected completion exceeds milestone target date
+  - Sub-Project Delayed    : Critical-path tickets overdue, causing schedule slip
+  - Blocked — Unresolved   : Blocked for longer than threshold (default: 2 days) unresolved
+
+14.2 Delay Indicators on Tickets
+  - Overdue badge on all views
+  - Days overdue counter (updates daily)
+  - 'Not Started — Late' label
+  - Delay reason field (free-text logging)
+  - Delay history in activity log
+  - Revised due date (original retained for reporting)
+
+14.3 Delay Views & Dashboards
+  - Dedicated Delays dashboard (project-level)
+  - Overdue tickets list (sorted by days overdue)
+  - Red/amber highlights on Gantt chart
+  - Sprint overrun banner on active sprint board
+  - Milestone delay colour coding (amber = At Risk, red = Overdue)
+  - Sub-project delay summary on product page
+
+14.4 Delay Reports
+  - Full delay report: ticket ID, title, sub-project, assignee, original/revised
+    due date, days delayed, delay reason
+  - Delay frequency by team (chart)
+  - Average delay duration by sub-project/team/assignee
+  - On-time delivery rate (trend over time)
+  - Export: PDF, CSV, or Excel
+
+14.5 Delay Escalation Rules
+  - Immediate notification when ticket becomes overdue
+  - Progressive escalation after configurable days (e.g. 3 days → PM/Director)
+  - Repeated reminders every N days until resolved
+  - Suppression when Revised Due Date is set
+  - Sprint overrun alert to Project Manager
+  - Milestone alerts to Project Manager and Director
+
+================================================================================
+15. EMAIL NOTIFICATION SETTINGS
+================================================================================
+
+15.1 Settings Location & Access
+  - Organisation-level defaults (set by Administrator)
+  - Project-level overrides (set by Project Manager)
+  - User-level preferences (within permitted bounds; cannot opt out of
+    escalation emails)
+
+15.2 Recipient Types
+  Assignee | Reporter | Watchers | Team Lead | Project Manager | Director |
+  Sub-Project Owner | Specific User(s) | Specific Role | Specific Team |
+  External Email
+
+15.3 Notification Events (Selected)
+  Ticket Created | Ticket Assigned | Status Changed | Comment Posted |
+  @Mention | Due in 48h / 24h | Overdue | Overdue 3+ Days | Paused |
+  Blocked | Reopened | Attachment Added | Approval Requested/Decided |
+  Sprint Started/Closing/Overrun/Closed | Milestone At Risk/Overdue/7-Day/
+  Completed | Customer Bug Received/Resolved
+
+  Each event has independently configurable recipients, delivery timing, and
+  escalation rules.
+
+15.4 Notification Delivery Options
+  - Channel selection: In-App only, Email only, or both
+  - Immediate or batched daily digest delivery
+  - Escalation delay (configurable business days)
+  - Repeat interval for escalation emails
+  - Quiet hours (suppress emails between configured hours)
+  - CC and BCC support per rule
+
+15.5 Email Content Configuration
+  - Configurable subject templates with dynamic variables:
+    {ticket_id}, {ticket_title}, {project_name}, {assignee_name},
+    {status}, {days_overdue}, {due_date}
+  - Email body includes key ticket details and direct link
+  - Custom introductory messages per event type
+  - Company branding (logo & colour in email header)
+  - Configurable reply-to address
+  - Unsubscribe link (mandatory for non-escalation emails)
+
+15.6 Notification Log
+  - Searchable sent email log (recipient, event, ticket, timestamp,
+    delivery status: Sent / Delivered / Bounced / Opened)
+  - Bounce handling with admin notification
+  - Audit trail of all settings changes
+
+================================================================================
+END OF DOCUMENT
+Version 2.2  |  February 2026
+================================================================================
