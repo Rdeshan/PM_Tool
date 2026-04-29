@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PMTool.Application.DTOs.Product;
-using PMTool.Application.Services.Product;
+using PMTool.Application.Interfaces;    
 using FluentValidation;
 
 namespace PMTool.Web.Pages.Products;

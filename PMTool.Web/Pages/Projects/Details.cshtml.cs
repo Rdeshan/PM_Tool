@@ -4,7 +4,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.EntityFrameworkCore;
 using PMTool.Application.DTOs.Project;
 using PMTool.Application.DTOs.Team;
-using PMTool.Application.Services.Project;
+using PMTool.Application.Interfaces;
 using PMTool.Application.Services.Team;
 using PMTool.Domain.Enums;
 using PMTool.Infrastructure.Data;
