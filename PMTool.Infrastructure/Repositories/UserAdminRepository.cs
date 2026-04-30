@@ -160,7 +160,7 @@ public class UserAdminRepository : IUserAdminRepository
         return await _context.UserRoles
             .Where(ur => ur.RoleId == roleId)
             .Include(ur => ur.User)
-            .Select(ur => ur.User)
+            .Select(ur => ur.User!)
             .OrderBy(u => u.Email)
             .ToListAsync();
     }

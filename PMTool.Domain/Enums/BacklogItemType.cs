@@ -6,5 +6,9 @@ public enum BacklogItemType
     UserStory = 2,
     UseCase = 3,
     Epic = 4,
-    ChangeRequest = 5
+    ChangeRequest = 5,
+    Feature = 6,
+    Improvement = 7,
+    TestCase = 8,
+    Bug = 9
 }

@@ -13,7 +13,7 @@
     ViewData["Title"] = "Product Backlog";
 }
 
-<div class="container-fluid mt-4">
+<div class=" mt-5">
     @if (!Model.IsEmbedded)
     {
         <nav aria-label="breadcrumb" class="mb-3 d-flex justify-content-between align-items-center">
@@ -35,7 +35,7 @@
         </nav>
     }
 
-    <div style="background-color: #f5f5f5; padding: 16px; border-radius: 4px;">
+    <div style="background-color: #ffffffff; padding: 16px; border-radius: 4px;">
         <!-- Backlog Header -->
         <div class="d-flex justify-content-between align-items-center mb-3" style="background-color: white; padding: 12px; border-radius: 4px;">
             <div class="d-flex align-items-center gap-3">
@@ -74,10 +74,13 @@
                             <i class="bi bi-bookmark-fill"></i>
                         </button>
                         <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="#" data-type="feature">Feature</a></li>
+                            <li><a class="dropdown-item" href="#" data-type="improvement">Improvement</a></li>
+                            <li><a class="dropdown-item" href="#" data-type="changerequest">Change Request</a></li>
+                            <li><a class="dropdown-item" href="#" data-type="testcase">Test Case</a></li>
                             <li><a class="dropdown-item" href="#" data-type="story">User Story</a></li>
-                            <li><a class="dropdown-item" href="#" data-type="task">Task</a></li>
                             <li><a class="dropdown-item" href="#" data-type="bug">Bug</a></li>
-                            <li><a class="dropdown-item" href="#" data-type="epic">Epic</a></li>
+                            <li><a class="dropdown-item" href="#" data-type="task">Task</a></li>
                         </ul>
                     </div>
 
@@ -86,8 +89,10 @@
 
                     <!-- Due Date -->
                     <div style="flex: 0 0 auto;">
+                        <input type="hidden" id="newItemDueDate" />
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="dueDateBtn" title="Set due date">
                             <i class="bi bi-calendar-event"></i>
+                            <span id="dueDateStatus" class="d-none"></span>
                         </button>
                     </div>
 
@@ -130,6 +135,7 @@
                                 <th style="width: 100px;">Type</th>
                                 <th style="width: 100px;">Status</th>
                                 <th style="width: 100px;">Owner</th>
+                                <th style="width: 110px;">Due Date</th>
                                 <th style="width: 90px;"></th>
                             </tr>
                         </thead>
@@ -167,6 +173,22 @@
                                     <td>
                                         <small class="text-muted">@item.OwnerName</small>
                                     </td>
+                                    <td class="due-date-cell" data-due="@(item.DueDate?.ToString("yyyy-MM-dd") ?? "")">
+                                        <button type="button" class="btn btn-sm btn-link p-0 due-date-btn text-decoration-none" title="Set due date">
+                                            @if (item.DueDate.HasValue)
+                                            {
+                                                <span class="due-date-label text-@(item.DueDate.Value < DateTime.Today ? "danger" : "secondary")">
+                                                    <i class="bi bi-calendar3"></i> @item.DueDate.Value.ToString("MMM d")
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="due-date-label text-muted">
+                                                    <i class="bi bi-calendar3"></i>
+                                                </span>
+                                            }
+                                        </button>
+                                    </td>
                                     <td>
                                         @if (Model.CanEditBacklog)
                                         {
@@ -192,16 +214,7 @@
     </div>
 </div>
 
-<style>
-    .badge {
-        font-size: 0.85rem;
-        padding: 4px 8px;
-    }
-
-    .dropdown-toggle::after {
-        display: none;
-    }
-</style>
+@Html.AntiForgeryToken()
 
 <style>
     .badge {
@@ -212,4 +225,219 @@
     .dropdown-toggle::after {
         display: none;
     }
+
+    #dueDatePicker {
+        position: fixed;
+        z-index: 9999;
+        background: #fff;
+        border: 1px solid #dee2e6;
+        border-radius: 10px;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        padding: 12px 14px;
+        min-width: 230px;
+        display: none;
+    }
+    #dueDatePicker h6 { font-size: 0.78rem; color: #6c757d; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+    #dueDatePicker input[type=date] { border-radius: 6px; font-size: 0.85rem; }
 </style>
+
+@section Scripts {
+    <script>
+    (() => {
+        // Due Date Picker UI
+        const dueDatePicker = document.createElement('div');
+        dueDatePicker.id = 'dueDatePicker';
+        dueDatePicker.innerHTML = `
+            <h6><i class="bi bi-calendar3 me-1"></i>Set Due Date</h6>
+            <input type="date" class="form-control form-control-sm mb-2" id="dueDateInput" />
+            <div class="d-flex gap-2">
+                <button class="btn btn-sm btn-primary flex-grow-1" id="dueDateSave">Apply</button>
+                <button class="btn btn-sm btn-link text-danger p-0 text-decoration-none small" id="dueDateClear">Clear</button>
+            </div>`;
+        document.body.appendChild(dueDatePicker);
+
+        let activeRow = null;
+        let isCreationCalendar = false;
+
+        const positionPicker = (anchor) => {
+            const rect = anchor.getBoundingClientRect();
+            const pickerH = 140;
+            const spaceBelow = window.innerHeight - rect.bottom;
+            const top = spaceBelow >= pickerH ? rect.bottom + window.scrollY + 4 : rect.top + window.scrollY - pickerH - 4;
+            dueDatePicker.style.top = top + 'px';
+            dueDatePicker.style.left = Math.min(rect.left, window.innerWidth - 250) + 'px';
+            dueDatePicker.style.position = 'absolute';
+        };
+
+        const closePicker = () => {
+            dueDatePicker.style.display = 'none';
+            activeRow = null;
+            isCreationCalendar = false;
+        };
+
+        const postJson = async (handler, payload) => {
+            const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+            const response = await fetch(`?handler=${handler}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': token },
+                body: JSON.stringify(payload)
+            });
+            return response.json();
+        };
+
+        const saveDueDate = async (value) => {
+            if (isCreationCalendar) {
+                const input = document.getElementById('newItemDueDate');
+                const btn = document.getElementById('dueDateBtn');
+                input.value = value;
+                if (value) {
+                    const d = new Date(value + 'T00:00:00');
+                    btn.classList.replace('btn-outline-secondary', 'btn-primary');
+                    btn.innerHTML = `<i class="bi bi-calendar-check-fill"></i> <small>${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</small>`;
+                } else {
+                    btn.classList.replace('btn-primary', 'btn-outline-secondary');
+                    btn.innerHTML = `<i class="bi bi-calendar-event"></i>`;
+                }
+                closePicker();
+                return;
+            }
+
+            if (!activeRow) return;
+            const itemId = activeRow.querySelector('input[type="checkbox"]')?.value;
+            if (!itemId) return;
+            const cell = activeRow.querySelector('.due-date-cell');
+            
+            try {
+                const result = await postJson('UpdateField', { itemId, field: 'duedate', value: value || '' });
+                if (result.success) {
+                    cell.dataset.due = value;
+                    const lbl = cell.querySelector('.due-date-label');
+                    if (value) {
+                        const d = new Date(value + 'T00:00:00');
+                        const isPast = d < new Date(new Date().toDateString());
+                        lbl.className = `due-date-label text-${isPast ? 'danger' : 'secondary'}`;
+                        lbl.innerHTML = `<i class="bi bi-calendar3"></i> ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+                    } else {
+                        lbl.className = 'due-date-label text-muted';
+                        lbl.innerHTML = '<i class="bi bi-calendar3"></i>';
+                    }
+                } else {
+                    alert(result.message || "Failed to update date");
+                }
+            } catch (err) {
+                console.error("Update error:", err);
+            }
+            closePicker();
+        };
+
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.due-date-btn');
+            const creationBtn = e.target.closest('#dueDateBtn');
+            
+            if (btn || creationBtn) {
+                e.stopPropagation();
+                e.preventDefault();
+                
+                if (creationBtn) {
+                    if (isCreationCalendar && dueDatePicker.style.display === 'block') { closePicker(); return; }
+                    isCreationCalendar = true;
+                    activeRow = null;
+                    document.getElementById('dueDateInput').value = document.getElementById('newItemDueDate').value;
+                    positionPicker(creationBtn);
+                } else {
+                    const row = btn.closest('tr');
+                    const cell = row.querySelector('.due-date-cell');
+                    if (activeRow === row && dueDatePicker.style.display === 'block') { closePicker(); return; }
+                    activeRow = row;
+                    isCreationCalendar = false;
+                    document.getElementById('dueDateInput').value = cell.dataset.due || '';
+                    positionPicker(btn);
+                }
+                
+                dueDatePicker.style.display = 'block';
+                document.getElementById('dueDateInput').focus();
+                return;
+            }
+
+            if (!e.target.closest('#dueDatePicker')) closePicker();
+        });
+
+        document.getElementById('dueDateSave').addEventListener('click', (e) => {
+            e.preventDefault();
+            saveDueDate(document.getElementById('dueDateInput').value);
+        });
+
+        document.getElementById('dueDateClear').addEventListener('click', (e) => {
+            e.preventDefault();
+            saveDueDate('');
+        });
+
+        document.getElementById('dueDateInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); saveDueDate(e.target.value); }
+            if (e.key === 'Escape') closePicker();
+        });
+
+        // Item Type Selection
+        document.querySelectorAll('.dropdown-item[data-type]').forEach(item => {
+            item.addEventListener('click', (e) => {
+                e.preventDefault();
+                const type = item.dataset.type;
+                const btn = item.closest('.dropdown').querySelector('.dropdown-toggle');
+                btn.dataset.selectedType = type;
+                btn.innerHTML = item.innerHTML;
+            });
+        });
+
+        // Create Item Logic
+        const createItemBtn = document.getElementById('createItemBtn');
+        if (createItemBtn) {
+            createItemBtn.addEventListener('click', async () => {
+                const titleInput = document.getElementById('itemDescription');
+                const title = titleInput.value.trim();
+                if (!title) { alert("Please enter a description"); return; }
+                
+                const typeBtn = document.querySelector('[data-bs-toggle="dropdown"][title="Select item type"]');
+                const type = typeBtn.dataset.selectedType || 'story';
+                const typeMap = { 
+                    'story': 2, 
+                    'task': 3, 
+                    'bug': 9, 
+                    'epic': 4,
+                    'feature': 6,
+                    'improvement': 7,
+                    'testcase': 8,
+                    'changerequest': 5
+                };
+                
+                const payload = {
+                    projectId: '@Model.ProjectId',
+                    productId: '@Model.ProductId',
+                    title: title,
+                    type: typeMap[type] || 2,
+                    dueDate: document.getElementById('newItemDueDate').value || null,
+                    status: 1 // Draft
+                };
+                
+                createItemBtn.disabled = true;
+                const originalContent = createItemBtn.innerHTML;
+                createItemBtn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+                
+                try {
+                    const result = await postJson('Create', payload);
+                    if (result.success) {
+                        location.reload();
+                    } else {
+                        alert(result.message || "Failed to create item");
+                        createItemBtn.disabled = false;
+                        createItemBtn.innerHTML = originalContent;
+                    }
+                } catch (err) {
+                    console.error("Create error:", err);
+                    createItemBtn.disabled = false;
+                    createItemBtn.innerHTML = originalContent;
+                }
+            });
+        }
+    })();
+    </script>
+}
