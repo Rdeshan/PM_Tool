@@ -85,6 +85,7 @@ builder.Services.AddScoped<ISubProjectService, SubProjectService>();
 builder.Services.AddScoped<IBacklogService, BacklogService>();
 builder.Services.AddScoped<IUserAdminService, UserAdminService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddScoped<IDashboardService, DashboardService>();
 
 var app = builder.Build();
 

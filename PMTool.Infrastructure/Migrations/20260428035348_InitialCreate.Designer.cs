@@ -12,8 +12,8 @@ using PMTool.Infrastructure.Data;
 namespace PMTool.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260421101424_addSubProjects")]
-    partial class addSubProjects
+    [Migration("20260428035348_InitialCreate")]
+    partial class InitialCreate
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -202,6 +202,9 @@ namespace PMTool.Infrastructure.Migrations
                     b.Property<Guid?>("OwnerId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("ParentBacklogItemId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("Priority")
                         .HasColumnType("int");
 
@@ -236,6 +239,8 @@ namespace PMTool.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerId");
+
+                    b.HasIndex("ParentBacklogItemId");
 
                     b.HasIndex("ProductId");
 
@@ -419,6 +424,10 @@ namespace PMTool.Infrastructure.Migrations
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ColorCode")
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -763,6 +772,11 @@ namespace PMTool.Infrastructure.Migrations
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("PMTool.Domain.Entities.ProjectBacklog", "ParentBacklogItem")
+                        .WithMany("ChildBacklogItems")
+                        .HasForeignKey("ParentBacklogItemId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
                     b.HasOne("PMTool.Domain.Entities.Product", "Product")
                         .WithMany("Backlogs")
                         .HasForeignKey("ProductId")
@@ -780,6 +794,8 @@ namespace PMTool.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Owner");
+
+                    b.Navigation("ParentBacklogItem");
 
                     b.Navigation("Product");
 
@@ -962,6 +978,11 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("Products");
 
                     b.Navigation("TeamMembers");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.ProjectBacklog", b =>
+                {
+                    b.Navigation("ChildBacklogItems");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.Role", b =>
