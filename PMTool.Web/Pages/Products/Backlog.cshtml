@@ -1,4 +1,5 @@
 @page "{projectId:guid}/{id:guid}/backlog"
+@using System.Text.Encodings.Web
 @model PMTool.Web.Pages.Products.BacklogModel
 @{
     if (Model.IsEmbedded)
@@ -94,9 +95,16 @@
     .subproj-btn:hover { background: #0052cc; color: #fff; border-style: solid; }
     .subproj-badge { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 600; margin-left: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: 0.5px solid transparent; color: #403294; }
     .subproj-badge:hover { border-color: #403294; }
+    .edit-title-btn { visibility: hidden; color: #6b778c; cursor: pointer; padding: 2px; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    tr:hover .edit-title-btn { visibility: visible; }
+    .edit-title-btn:hover { background: #ebecf0; color: #172b4d; }
+    .title-input { width: 100%; font-size: 13px; color: #172b4d; border: 2px solid #0052cc; border-radius: 3px; padding: 2px 6px; outline: none; background: #fff; }
+    
+    /* Make content full width */
+    .container { max-width: 100% !important; padding-left: 30px !important; padding-right: 30px !important; }
 </style>
 
-<div class="mt-5">
+<div class="mt-2">
     @if (!Model.IsEmbedded)
     {
         <nav aria-label="breadcrumb" class="mb-3 d-flex justify-content-between align-items-center">
@@ -263,7 +271,7 @@
                     <thead>
                         <tr>
                             <th style="width:32px;"><input type="checkbox" id="selectAll" /></th>
-                            <th style="width:50px;"></th>
+                            <th style="width:28px;"></th>
                             <th>Title</th>
                             <th style="width:140px; text-align:center;">Subproject</th>
                             <th style="width:110px;">Status</th>
@@ -300,7 +308,7 @@
                                 <td><input type="checkbox" value="@item.Id" /></td>
                                 <td>
                                     <!-- Type icon with dropdown -->
-                                    <div class="rel d-inline-flex align-items-center gap-1">
+                                    <div class="rel d-inline-flex align-items-center">
                                         <button type="button" class="ib" onclick="toggleDd('typeDd_@itemId', event)" title="@item.TypeName">
                                             @switch(item.Type)
                                             {
@@ -318,7 +326,6 @@
                                                     break;
                                             }
                                         </button>
-                                        <span class="badge-id">@shortId</span>
 
                                         <!-- Type dropdown -->
                                         <div class="dd-panel" id="typeDd_@itemId">
@@ -338,7 +345,13 @@
                                     </div>
                                 </td>
                                 <td>
-                                    <a href="#" class="title-link">@item.Title</a>
+                                    <div class="d-flex align-items-center gap-2" id="titleCell_@itemId">
+                                        <span class="badge-id">@shortId</span>
+                                        <a href="#" class="title-link">@item.Title</a>
+                                        <span class="edit-title-btn" onclick="editTitle('@itemId', '@Html.Raw(JavaScriptEncoder.Default.Encode(item.Title))')" title="Edit title">
+                                            <i class="bi bi-pencil" style="font-size:10px;"></i>
+                                        </span>
+                                    </div>
                                 </td>
                                 <td style="text-align:center;">
                                     @if (item.SubProjectId.HasValue)
@@ -671,6 +684,68 @@ function pickCreateDate(y, m, d) {
     document.getElementById('hiddenDueDate').value = iso;
     closeDds();
     renderCreateCal();
+}
+
+// ─── Row: Title inline edit ───────────────────────────────────────────────────
+function editTitle(itemId, current) {
+    const cell = document.getElementById('titleCell_' + itemId);
+    if (!cell) return;
+    const shortId = cell.querySelector('.badge-id').outerHTML;
+    
+    cell.innerHTML = `${shortId}<input class="title-input" type="text" value="${current}" 
+        id="titleInput_${itemId}"
+        onblur="saveTitle('${itemId}', this.value, '${current}')"
+        onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){ this.dataset.cancel='true'; this.blur(); }" />`;
+    const inp = document.getElementById('titleInput_' + itemId);
+    if (inp) { inp.focus(); inp.select(); }
+}
+
+function saveTitle(itemId, val, original) {
+    const inp = document.getElementById('titleInput_' + itemId);
+    if (inp && inp.dataset.cancel === 'true') {
+        renderTitleCell(itemId, original);
+        return;
+    }
+
+    const title = val.trim();
+    if (title === '' || title === original) {
+        renderTitleCell(itemId, original);
+        return;
+    }
+
+    fetch('?handler=UpdateTitle', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': getToken()
+        },
+        body: `itemId=${itemId}&title=${encodeURIComponent(title)}`
+    }).then(r => {
+        if (r.ok) {
+            renderTitleCell(itemId, title);
+            showToast('Title updated', 'Item title has been changed.');
+        } else {
+            renderTitleCell(itemId, original);
+        }
+    }).catch(() => {
+        renderTitleCell(itemId, original);
+    });
+}
+
+function renderTitleCell(itemId, title) {
+    const cell = document.getElementById('titleCell_' + itemId);
+    if (!cell) return;
+    
+    // We need the shortId. We can get it from the badge-id class if it still exists or reconstruct it.
+    // Easiest is to reload if complicated, but let's try to keep it smooth.
+    const badge = cell.querySelector('.badge-id');
+    const shortIdHtml = badge ? badge.outerHTML : ''; 
+
+    cell.innerHTML = `${shortIdHtml}
+        <a href="#" class="title-link">${title}</a>
+        <span class="edit-title-btn" onclick="editTitle('${itemId}', '${title.replace(/'/g, "\\'")}')" title="Edit title">
+            <i class="bi bi-pencil" style="font-size:10px;"></i>
+        </span>`;
 }
 
 // ─── Row: Points inline edit ──────────────────────────────────────────────────

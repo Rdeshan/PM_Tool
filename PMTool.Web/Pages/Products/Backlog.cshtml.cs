@@ -652,6 +652,23 @@ public class BacklogModel : PageModel
         return new JsonResult(new { success = result != null });
     }
 
+    // ── UPDATE TITLE (AJAX) ───────────────────────────────────────────────────
+    public async Task<IActionResult> OnPostUpdateTitleAsync(Guid itemId, string title)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var request = new UpdateProductBacklogFieldRequest
+        {
+            ItemId = itemId,
+            Field  = "title",
+            Value  = title
+        };
+
+        var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
+        return new JsonResult(new { success = result != null });
+    }
+
     // ── UPDATE SUBPROJECT (AJAX) ──────────────────────────────────────────────
     public async Task<IActionResult> OnPostUpdateSubProjectAsync(Guid itemId, string subProjectId)
     {
