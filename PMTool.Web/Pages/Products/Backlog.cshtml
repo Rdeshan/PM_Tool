@@ -35,6 +35,22 @@
         </nav>
     }
 
+    @if (TempData.ContainsKey("SuccessMessage"))
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
+    @if (TempData.ContainsKey("ErrorMessage"))
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @TempData["ErrorMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <div style="background-color: #f5f5f5; padding: 16px; border-radius: 4px;">
         <!-- Backlog Header -->
         <div class="d-flex justify-content-between align-items-center mb-3" style="background-color: white; padding: 12px; border-radius: 4px;">
@@ -64,52 +80,109 @@
         </div>
 
         <!-- Create Backlog Item Section -->
-        @if (Model.CanEditBacklog)
+        @* @if (Model.CanEditBacklog)
         {
             <div style="background-color: white; padding: 16px; border-radius: 4px; border: 2px solid #e0e0e0; margin-bottom: 16px;">
-                <div class="d-flex gap-2 align-items-start">
-                    <!-- Type Dropdown -->
-                    <div style="flex: 0 0 auto;">
-                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Select item type">
-                            <i class="bi bi-bookmark-fill"></i>
+                <form method="post" asp-page-handler="Create" asp-antiforgery="true">
+                    <div class="d-flex gap-2 align-items-start">
+                        <!-- Type Dropdown -->
+                        <div style="flex: 0 0 auto;">
+                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Select item type">
+                                <i class="bi bi-bookmark-fill"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                @foreach (var type in Model.ItemTypes)
+                                {
+                                    <li><a class="dropdown-item" href="#" data-value="@type.Value" onclick="document.getElementById('typeSelect').value = @type.Value; return false;">@type.Label</a></li>
+                                }
+                            </ul>
+                            <select asp-for="NewItem.Type" id="typeSelect" class="form-select form-select-sm" style="display: none;">
+                                @foreach (var type in Model.ItemTypes)
+                                {
+                                    <option value="@type.Value">@type.Label</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Description Input -->
+                        <input asp-for="NewItem.Title" type="text" class="form-control form-control-sm flex-grow-1" placeholder="Describe what needs to be done, or generate work items from Confluence, Loom, or an image." />
+
+                        <!-- Due Date -->
+                        <div style="flex: 0 0 auto;">
+                            <input asp-for="NewItem.DueDate" type="date" class="form-control form-control-sm" title="Set due date" />
+                        </div>
+
+                        <!-- Team Members Dropdown -->
+                        <div style="flex: 0 0 auto;">
+                            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Assign team members">
+                                <i class="bi bi-person-plus-fill"></i>
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="#" onclick="document.getElementById('ownerSelect').value = ''; return false;"><small>Unassigned</small></a></li>
+                                @foreach (var user in Model.ActiveUsers)
+                                {
+                                    <li><a class="dropdown-item" href="#" data-value="@user.id" onclick="document.getElementById('ownerSelect').value = '@user.id'; return false;"><small>@user.displayName</small></a></li>
+                                }
+                            </ul>
+                            <select asp-for="NewItem.OwnerId" id="ownerSelect" class="form-select form-select-sm" style="display: none;">
+                                <option value="">-- Unassigned --</option>
+                                @foreach (var user in Model.ActiveUsers)
+                                {
+                                    <option value="@user.id">@user.displayName</option>
+                                }
+                            </select>
+                        </div>
+
+                        <!-- Create Button -->
+                        <button type="submit" class="btn btn-sm btn-primary" title="Create work item">
+                            Create
+                            <i class="bi bi-arrow-right"></i>
                         </button>
-                        <ul class="dropdown-menu">
-                            <li><a class="dropdown-item" href="#" data-type="story">User Story</a></li>
-                            <li><a class="dropdown-item" href="#" data-type="task">Task</a></li>
-                            <li><a class="dropdown-item" href="#" data-type="bug">Bug</a></li>
-                            <li><a class="dropdown-item" href="#" data-type="epic">Epic</a></li>
-                        </ul>
                     </div>
-
-                    <!-- Description Input -->
-                    <input type="text" class="form-control form-control-sm flex-grow-1" placeholder="Describe what needs to be done, or generate work items from Confluence, Loom, or an image." id="itemDescription" />
-
-                    <!-- Due Date -->
-                    <div style="flex: 0 0 auto;">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" id="dueDateBtn" title="Set due date">
-                            <i class="bi bi-calendar-event"></i>
-                        </button>
-                    </div>
-
-                    <!-- Team Members Dropdown -->
-                    <div style="flex: 0 0 auto;">
-                        <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Assign team members">
-                            <i class="bi bi-person-plus-fill"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end">
-                            <li><a class="dropdown-item" href="#"><small>Team members will appear here</small></a></li>
-                        </ul>
-                    </div>
-
-                    <!-- Create Button -->
-                    <button type="button" class="btn btn-sm btn-primary" id="createItemBtn" title="Create work item">
-                        Create
-                        <i class="bi bi-arrow-right"></i>
-                    </button>
-                </div>
+                </form>
             </div>
-        }
+        } *@
+        <!-- Create Backlog Item Section -->
+@if (Model.CanEditBacklog)
+{
+    <div id="createSection" style="background-color: white; padding: 16px; border-radius: 4px; border: 2px solid #e0e0e0; margin-bottom: 16px;">
+        <form id="createBacklogForm" method="post" asp-page-handler="Create">
 
+            <div class="d-flex gap-2 align-items-start">
+                <!-- Type -->
+                <div style="flex: 0 0 auto;">
+                    <select asp-for="NewItem.Type" id="typeSelect" class="form-select form-select-sm">
+                        @foreach (var type in Model.ItemTypes)
+                        {
+                            <option value="@type.Value">@type.Label</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Title -->
+                <input asp-for="NewItem.Title" id="newItemTitle" 
+                       class="form-control form-control-sm flex-grow-1" 
+                       placeholder="What needs to be done?" required />
+
+                <!-- Due Date -->
+                <input asp-for="NewItem.DueDate" type="date" class="form-control form-select-sm" style="width: 140px;" />
+
+                <!-- Owner -->
+                <select asp-for="NewItem.OwnerId" id="ownerSelect" class="form-select form-select-sm" style="width: 160px;">
+                    <option value="">Unassigned</option>
+                    @foreach (var user in Model.ActiveUsers)
+                    {
+                        <option value="@user.id">@user.displayName</option>
+                    }
+                </select>
+
+                <button type="submit" class="btn btn-sm btn-primary" id="createBtn">
+                    <i class="bi bi-plus-lg"></i> Create
+                </button>
+            </div>
+        </form>
+    </div>
+}
         <!-- Backlog Items List -->
         <div style="background-color: white; padding: 16px; border-radius: 4px;">
             @if (Model.BacklogItems.Count == 0)
@@ -128,8 +201,10 @@
                                 <th style="width: 36px;"></th>
                                 <th>Title</th>
                                 <th style="width: 100px;">Type</th>
-                                <th style="width: 100px;">Status</th>
+                                <th style="width: 120px;">Status</th>
                                 <th style="width: 100px;">Owner</th>
+                                <th style="width: 80px;">Points</th>
+                                <th style="width: 90px;">Due Date</th>
                                 <th style="width: 90px;"></th>
                             </tr>
                         </thead>
@@ -150,22 +225,76 @@
                                         <small class="text-muted">@item.TypeName</small>
                                     </td>
                                     <td>
-                                        @{
-                                            var statusBadgeClass = item.Status switch
-                                            {
-                                                1 => "bg-secondary",
-                                                2 => "bg-warning",
-                                                3 => "bg-info",
-                                                4 => "bg-success",
-                                                _ => "bg-light text-dark"
-                                            };
+                                        @if (Model.CanEditBacklog)
+                                        {
+                                            <form asp-page-handler="UpdateStatus" method="post" asp-antiforgery="true" style="display: inline;">
+                                                <input type="hidden" name="itemId" value="@item.Id" />
+                                                <select name="status" class="form-select form-select-sm" onchange="this.form.submit();">
+                                                    <option value="1" selected="@(item.Status == 1)">Draft</option>
+                                                    <option value="2" selected="@(item.Status == 2)">Approved</option>
+                                                    <option value="3" selected="@(item.Status == 3)">In Progress</option>
+                                                    <option value="4" selected="@(item.Status == 4)">Done</option>
+                                                </select>
+                                            </form>
                                         }
-                                        <span class="badge @statusBadgeClass">
-                                            @item.StatusName
-                                        </span>
+                                        else
+                                        {
+                                            <span class="badge" style="@(item.Status switch {
+                                                1 => "background-color: #6c757d;",
+                                                2 => "background-color: #ffc107;",
+                                                3 => "background-color: #17a2b8;",
+                                                4 => "background-color: #28a745;",
+                                                _ => "background-color: #e9ecef;"
+                                            })">
+                                                @item.StatusName
+                                            </span>
+                                        }
                                     </td>
                                     <td>
-                                        <small class="text-muted">@item.OwnerName</small>
+                                        <small class="text-muted">@(item.OwnerName ?? "Unassigned")</small>
+                                    </td>
+                                    <td>
+                                        @if (Model.CanEditBacklog)
+                                        {
+                                            <div class="d-flex gap-1 align-items-center">
+                                                <span>@item.StoryPoints</span>
+                                                <button type="button" class="btn btn-sm btn-link p-0" data-bs-toggle="modal" data-bs-target="#editPointsModal@item.Id" title="Edit points">
+                                                    <i class="bi bi-dash"></i>
+                                                </button>
+                                            </div>
+
+                                            <!-- Edit Points Modal -->
+                                            <div class="modal fade" id="editPointsModal@item.Id" tabindex="-1">
+                                                <div class="modal-dialog modal-sm">
+                                                    <div class="modal-content">
+                                                        <div class="modal-header">
+                                                            <h5 class="modal-title">Edit Story Points</h5>
+                                                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                        </div>
+                                                        <form asp-page-handler="UpdateStoryPoints" method="post" asp-antiforgery="true">
+                                                            <div class="modal-body">
+                                                                <input type="hidden" name="itemId" value="@item.Id" />
+                                                                <input type="number" name="storyPoints" class="form-control" value="@item.StoryPoints" min="0" />
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                <button type="submit" class="btn btn-primary">Save</button>
+                                                            </div>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span>@item.StoryPoints</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (item.DueDate.HasValue)
+                                        {
+                                            <small class="text-muted">@item.DueDate.Value.ToString("MMM dd")</small>
+                                        }
                                     </td>
                                     <td>
                                         @if (Model.CanEditBacklog)
@@ -176,8 +305,16 @@
                                                 </button>
                                                 <ul class="dropdown-menu dropdown-menu-end shadow border-0">
                                                     <li><a class="dropdown-item" href="#"><i class="bi bi-pencil"></i> Edit</a></li>
+                                                    <li><a class="dropdown-item" href="#"><i class="bi bi-plus"></i> + SubProject</a></li>
                                                     <li><hr class="dropdown-divider"></li>
-                                                    <li><a class="dropdown-item text-danger" href="#"><i class="bi bi-trash"></i> Delete</a></li>
+                                                    <li>
+                                                        <form asp-page-handler="Delete" method="post" asp-antiforgery="true" style="display: inline;" onsubmit="return confirm('Delete this item?');">
+                                                            <input type="hidden" name="itemId" value="@item.Id" />
+                                                            <button type="submit" class="dropdown-item text-danger" style="border: none; background: none; padding: 0.5rem 1rem; text-align: left; cursor: pointer;">
+                                                                <i class="bi bi-trash"></i> Delete
+                                                            </button>
+                                                        </form>
+                                                    </li>
                                                 </ul>
                                             </div>
                                         }
@@ -202,14 +339,53 @@
         display: none;
     }
 </style>
+<script>
+document.getElementById('createBacklogForm').addEventListener('submit', async function (e) {
+    e.preventDefault();
 
-<style>
-    .badge {
-        font-size: 0.85rem;
-        padding: 4px 8px;
-    }
+    const form = this;
+    const btn = document.getElementById('createBtn');
+    const originalBtnText = btn.innerHTML;
 
-    .dropdown-toggle::after {
-        display: none;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Creating...`;
+
+    try {
+        const formData = new FormData(form);
+
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'RequestVerificationToken': document.querySelector('input[name="__RequestVerificationToken"]').value
+            }
+        });
+
+        let result;
+        const text = await response.text();
+
+        try {
+            result = JSON.parse(text);
+        } catch (e) {
+            console.error("Server returned non-JSON:", text.substring(0, 300));
+            throw new Error("Server error - expected JSON but got HTML");
+        }
+
+        if (result.success) {
+            addNewBacklogItemToTable(result.item);
+            form.reset();
+            document.getElementById('newItemTitle').focus();
+            showToast('Backlog item created successfully!', 'success');
+        } else {
+            showToast(result.message || 'Failed to create item', 'danger');
+        }
+
+    } catch (err) {
+        console.error(err);
+        showToast('Failed to create item. Please try again.', 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
     }
-</style>
+});
+</script>

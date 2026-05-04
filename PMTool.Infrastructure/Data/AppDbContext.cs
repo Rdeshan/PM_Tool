@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<RolePermission> RolePermissions { get; set; } = null!;
     public DbSet<Project> Projects { get; set; } = null!;
     public DbSet<ProjectBacklog> ProjectBacklogs { get; set; } = null!;
+    public DbSet<ProductBacklog> ProductBacklogs { get; set; } = null!;
     public DbSet<ProjectDocument> ProjectDocuments { get; set; } = null!;
     public DbSet<Product> Products { get; set; } = null!;
     public DbSet<ReleaseNotes> ReleaseNotes { get; set; } = null!;

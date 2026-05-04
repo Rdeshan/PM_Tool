@@ -71,6 +71,7 @@ builder.Services.AddScoped<IProjectRepository, ProjectRepository>();
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ISubProjectRepository, SubProjectRepository>();
 builder.Services.AddScoped<IProjectBacklogRepository, ProjectBacklogRepository>();
+builder.Services.AddScoped<IProductBacklogRepository, ProductBacklogRepository>();
 builder.Services.AddScoped<IUserAdminRepository, UserAdminRepository>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 builder.Services.AddScoped<DataSeedingService>();
@@ -83,6 +84,7 @@ builder.Services.AddScoped<IProjectService, ProjectService>();
 builder.Services.AddScoped<IProductService, ProductService>();
 builder.Services.AddScoped<ISubProjectService, SubProjectService>();
 builder.Services.AddScoped<IBacklogService, BacklogService>();
+builder.Services.AddScoped<IProductBacklogService, ProductBacklogService>();
 builder.Services.AddScoped<IUserAdminService, UserAdminService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
 
