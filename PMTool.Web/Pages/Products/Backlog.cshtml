@@ -40,7 +40,11 @@
 
 <style>
     .backlog-wrap { background: #f4f5f7; padding: 16px; border-radius: 6px; }
-    .backlog-header { background: #fff; border-radius: 4px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border: 0.5px solid #e0e0e0; }
+    .backlog-header { background: #fff; border-radius: 4px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border: 0.5px solid #e0e0e0; cursor: pointer; user-select: none; }
+    .backlog-header:hover { background: #fafbfc; }
+    .chevron-toggle { transition: transform 0.2s; font-size: 14px; color: #42526e; }
+    .collapsed .chevron-toggle { transform: rotate(-90deg); }
+    .collapsed .backlog-table-wrap, .collapsed .create-bar { display: none; }
     .create-bar { background: #fff; border: 1.5px dashed #ccc; border-radius: 4px; padding: 8px 10px; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
     .create-bar input[type=text] { flex: 1; border: none; outline: none; font-size: 13px; background: transparent; }
     .create-bar input[type=text]::placeholder { color: #aaa; }
@@ -145,8 +149,9 @@
     <div class="backlog-wrap">
 
         <!-- Header -->
-        <div class="backlog-header">
+        <div class="backlog-header" onclick="toggleBacklog()">
             <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-chevron-down chevron-toggle"></i>
                 <div>
                     <h6 class="mb-0 fw-bold" style="font-size:14px;">Backlog</h6>
                     <small class="text-muted">(@Model.BacklogItems.Count work items)</small>
@@ -166,7 +171,7 @@
             </div>
             @if (Model.CanEditBacklog)
             {
-                <button type="button" class="create-btn-main" id="createSprintBtn">
+                <button type="button" class="create-btn-main" id="createSprintBtn" onclick="event.stopPropagation()">
                     <i class="bi bi-plus-lg"></i> Create sprint
                 </button>
             }
@@ -583,6 +588,11 @@
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const SMON   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const WDAYS  = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+function toggleBacklog() {
+    const wrap = document.querySelector('.backlog-wrap');
+    wrap.classList.toggle('collapsed');
+}
 
 const TYPE_ICONS = {
     1: `<svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#63BA3C"/><path d="M4 7h6M7 4v6" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>`,
