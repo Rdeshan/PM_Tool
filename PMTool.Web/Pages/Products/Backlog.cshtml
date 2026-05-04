@@ -13,7 +13,7 @@
     ViewData["Title"] = "Product Backlog";
 }
 
-<div class="container-fluid mt-4">
+<div class=" mt-5">
     @if (!Model.IsEmbedded)
     {
         <nav aria-label="breadcrumb" class="mb-3 d-flex justify-content-between align-items-center">
@@ -296,6 +296,22 @@
                                             <small class="text-muted">@item.DueDate.Value.ToString("MMM dd")</small>
                                         }
                                     </td>
+                                    <td class="due-date-cell" data-due="@(item.DueDate?.ToString("yyyy-MM-dd") ?? "")">
+                                        <button type="button" class="btn btn-sm btn-link p-0 due-date-btn text-decoration-none" title="Set due date">
+                                            @if (item.DueDate.HasValue)
+                                            {
+                                                <span class="due-date-label text-@(item.DueDate.Value < DateTime.Today ? "danger" : "secondary")">
+                                                    <i class="bi bi-calendar3"></i> @item.DueDate.Value.ToString("MMM d")
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="due-date-label text-muted">
+                                                    <i class="bi bi-calendar3"></i>
+                                                </span>
+                                            }
+                                        </button>
+                                    </td>
                                     <td>
                                         @if (Model.CanEditBacklog)
                                         {
@@ -328,6 +344,8 @@
         </div>
     </div>
 </div>
+
+@Html.AntiForgeryToken()
 
 <style>
     .badge {

@@ -204,6 +204,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PMTool.Application.DTOs.Backlog;
 using PMTool.Application.Interfaces;
+using PMTool.Domain.Enums;
 
 namespace PMTool.Web.Pages.Products;
 
