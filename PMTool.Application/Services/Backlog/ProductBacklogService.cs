@@ -114,6 +114,9 @@ public class ProductBacklogService : IProductBacklogService
                     item.StoryPoints = storyPoints;
                 }
                 break;
+            case "subproject":
+                item.SubProjectId = Guid.TryParse(request.Value, out var subProjId) ? subProjId : null;
+                break;
         }
 
         item.UpdatedAt = DateTime.UtcNow;
@@ -173,6 +176,9 @@ public class ProductBacklogService : IProductBacklogService
             StartDate = item.StartDate,
             DueDate = item.DueDate,
             StoryPoints = item.StoryPoints,
+            SubProjectId = item.SubProjectId,
+            SubProjectName = item.SubProject?.Name,
+            SubProjectColor = item.SubProject?.ColorCode,
             CreatedAt = item.CreatedAt,
             UpdatedAt = item.UpdatedAt
         };

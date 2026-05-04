@@ -18,6 +18,7 @@ public class ProductBacklogRepository : IProductBacklogRepository
     {
         return await _context.ProductBacklogs
             .Include(x => x.Owner)
+            .Include(x => x.SubProject)
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
@@ -25,6 +26,7 @@ public class ProductBacklogRepository : IProductBacklogRepository
     {
         var query = _context.ProductBacklogs
             .Include(x => x.Owner)
+            .Include(x => x.SubProject)
             .Where(x => x.ProductId == productId);
 
         if (status.HasValue)

@@ -205,6 +205,8 @@
 // using PMTool.Application.DTOs.Backlog;
 // using PMTool.Application.Interfaces;
 // using PMTool.Domain.Enums;
+// using PMTool.Application.Services.SubProject;
+// using PMTool.Application.DTOs.SubProject;
 
 // namespace PMTool.Web.Pages.Products;
 
@@ -424,6 +426,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PMTool.Application.DTOs.Backlog;
 using PMTool.Application.Interfaces;
+using PMTool.Application.Services.SubProject;
+using PMTool.Application.DTOs.SubProject;
 
 namespace PMTool.Web.Pages.Products;
 
@@ -434,17 +438,20 @@ public class BacklogModel : PageModel
     private readonly IProductService _productService;
     private readonly IProductBacklogService _productBacklogService;
     private readonly IUserAdminService _userService;
+    private readonly ISubProjectService _subProjectService;
 
     public BacklogModel(
         IProjectService projectService,
         IProductService productService,
         IProductBacklogService productBacklogService,
-        IUserAdminService userService)
+        IUserAdminService userService,
+        ISubProjectService subProjectService)
     {
         _projectService = projectService;
         _productService = productService;
         _productBacklogService = productBacklogService;
         _userService = userService;
+        _subProjectService = subProjectService;
     }
 
     // ── Page Properties ───────────────────────────────────────────────────────
@@ -462,6 +469,7 @@ public class BacklogModel : PageModel
     public List<ProductBacklogItemDTO> BacklogItems { get; set; } = new();
     public List<BacklogItemTypeDTO> ItemTypes { get; set; } = new();
     public List<dynamic> ActiveUsers { get; set; } = new();
+    public List<SubProjectDTO> ProductSubProjects { get; set; } = new();
 
     // Status counts — 1=To do, 2=In progress, 3=In review, 4=Done
     public int TodoCount      => BacklogItems.Count(x => x.Status == 1);
@@ -499,6 +507,7 @@ public class BacklogModel : PageModel
 
         BacklogItems = await _productBacklogService.GetBacklogItemsAsync(ProductId, null);
         ItemTypes = _productBacklogService.GetBacklogItemTypes();
+        ProductSubProjects = await _subProjectService.GetSubProjectsByProductAsync(ProductId);
 
         var users = await _userService.GetActiveUsersAsync();
         ActiveUsers = users.Select(u => (dynamic)new
@@ -637,6 +646,23 @@ public class BacklogModel : PageModel
             ItemId = itemId,
             Field  = "type",
             Value  = type.ToString()
+        };
+
+        var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
+        return new JsonResult(new { success = result != null });
+    }
+
+    // ── UPDATE SUBPROJECT (AJAX) ──────────────────────────────────────────────
+    public async Task<IActionResult> OnPostUpdateSubProjectAsync(Guid itemId, string subProjectId)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var request = new UpdateProductBacklogFieldRequest
+        {
+            ItemId = itemId,
+            Field  = "subproject",
+            Value  = subProjectId
         };
 
         var result = await _productBacklogService.UpdateBacklogFieldAsync(request);

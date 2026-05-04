@@ -89,6 +89,11 @@
     .stat-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; border-radius: 10px; font-size: 10px; font-weight: 600; padding: 0 6px; }
     .dropdown-toggle::after { display: none; }
     .dd-panel-right { left: auto !important; right: 0 !important; transform: none !important; }
+    .subproj-btn { visibility: hidden; padding: 2px 6px; font-size: 10px; height: 20px; line-height: 1; margin-left: 8px; border-radius: 10px; border: 1.5px dashed #0052cc; color: #0052cc; background: #fff; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; transition: all 0.2s; }
+    tr:hover .subproj-btn { visibility: visible; }
+    .subproj-btn:hover { background: #0052cc; color: #fff; border-style: solid; }
+    .subproj-badge { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 600; margin-left: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: 0.5px solid transparent; color: #403294; }
+    .subproj-badge:hover { border-color: #403294; }
 </style>
 
 <div class="mt-5">
@@ -260,6 +265,7 @@
                             <th style="width:32px;"><input type="checkbox" id="selectAll" /></th>
                             <th style="width:50px;"></th>
                             <th>Title</th>
+                            <th style="width:140px; text-align:center;">Subproject</th>
                             <th style="width:110px;">Status</th>
                             <th style="width:80px;">Assignee</th>
                             <th style="width:64px;">Points</th>
@@ -333,6 +339,52 @@
                                 </td>
                                 <td>
                                     <a href="#" class="title-link">@item.Title</a>
+                                </td>
+                                <td style="text-align:center;">
+                                    @if (item.SubProjectId.HasValue)
+                                    {
+                                        <div class="rel d-inline-flex">
+                                            <span class="subproj-badge" onclick="toggleDd('subProjDd_@itemId', event)" 
+                                                  style="margin-left:0; background:@(item.SubProjectColor ?? "#EAE6FF");">
+                                                <i class="bi bi-diagram-3"></i> @item.SubProjectName
+                                            </span>
+                                            <div class="dd-panel" id="subProjDd_@itemId">
+                                                <div class="dd-item text-danger" onclick="updateSubProject('@item.Id', '', event)">
+                                                    <i class="bi bi-x-circle me-1"></i> Remove from sub-project
+                                                </div>
+                                                <hr class="my-1">
+                                                @foreach (var sp in Model.ProductSubProjects)
+                                                {
+                                                    <div class="dd-item @(sp.Id == item.SubProjectId ? "fw-bold" : "")" onclick="updateSubProject('@item.Id', '@sp.Id', event)">
+                                                        <div style="width:8px;height:8px;border-radius:2px;background:@sp.ColorCode;flex-shrink:0;"></div>
+                                                        @sp.Name
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                    else if (Model.CanEditBacklog)
+                                    {
+                                        <div class="rel d-inline-flex">
+                                            <button type="button" class="subproj-btn" onclick="toggleDd('subProjDd_@itemId', event)" style="margin-left:0;">
+                                                <i class="bi bi-plus"></i> Subprojects
+                                            </button>
+                                            <div class="dd-panel" id="subProjDd_@itemId" style="left:50%; transform:translateX(-50%);">
+                                                <div class="p-2 text-muted" style="font-size:10px;text-transform:uppercase;font-weight:600;">Assign to Sub-Project</div>
+                                                @if (Model.ProductSubProjects.Count == 0)
+                                                {
+                                                    <div class="px-3 py-2 text-muted" style="font-size:11px;">No sub-projects found.</div>
+                                                }
+                                                @foreach (var sp in Model.ProductSubProjects)
+                                                {
+                                                    <div class="dd-item" onclick="updateSubProject('@item.Id', '@sp.Id', event)">
+                                                        <div style="width:8px;height:8px;border-radius:2px;background:@sp.ColorCode;flex-shrink:0;"></div>
+                                                        @sp.Name
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
                                 </td>
                                 <td>
                                     @if (Model.CanEditBacklog)
@@ -704,6 +756,20 @@ function updateType(itemId, type, e) {
             'RequestVerificationToken': getToken()
         },
         body: `itemId=${itemId}&type=${type}`
+    }).then(() => location.reload()).catch(() => {});
+}
+
+// ─── Row: Subproject update ──────────────────────────────────────────────────
+function updateSubProject(itemId, subProjectId, e) {
+    if (e) e.stopPropagation();
+    closeDds();
+    fetch('?handler=UpdateSubProject', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': getToken()
+        },
+        body: `itemId=${itemId}&subProjectId=${subProjectId}`
     }).then(() => location.reload()).catch(() => {});
 }
 

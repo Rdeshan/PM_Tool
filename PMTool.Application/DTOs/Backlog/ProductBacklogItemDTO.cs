@@ -18,6 +18,9 @@ public class ProductBacklogItemDTO
     public DateTime? StartDate { get; set; }
     public DateTime? DueDate { get; set; }
     public int StoryPoints { get; set; } = 0;
+    public Guid? SubProjectId { get; set; }
+    public string? SubProjectName { get; set; }
+    public string? SubProjectColor { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
