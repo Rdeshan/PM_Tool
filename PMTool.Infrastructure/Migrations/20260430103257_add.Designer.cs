@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PMTool.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using PMTool.Infrastructure.Data;
 namespace PMTool.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260430103257_add")]
+    partial class add
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -109,64 +112,6 @@ namespace PMTool.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Products");
-                });
-
-            modelBuilder.Entity("PMTool.Domain.Entities.ProductBacklog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DueDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("OwnerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ParentBacklogItemId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Priority")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int>("StoryPoints")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerId");
-
-                    b.HasIndex("ParentBacklogItemId");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("ProductBacklogs");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.Project", b =>
@@ -820,29 +765,6 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("PMTool.Domain.Entities.ProductBacklog", b =>
-                {
-                    b.HasOne("PMTool.Domain.Entities.User", "Owner")
-                        .WithMany()
-                        .HasForeignKey("OwnerId");
-
-                    b.HasOne("PMTool.Domain.Entities.ProductBacklog", "ParentBacklogItem")
-                        .WithMany("ChildBacklogItems")
-                        .HasForeignKey("ParentBacklogItemId");
-
-                    b.HasOne("PMTool.Domain.Entities.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Owner");
-
-                    b.Navigation("ParentBacklogItem");
-
-                    b.Navigation("Product");
-                });
-
             modelBuilder.Entity("PMTool.Domain.Entities.ProjectBacklog", b =>
                 {
                     b.HasOne("PMTool.Domain.Entities.User", "Owner")
@@ -1045,11 +967,6 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("ReleaseNotes");
 
                     b.Navigation("SubProjects");
-                });
-
-            modelBuilder.Entity("PMTool.Domain.Entities.ProductBacklog", b =>
-                {
-                    b.Navigation("ChildBacklogItems");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.Project", b =>

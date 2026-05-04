@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PMTool.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using PMTool.Infrastructure.Data;
 namespace PMTool.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260430035958_AddWorkTypeTable")]
+    partial class AddWorkTypeTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -109,64 +112,6 @@ namespace PMTool.Infrastructure.Migrations
                         .IsUnique();
 
                     b.ToTable("Products");
-                });
-
-            modelBuilder.Entity("PMTool.Domain.Entities.ProductBacklog", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DueDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid?>("OwnerId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<Guid?>("ParentBacklogItemId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<int>("Priority")
-                        .HasColumnType("int");
-
-                    b.Property<Guid>("ProductId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime?>("StartDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int>("StoryPoints")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Title")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OwnerId");
-
-                    b.HasIndex("ParentBacklogItemId");
-
-                    b.HasIndex("ProductId");
-
-                    b.ToTable("ProductBacklogs");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.Project", b =>
@@ -809,6 +754,97 @@ namespace PMTool.Infrastructure.Migrations
                     b.ToTable("UserRoles");
                 });
 
+            modelBuilder.Entity("PMTool.Domain.Entities.WorkType", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("WorkTypes");
+
+                    b.HasData(
+                        new
+                        {
+                            Id = 1,
+                            CreatedDate = new DateTime(2026, 4, 30, 3, 59, 56, 895, DateTimeKind.Utc).AddTicks(2705),
+                            IsDefault = true,
+                            Key = "feature",
+                            Name = "Feature"
+                        },
+                        new
+                        {
+                            Id = 2,
+                            CreatedDate = new DateTime(2026, 4, 30, 3, 59, 56, 895, DateTimeKind.Utc).AddTicks(5083),
+                            IsDefault = true,
+                            Key = "improvement",
+                            Name = "Improvement"
+                        },
+                        new
+                        {
+                            Id = 3,
+                            CreatedDate = new DateTime(2026, 4, 30, 3, 59, 56, 895, DateTimeKind.Utc).AddTicks(5086),
+                            IsDefault = true,
+                            Key = "changerequest",
+                            Name = "Change Request"
+                        },
+                        new
+                        {
+                            Id = 4,
+                            CreatedDate = new DateTime(2026, 4, 30, 3, 59, 56, 895, DateTimeKind.Utc).AddTicks(5088),
+                            IsDefault = true,
+                            Key = "testcase",
+                            Name = "Test Case"
+                        },
+                        new
+                        {
+                            Id = 5,
+                            CreatedDate = new DateTime(2026, 4, 30, 3, 59, 56, 895, DateTimeKind.Utc).AddTicks(5089),
+                            IsDefault = true,
+                            Key = "story",
+                            Name = "User Story"
+                        },
+                        new
+                        {
+                            Id = 6,
+                            CreatedDate = new DateTime(2026, 4, 30, 3, 59, 56, 895, DateTimeKind.Utc).AddTicks(5090),
+                            IsDefault = true,
+                            Key = "bug",
+                            Name = "Bug"
+                        },
+                        new
+                        {
+                            Id = 7,
+                            CreatedDate = new DateTime(2026, 4, 30, 3, 59, 56, 895, DateTimeKind.Utc).AddTicks(5091),
+                            IsDefault = true,
+                            Key = "task",
+                            Name = "Task"
+                        });
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.Product", b =>
                 {
                     b.HasOne("PMTool.Domain.Entities.Project", "Project")
@@ -818,29 +854,6 @@ namespace PMTool.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("Project");
-                });
-
-            modelBuilder.Entity("PMTool.Domain.Entities.ProductBacklog", b =>
-                {
-                    b.HasOne("PMTool.Domain.Entities.User", "Owner")
-                        .WithMany()
-                        .HasForeignKey("OwnerId");
-
-                    b.HasOne("PMTool.Domain.Entities.ProductBacklog", "ParentBacklogItem")
-                        .WithMany("ChildBacklogItems")
-                        .HasForeignKey("ParentBacklogItemId");
-
-                    b.HasOne("PMTool.Domain.Entities.Product", "Product")
-                        .WithMany()
-                        .HasForeignKey("ProductId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Owner");
-
-                    b.Navigation("ParentBacklogItem");
-
-                    b.Navigation("Product");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.ProjectBacklog", b =>
@@ -1045,11 +1058,6 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("ReleaseNotes");
 
                     b.Navigation("SubProjects");
-                });
-
-            modelBuilder.Entity("PMTool.Domain.Entities.ProductBacklog", b =>
-                {
-                    b.Navigation("ChildBacklogItems");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.Project", b =>

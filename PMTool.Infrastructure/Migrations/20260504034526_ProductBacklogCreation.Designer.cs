@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PMTool.Infrastructure.Data;
 
@@ -11,9 +12,11 @@ using PMTool.Infrastructure.Data;
 namespace PMTool.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260504034526_ProductBacklogCreation")]
+    partial class ProductBacklogCreation
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -143,9 +146,6 @@ namespace PMTool.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<int>("Status")
-                        .HasColumnType("int");
-
-                    b.Property<int>("StoryPoints")
                         .HasColumnType("int");
 
                     b.Property<string>("Title")
