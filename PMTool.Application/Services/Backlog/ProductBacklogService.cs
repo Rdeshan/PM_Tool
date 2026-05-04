@@ -179,6 +179,7 @@ public class ProductBacklogService : IProductBacklogService
             SubProjectId = item.SubProjectId,
             SubProjectName = item.SubProject?.Name,
             SubProjectColor = item.SubProject?.ColorCode,
+            SprintId = item.SprintId,
             CreatedAt = item.CreatedAt,
             UpdatedAt = item.UpdatedAt
         };

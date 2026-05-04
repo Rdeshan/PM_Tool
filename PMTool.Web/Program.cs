@@ -9,6 +9,7 @@ using PMTool.Application.Services.SubProject;
 using PMTool.Application.Services.Backlog;
 using PMTool.Application.Services.Team;
 using PMTool.Application.Services.Admin;
+using PMTool.Application.Services.Sprint;
 using PMTool.Application.DTOs.Product;
 using PMTool.Application.DTOs.SubProject;
 using PMTool.Application.Validators.Product;
@@ -74,6 +75,7 @@ builder.Services.AddScoped<IProjectBacklogRepository, ProjectBacklogRepository>(
 builder.Services.AddScoped<IProductBacklogRepository, ProductBacklogRepository>();
 builder.Services.AddScoped<IUserAdminRepository, UserAdminRepository>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
+builder.Services.AddScoped<ISprintRepository, SprintRepository>();
 builder.Services.AddScoped<DataSeedingService>();
 
 // Application Services
@@ -87,6 +89,7 @@ builder.Services.AddScoped<IBacklogService, BacklogService>();
 builder.Services.AddScoped<IProductBacklogService, ProductBacklogService>();
 builder.Services.AddScoped<IUserAdminService, UserAdminService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
+builder.Services.AddScoped<ISprintService, SprintService>();
 
 var app = builder.Build();
 

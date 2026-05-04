@@ -428,6 +428,8 @@ using PMTool.Application.DTOs.Backlog;
 using PMTool.Application.Interfaces;
 using PMTool.Application.Services.SubProject;
 using PMTool.Application.DTOs.SubProject;
+using PMTool.Application.DTOs.Sprint;
+using System.Security.Claims;
 
 namespace PMTool.Web.Pages.Products;
 
@@ -439,19 +441,22 @@ public class BacklogModel : PageModel
     private readonly IProductBacklogService _productBacklogService;
     private readonly IUserAdminService _userService;
     private readonly ISubProjectService _subProjectService;
+    private readonly ISprintService _sprintService;
 
     public BacklogModel(
         IProjectService projectService,
         IProductService productService,
         IProductBacklogService productBacklogService,
         IUserAdminService userService,
-        ISubProjectService subProjectService)
+        ISubProjectService subProjectService,
+        ISprintService sprintService)
     {
         _projectService = projectService;
         _productService = productService;
         _productBacklogService = productBacklogService;
         _userService = userService;
         _subProjectService = subProjectService;
+        _sprintService = sprintService;
     }
 
     // ── Page Properties ───────────────────────────────────────────────────────
@@ -470,6 +475,7 @@ public class BacklogModel : PageModel
     public List<BacklogItemTypeDTO> ItemTypes { get; set; } = new();
     public List<dynamic> ActiveUsers { get; set; } = new();
     public List<SubProjectDTO> ProductSubProjects { get; set; } = new();
+    public List<SprintDTO> Sprints { get; set; } = new();
 
     // Status counts — 1=To do, 2=In progress, 3=In review, 4=Done
     public int TodoCount      => BacklogItems.Count(x => x.Status == 1);
@@ -508,6 +514,7 @@ public class BacklogModel : PageModel
         BacklogItems = await _productBacklogService.GetBacklogItemsAsync(ProductId, null);
         ItemTypes = _productBacklogService.GetBacklogItemTypes();
         ProductSubProjects = await _subProjectService.GetSubProjectsByProductAsync(ProductId);
+        Sprints = await _sprintService.GetSprintsByProductAsync(ProductId);
 
         var users = await _userService.GetActiveUsersAsync();
         ActiveUsers = users.Select(u => (dynamic)new
@@ -697,6 +704,39 @@ public class BacklogModel : PageModel
         TempData[success ? "SuccessMessage" : "ErrorMessage"] =
             success ? "Item deleted" : "Failed to delete item";
         return RedirectToPage(new { projectId = ProjectId, id = ProductId });
+    }
+
+    // ── SPRINT HANDLERS ───────────────────────────────────────────────────────
+    public async Task<IActionResult> OnPostCreateSprintAsync([FromBody] CreateSprintRequest request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        request.ProductId = ProductId;
+        var sprint = await _sprintService.CreateSprintAsync(request);
+        return new JsonResult(new { success = true, sprint });
+    }
+
+    public async Task<IActionResult> OnPostMoveToSprintAsync(Guid itemId, Guid? sprintId)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        if (string.IsNullOrEmpty(userIdStr)) return Forbid();
+        var userId = Guid.Parse(userIdStr);
+
+        var success = await _sprintService.MoveToSprintAsync(itemId, sprintId, userId);
+        return new JsonResult(new { success });
+    }
+
+    public async Task<IActionResult> OnPostDeleteSprintAsync(Guid sprintId)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var success = await _sprintService.DeleteSprintAsync(sprintId);
+        return new JsonResult(new { success });
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────────

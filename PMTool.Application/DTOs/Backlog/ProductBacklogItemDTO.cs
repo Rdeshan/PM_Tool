@@ -21,6 +21,7 @@ public class ProductBacklogItemDTO
     public Guid? SubProjectId { get; set; }
     public string? SubProjectName { get; set; }
     public string? SubProjectColor { get; set; }
+    public Guid? SprintId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

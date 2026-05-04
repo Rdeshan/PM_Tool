@@ -15,6 +15,7 @@ public class ProductBacklog
     public DateTime? DueDate { get; set; }
     public int StoryPoints { get; set; } = 0;
     public Guid? SubProjectId { get; set; }
+    public Guid? SprintId { get; set; }
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -25,4 +26,5 @@ public class ProductBacklog
     public ICollection<ProductBacklog> ChildBacklogItems { get; set; } = new List<ProductBacklog>();
     public User? Owner { get; set; }
     public SubProject? SubProject { get; set; }
+    public Sprint? Sprint { get; set; }
 }
