@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using PMTool.Domain.Entities;
 
 namespace PMTool.Infrastructure.Data;
@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<RolePermission> RolePermissions { get; set; } = null!;
     public DbSet<Project> Projects { get; set; } = null!;
     public DbSet<ProjectBacklog> ProjectBacklogs { get; set; } = null!;
+    public DbSet<ProductBacklog> ProductBacklogs { get; set; } = null!;
     public DbSet<ProjectDocument> ProjectDocuments { get; set; } = null!;
     public DbSet<Product> Products { get; set; } = null!;
     public DbSet<ReleaseNotes> ReleaseNotes { get; set; } = null!;
@@ -25,6 +26,8 @@ public class AppDbContext : DbContext
     public DbSet<SubProjectTeam> SubProjectTeams { get; set; } = null!;
     public DbSet<Team> Teams { get; set; } = null!;
     public DbSet<TeamMember> TeamMembers { get; set; } = null!;
+    public DbSet<Sprint> Sprints { get; set; } = null!;
+    public DbSet<SprintScopeChange> SprintScopeChanges { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -492,6 +495,53 @@ public class AppDbContext : DbContext
 
             entity.HasIndex(e => new { e.SubProjectId, e.TeamId })
                 .IsUnique(); // Prevent assigning same team twice
+        });
+
+        // Sprint configuration
+        modelBuilder.Entity<Sprint>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Name).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.Goal).HasMaxLength(1000);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql("GETUTCDATE()");
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasOne(s => s.Product)
+                .WithMany(p => p.Sprints)
+                .HasForeignKey(s => s.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        // SprintScopeChange configuration
+        modelBuilder.Entity<SprintScopeChange>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.ChangeType).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.ChangeDate).HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasOne(sc => sc.Sprint)
+                .WithMany(s => s.ScopeChanges)
+                .HasForeignKey(sc => sc.SprintId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(sc => sc.BacklogItem)
+                .WithMany()
+                .HasForeignKey(sc => sc.BacklogItemId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(sc => sc.ChangedBy)
+                .WithMany()
+                .HasForeignKey(sc => sc.ChangedById)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // ProductBacklog Sprint association
+        modelBuilder.Entity<ProductBacklog>(entity =>
+        {
+            entity.HasOne(pb => pb.Sprint)
+                .WithMany(s => s.BacklogItems)
+                .HasForeignKey(pb => pb.SprintId)
+                .OnDelete(DeleteBehavior.NoAction);
         });
     }
 }

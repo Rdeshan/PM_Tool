@@ -2,9 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using PMTool.Application.DTOs.Project;
-using PMTool.Application.Services.Project;
+using PMTool.Application.Interfaces;
 using PMTool.Application.Validators.Project;
-using PMTool.Domain.Enums;
 using System.Security.Claims;
 
 namespace PMTool.Web.Pages.Projects;
@@ -13,7 +12,7 @@ namespace PMTool.Web.Pages.Projects;
 public class CreateModel : PageModel
 {
     private readonly IProjectService _projectService;
-    private readonly IAuthorizationService _authorizationService;
+    private readonly Microsoft.AspNetCore.Authorization.IAuthorizationService _authorizationService;
 
     [BindProperty]
     public CreateProjectRequest Input { get; set; } = new();
@@ -21,7 +20,7 @@ public class CreateModel : PageModel
     public string? ErrorMessage { get; set; }
     public string? SuccessMessage { get; set; }
 
-    public CreateModel(IProjectService projectService, IAuthorizationService authorizationService)
+    public CreateModel(IProjectService projectService, Microsoft.AspNetCore.Authorization.IAuthorizationService authorizationService)
     {
         _projectService = projectService;
         _authorizationService = authorizationService;

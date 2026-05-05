@@ -1,0 +1,902 @@
+@page "{projectId:guid}/{id:guid}/backlog"
+@using System.Text.Encodings.Web
+@model PMTool.Web.Pages.Products.BacklogModel
+@{
+    if (Model.IsEmbedded)
+    {
+        Layout = "_EmbeddedLayout";
+    }
+    else
+    {
+        Layout = "_Layout";
+    }
+
+    ViewData["Title"] = "Product Backlog";
+}
+
+@functions {
+    static string GetInitials(string name) {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[^1][0]}".ToUpper()
+            : name.Substring(0, Math.Min(2, name.Length)).ToUpper();
+    }
+
+    static (string bg, string fg) GetAvatarBg(string id) {
+        var palettes = new[] {
+            (bg: "#deebff", fg: "#0747a6"),
+            (bg: "#e3fcef", fg: "#006644"),
+            (bg: "#fff0b3", fg: "#974f0c"),
+            (bg: "#ffebe6", fg: "#bf2600"),
+            (bg: "#e6fcff", fg: "#006c8a"),
+            (bg: "#f3f0ff", fg: "#403294"),
+            (bg: "#fce4ec", fg: "#880e4f"),
+        };
+        var idx = Math.Abs((id ?? "").GetHashCode()) % palettes.Length;
+        return palettes[idx];
+    }
+}
+
+<style>
+    .backlog-wrap { background: #f4f5f7; padding: 16px; border-radius: 6px; }
+    .backlog-header { background: #fff; border-radius: 4px; padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; border: 0.5px solid #e0e0e0; cursor: pointer; user-select: none; }
+    .backlog-header:hover { background: #fafbfc; }
+    .chevron-toggle { transition: transform 0.2s; font-size: 14px; color: #42526e; }
+    .collapsed .chevron-toggle { transform: rotate(-90deg); }
+    .collapsed .backlog-table-wrap, .collapsed .create-bar { display: none; }
+    .create-bar { background: #fff; border: 1.5px dashed #ccc; border-radius: 4px; padding: 8px 10px; display: flex; align-items: center; gap: 6px; margin-bottom: 10px; }
+    .create-bar input[type=text] { flex: 1; border: none; outline: none; font-size: 13px; background: transparent; }
+    .create-bar input[type=text]::placeholder { color: #aaa; }
+    .ib { background: none; border: none; cursor: pointer; padding: 4px 5px; border-radius: 4px; display: inline-flex; align-items: center; color: #6b778c; font-size: 12px; gap: 3px; white-space: nowrap; }
+    .ib:hover { background: #f4f5f7; color: #172b4d; }
+    .ib svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .create-btn-main { background: #0052cc; color: #fff; border: none; border-radius: 3px; padding: 5px 12px; font-size: 12px; cursor: pointer; font-weight: 500; }
+    .create-btn-main:hover { background: #0747a6; }
+    .backlog-table-wrap { background: #fff; border-radius: 4px; border: 0.5px solid #e0e0e0; overflow: visible; }
+    .backlog-table-wrap table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .backlog-table-wrap th { font-size: 11px; font-weight: 500; color: #6b778c; padding: 8px 8px; border-bottom: 0.5px solid #e0e0e0; text-align: left; background: #fafbfc; white-space: nowrap; }
+    .backlog-table-wrap td { padding: 0 8px; border-bottom: 0.5px solid #f0f0f0; vertical-align: middle; height: 42px; font-size: 12px; }
+    .backlog-table-wrap tr:last-child td { border-bottom: none; }
+    .backlog-table-wrap tbody tr:hover td { background: #f8f9fa; }
+    .pill-status { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; letter-spacing: 0.02em; white-space: nowrap; }
+    .s-todo    { background: #dfe1e6; color: #42526e; }
+    .s-inprog  { background: #deebff; color: #0747a6; }
+    .s-inreview{ background: #fff0b3; color: #974f0c; }
+    .s-done    { background: #e3fcef; color: #006644; }
+    .dd-panel { display: none; position: absolute; background: #fff; border: 0.5px solid #ddd; border-radius: 4px; padding: 4px; z-index: 9999; min-width: 150px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .dd-panel.open { display: block; }
+    .dd-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; color: #172b4d; }
+    .dd-item:hover { background: #f4f5f7; }
+    .dd-item svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .rel { position: relative; }
+    .avatar-circle { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; flex-shrink: 0; }
+    .pts-val { font-size: 12px; cursor: pointer; border-bottom: 1px dashed #ccc; padding: 0 2px; color: #172b4d; }
+    .pts-val:hover { color: #0052cc; border-bottom-color: #0052cc; }
+    .pts-input { width: 44px; font-size: 12px; border: 1px solid #0052cc; border-radius: 3px; padding: 1px 4px; outline: none; }
+    .cal-panel { display: none; position: absolute; top: 30px; left: 50%; transform: translateX(-50%); background: #fff; border: 0.5px solid #ddd; border-radius: 6px; padding: 10px; z-index: 9999; width: 210px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+    .cal-panel.open { display: block; }
+    .cal-nav { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+    .cal-nav button { background: none; border: none; cursor: pointer; padding: 2px 6px; border-radius: 3px; font-size: 14px; color: #6b778c; }
+    .cal-nav button:hover { background: #f4f5f7; }
+    .cal-nav span { font-size: 12px; font-weight: 600; color: #172b4d; }
+    .cal-grid { display: grid; grid-template-columns: repeat(7,1fr); gap: 1px; }
+    .cal-dh { font-size: 10px; color: #aaa; text-align: center; padding: 2px 0; }
+    .cal-d { font-size: 11px; text-align: center; padding: 4px 2px; border-radius: 3px; cursor: pointer; color: #172b4d; }
+    .cal-d:hover { background: #f4f5f7; }
+    .cal-d.sel { background: #0052cc; color: #fff; }
+    .cal-d.today { font-weight: 700; color: #0052cc; }
+    .cal-d.empty { cursor: default; }
+    .badge-id { font-size: 10px; background: #e6f1fb; color: #0052cc; border-radius: 3px; padding: 2px 6px; font-family: monospace; }
+    .title-link { font-size: 13px; color: #172b4d; cursor: pointer; text-decoration: none; }
+    .title-link:hover { color: #0052cc; text-decoration: underline; }
+    .type-icon-wrap { display: inline-flex; align-items: center; justify-content: center; }
+    .stat-pill { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; border-radius: 10px; font-size: 10px; font-weight: 600; padding: 0 6px; }
+    .dropdown-toggle::after { display: none; }
+    .dd-panel-right { left: auto !important; right: 0 !important; transform: none !important; }
+    .subproj-btn { visibility: hidden; padding: 2px 6px; font-size: 10px; height: 20px; line-height: 1; margin-left: 8px; border-radius: 10px; border: 1.5px dashed #0052cc; color: #0052cc; background: #fff; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 2px; transition: all 0.2s; }
+    tr:hover .subproj-btn { visibility: visible; }
+    .subproj-btn:hover { background: #0052cc; color: #fff; border-style: solid; }
+    .subproj-badge { font-size: 10px; padding: 2px 6px; border-radius: 3px; font-weight: 600; margin-left: 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; border: 0.5px solid transparent; color: #403294; }
+    .subproj-badge:hover { border-color: #403294; }
+    .edit-title-btn { visibility: hidden; color: #6b778c; cursor: pointer; padding: 2px; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; transition: all 0.2s; }
+    tr:hover .edit-title-btn { visibility: visible; }
+    .edit-title-btn:hover { background: #ebecf0; color: #172b4d; }
+    .title-input { width: 100%; font-size: 13px; color: #172b4d; border: 2px solid #0052cc; border-radius: 3px; padding: 2px 6px; outline: none; background: #fff; }
+    
+    /* Make content full width */
+    .container { max-width: 100% !important; padding-left: 30px !important; padding-right: 30px !important; }
+
+    /* Sprint Styles */
+    .sprint-card { background: #f4f5f7; border-radius: 6px; padding: 12px; margin-bottom: 20px; }
+    .sprint-header { background: #fff; border-radius: 4px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; border: 0.5px solid #e0e0e0; cursor: pointer; }
+    .sprint-meta { font-size: 11px; color: #6b778c; display: flex; align-items: center; gap: 12px; }
+    .sprint-goal { font-size: 12px; color: #172b4d; margin-top: 4px; font-style: italic; }
+    .sprint-table-wrap { background: #fff; border-radius: 4px; border: 0.5px solid #e0e0e0; min-height: 50px; }
+    .sprint-drop-zone { min-height: 50px; }
+    .capacity-indicator { display: flex; align-items: center; gap: 4px; font-size: 11px; font-weight: 600; color: #42526e; background: #dfe1e6; padding: 2px 8px; border-radius: 10px; }
+    
+    .sortable-ghost { opacity: 0.4; background: #deebff !important; }
+    .sortable-chosen { background: #fff !important; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+    
+    /* Modal Styles */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 10000; align-items: center; justify-content: center; }
+    .modal-card { background: #fff; border-radius: 8px; width: 500px; padding: 24px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); }
+    .modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+    .modal-title { font-size: 18px; font-weight: 600; color: #172b4d; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 600; color: #6b778c; margin-bottom: 4px; }
+    .form-control { width: 100%; padding: 8px; border: 1.5px solid #dfe1e6; border-radius: 3px; font-size: 14px; }
+    .form-control:focus { border-color: #4c9aff; outline: none; }
+</style>
+
+<div class="mt-2">
+    <!-- Breadcrumbs / Top Actions omitted for brevity -->
+    
+    @foreach (var sprint in Model.Sprints)
+    {
+        <div class="sprint-card" id="sprint_@sprint.Id">
+            <div class="sprint-header">
+                <div class="d-flex align-items-center gap-3">
+                    <i class="bi bi-chevron-down chevron-toggle"></i>
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <h6 class="mb-0 fw-bold" style="font-size:14px;">@sprint.Name</h6>
+                            @if(sprint.Status == 2){ <span class="badge bg-success" style="font-size:9px;">ACTIVE</span> }
+                        </div>
+                        <div class="sprint-meta">
+                            <span>@sprint.StartDate.ToString("MMM d") - @sprint.EndDate.ToString("MMM d")</span>
+                            <span class="capacity-indicator">
+                                <i class="bi bi-lightning-charge-fill" style="color:#0052cc"></i>
+                                <span class="pts-sum">@sprint.TotalPoints</span> pts
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <button class="btn btn-sm btn-link text-muted" onclick="deleteSprint('@sprint.Id')"><i class="bi bi-trash"></i></button>
+                    @if(sprint.Status == 1){ <button class="btn btn-sm btn-primary">Start sprint</button> }
+                </div>
+            </div>
+            @if(!string.IsNullOrEmpty(sprint.Goal)) { <div class="px-2 mb-2 sprint-goal">Goal: @sprint.Goal</div> }
+            
+            <div class="sprint-table-wrap">
+                <table class="table-backlog mb-0">
+                    <tbody class="sprint-drop-zone" data-sprint-id="@sprint.Id">
+                        @foreach (var item in Model.BacklogItems.Where(x => x.SprintId == sprint.Id).OrderBy(x => x.Priority))
+                        {
+                            @await Html.PartialAsync("_BacklogItemRow", item)
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    }
+
+    <div class="backlog-wrap">
+
+        <!-- Header -->
+        <div class="backlog-header" onclick="toggleBacklog()">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-chevron-down chevron-toggle"></i>
+                <div>
+                    <h6 class="mb-0 fw-bold" style="font-size:14px;">Backlog</h6>
+                    <small class="text-muted">(@Model.BacklogItems.Count work items)</small>
+                </div>
+                <div class="d-flex gap-1 align-items-center ms-2">
+                    <span class="stat-pill" style="background:#dfe1e6;color:#42526e;" title="To do">@Model.TodoCount</span>
+                    <span class="stat-pill" style="background:#deebff;color:#0747a6;" title="In progress">@Model.InProgressCount</span>
+                    <span class="stat-pill" style="background:#fff0b3;color:#974f0c;" title="In review">@Model.InReviewCount</span>
+                    <small class="text-muted">(@Model.BacklogItems.Count(x => x.SprintId == null) work items)</small>
+                </div>
+            </div>
+            @if (Model.CanEditBacklog)
+            {
+                <button type="button" class="create-btn-main" id="createSprintBtn" onclick="openCreateSprintModal(event)">
+                    <i class="bi bi-plus-lg"></i> Create sprint
+                </button>
+            }
+        </div>
+
+        <!-- Create Bar -->
+        @if (Model.CanEditBacklog)
+        {
+            <div class="create-bar" id="createSection">
+                <form id="createBacklogForm" method="post" asp-page-handler="Create" style="display:flex;align-items:center;gap:6px;width:100%">
+
+                    <!-- Type icon picker -->
+                    <div class="rel">
+                        <button type="button" class="ib" id="createTypeBtn" onclick="toggleDd('createTypeDd',event)" title="Select type">
+                            <span id="createTypeIcon">
+                                @* Default: Task icon *@
+                                <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#4C9AFF"/><path d="M4 7.5l2 2 4-4" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            </span>
+                        </button>
+                        <div class="dd-panel" id="createTypeDd">
+                            <div class="dd-item" onclick="setCreateType(1,'story',event)">
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#63BA3C"/><path d="M4 7h6M7 4v6" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>
+                                Story
+                            </div>
+                            <div class="dd-item" onclick="setCreateType(2,'task',event)">
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#4C9AFF"/><path d="M4 7.5l2 2 4-4" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                Task
+                            </div>
+                            <div class="dd-item" onclick="setCreateType(3,'bug',event)">
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#FF5630"/><circle cx="7" cy="7" r="3" stroke="#fff" stroke-width="1.2"/></svg>
+                                Bug
+                            </div>
+                            <div class="dd-item" onclick="setCreateType(4,'epic',event)">
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#998DD9"/><path d="M7 3l1.5 3.5H12l-2.8 2 1.1 3.5L7 10.2 4.7 12.5l1.1-3.5L3 7h3.5z" fill="#fff"/></svg>
+                                Epic
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Hidden fields for the form -->
+                    <input type="hidden" id="hiddenType" name="NewItem.Type" value="2" />
+                    <input type="hidden" id="hiddenOwner" name="NewItem.OwnerId" value="" />
+                    <input type="hidden" id="hiddenDueDate" name="NewItem.DueDate" value="" />
+
+                    <!-- Title -->
+                    <input type="text" id="newItemTitle" name="NewItem.Title"
+                           placeholder="What needs to be done?" required
+                           style="flex:1;border:none;outline:none;font-size:13px;background:transparent;" />
+
+                    <!-- Assign user -->
+                    <div class="rel">
+                        <button type="button" class="ib" id="createAssignBtn" onclick="toggleDd('createAssignDd',event)" title="Assign user">
+                            <span id="createAssignIcon">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+                            </span>
+                        </button>
+                        <div class="dd-panel dd-panel-right" id="createAssignDd">
+                            <div class="dd-item" onclick="setCreateOwner('','',event)">
+                                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+                                Unassigned
+                            </div>
+                            @foreach (var user in Model.ActiveUsers)
+                            {
+                                var initials = GetInitials((string)user.displayName);
+                                var bg = GetAvatarBg((string)user.id);
+                                <div class="dd-item" onclick="setCreateOwner('@user.id','@user.displayName',event)" data-id="@user.id">
+                                    <div class="avatar-circle" style="background:@bg.bg;color:@bg.fg">@initials</div>
+                                    @user.displayName
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    <!-- Due date calendar -->
+                    <div class="rel">
+                        <button type="button" class="ib" id="createCalBtn" onclick="toggleCreateCal(event)" title="Set due date">
+                            <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="3" width="14" height="12" rx="2"/><path d="M5 1v4M11 1v4M1 7h14" stroke-linecap="round"/></svg>
+                            <span id="createDateLabel" style="font-size:11px;"></span>
+                        </button>
+                        <div class="cal-panel" id="createCalPanel"></div>
+                    </div>
+
+                    <button type="submit" class="create-btn-main" id="createBtn">
+                        <i class="bi bi-plus-lg"></i> Create
+                    </button>
+                </form>
+            </div>
+        }
+
+        <!-- Backlog Table -->
+        <div class="backlog-table-wrap">
+            @if (Model.BacklogItems.Count == 0)
+            {
+                <div class="text-center text-muted py-5">
+                    <i class="bi bi-inbox" style="font-size:2rem;opacity:0.3;"></i>
+                    <p class="mt-2 mb-0" style="font-size:13px;">Your backlog is empty.</p>
+                </div>
+            }
+            else
+            {
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:32px;"><input type="checkbox" id="selectAll" /></th>
+                            <th style="width:28px;"></th>
+                            <th>Title</th>
+                            <th style="width:140px; text-align:center;">Subproject</th>
+                            <th style="width:110px;">Status</th>
+                            <th style="width:80px;">Assignee</th>
+                            <th style="width:64px;">Points</th>
+                            <th style="width:95px;">Due date</th>
+                            <th style="width:36px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody id="backlogTableBody" class="sprint-drop-zone" data-sprint-id="">
+                        @foreach (var item in Model.BacklogItems.Where(x => x.SprintId == null).OrderBy(x => x.Priority))
+                        {
+                            @await Html.PartialAsync("_BacklogItemRow", item)
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999;">
+    <div id="liveToast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header">
+            <strong class="me-auto" id="toastTitle">Notification</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body" id="toastMessage"></div>
+    </div>
+</div>
+
+<!-- Create Sprint Modal -->
+<div class="modal-overlay" id="createSprintModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h5 class="modal-title">Create Sprint</h5>
+            <button type="button" class="btn-close" onclick="closeCreateSprintModal()"></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group mb-3">
+                <label class="form-label fw-bold small">Sprint Name</label>
+                <input type="text" id="sprintName" class="form-control" placeholder="e.g. Sprint 1" />
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-bold small">Start Date</label>
+                        <input type="date" id="sprintStart" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-bold small">End Date</label>
+                        <input type="date" id="sprintEnd" class="form-control" value="@DateTime.Today.AddDays(14).ToString("yyyy-MM-dd")" />
+                    </div>
+                </div>
+            </div>
+            <div class="form-group mb-3">
+                <label class="form-label fw-bold small">Sprint Goal</label>
+                <textarea id="sprintGoal" class="form-control" rows="2" placeholder="What do we want to achieve?"></textarea>
+            </div>
+        </div>
+        <div class="modal-footer d-flex justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-sm btn-link text-muted text-decoration-none" onclick="closeCreateSprintModal()">Cancel</button>
+            <button type="button" class="btn btn-sm btn-primary px-4" id="submitSprintBtn" onclick="submitCreateSprint()">Create</button>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+// ─── Constants ────────────────────────────────────────────────────────────────
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+const SMON   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const WDAYS  = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+function toggleBacklog() {
+    const wrap = document.querySelector('.backlog-wrap');
+    wrap.classList.toggle('collapsed');
+}
+
+// ── SPRINT MODAL ─────────────────────────────────────────────────────────────
+function openCreateSprintModal(e) {
+    if(e) e.stopPropagation();
+    document.getElementById('createSprintModal').style.display = 'flex';
+}
+function closeCreateSprintModal() {
+    document.getElementById('createSprintModal').style.display = 'none';
+}
+
+async function submitCreateSprint() {
+    const name = document.getElementById('sprintName').value;
+    const start = document.getElementById('sprintStart').value;
+    const end = document.getElementById('sprintEnd').value;
+    const goal = document.getElementById('sprintGoal').value;
+    const btn = document.getElementById('submitSprintBtn');
+
+    if(!name) { showToast('Name is required', 'danger'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Creating...';
+
+    try {
+        const resp = await fetch(`?handler=CreateSprint`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getToken()
+            },
+            body: JSON.stringify({ name, startDate: start, endDate: end, goal })
+        });
+
+        const result = await resp.json();
+        if(result.success) {
+            showToast('Sprint created successfully');
+            setTimeout(() => location.reload(), 800);
+        } else {
+            showToast(result.message || 'Failed to create sprint', 'danger');
+        }
+    } catch(err) {
+        showToast('An error occurred', 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Create';
+    }
+}
+
+async function deleteSprint(id) {
+    if(!confirm('Are you sure? Items will be moved back to backlog.')) return;
+    
+    const resp = await fetch(`?handler=DeleteSprint&sprintId=${id}`, {
+        method: 'POST',
+        headers: { 'RequestVerificationToken': getToken() }
+    });
+    if((await resp.json()).success) location.reload();
+}
+
+// ── DRAG AND DROP ────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function() {
+    const zones = document.querySelectorAll('.sprint-drop-zone');
+    zones.forEach(zone => {
+        new Sortable(zone, {
+            group: 'backlog',
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            onEnd: async function(evt) {
+                if (evt.from === evt.to) return; // Didn't move between lists
+
+                const itemId = evt.item.dataset.itemId;
+                const newSprintId = evt.to.dataset.sprintId || '';
+                
+                try {
+                    const resp = await fetch(`?handler=MoveToSprint&itemId=${itemId}&sprintId=${newSprintId}`, {
+                        method: 'POST',
+                        headers: { 
+                            'RequestVerificationToken': getToken(),
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (!resp.ok) throw new Error('Network response was not ok');
+
+                    const result = await resp.json();
+                    if(result.success) {
+                        showToast('Moved successfully');
+                        updatePoints(evt.from);
+                        updatePoints(evt.to);
+                    } else {
+                        throw new Error('Server returned false');
+                    }
+                } catch(e) {
+                    showToast('Failed to move item', 'danger');
+                    // Revert DOM visually
+                    if (evt.from.children.length > evt.oldIndex) {
+                        evt.from.insertBefore(evt.item, evt.from.children[evt.oldIndex]);
+                    } else {
+                        evt.from.appendChild(evt.item);
+                    }
+                }
+            }
+        });
+    });
+});
+
+function updatePoints(container) {
+    if(!container) return;
+    let total = 0;
+    container.querySelectorAll('tr').forEach(tr => {
+        const pts = parseInt(tr.querySelector('.pts-pill')?.textContent) || 0;
+        total += pts;
+    });
+    
+    // Find parent sprint-card and updatepts-sum
+    const card = container.closest('.sprint-card');
+    if(card) {
+        const ptsSpan = card.querySelector('.pts-sum');
+        if(ptsSpan) ptsSpan.textContent = total;
+    }
+}
+
+const TYPE_ICONS = {
+    1: `<svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#63BA3C"/><path d="M4 7h6M7 4v6" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>`,
+    2: `<svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#4C9AFF"/><path d="M4 7.5l2 2 4-4" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+    3: `<svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#FF5630"/><circle cx="7" cy="7" r="3" stroke="#fff" stroke-width="1.2"/></svg>`,
+    4: `<svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#998DD9"/><path d="M7 3l1.5 3.5H12l-2.8 2 1.1 3.5L7 10.2 4.7 12.5l1.1-3.5L3 7h3.5z" fill="#fff"/></svg>`
+};
+
+const STATUS_MAP = {
+    1: { cls: 's-todo',     label: 'To do' },
+    2: { cls: 's-inprog',   label: 'In progress' },
+    3: { cls: 's-inreview', label: 'In review' },
+    4: { cls: 's-done',     label: 'Done' }
+};
+
+// ─── Create bar state ─────────────────────────────────────────────────────────
+let createDate = null;
+let createCalView = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+
+// ─── Dropdown helpers ─────────────────────────────────────────────────────────
+function closeDds() {
+    document.querySelectorAll('.dd-panel, .cal-panel').forEach(el => el.classList.remove('open'));
+}
+
+function toggleDd(id, e) {
+    if (e) e.stopPropagation();
+    const el = document.getElementById(id);
+    if (!el) return;
+    const wasOpen = el.classList.contains('open');
+    closeDds();
+    if (!wasOpen) el.classList.add('open');
+}
+
+document.addEventListener('click', closeDds);
+
+// ─── Create bar: Type ─────────────────────────────────────────────────────────
+function setCreateType(value, key, e) {
+    if (e) e.stopPropagation();
+    document.getElementById('hiddenType').value = value;
+    document.getElementById('createTypeIcon').innerHTML = TYPE_ICONS[value];
+    closeDds();
+}
+
+// ─── Create bar: Assign ───────────────────────────────────────────────────────
+function setCreateOwner(id, name, e) {
+    if (e) e.stopPropagation();
+    document.getElementById('hiddenOwner').value = id;
+    const iconEl = document.getElementById('createAssignIcon');
+    if (name) {
+        const initials = name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        iconEl.innerHTML = `<div style="width:20px;height:20px;border-radius:50%;background:#deebff;color:#0747a6;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:600;">${initials}</div>`;
+    } else {
+        iconEl.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>`;
+    }
+    closeDds();
+}
+
+// ─── Create bar: Calendar ─────────────────────────────────────────────────────
+function toggleCreateCal(e) {
+    if (e) e.stopPropagation();
+    const panel = document.getElementById('createCalPanel');
+    const wasOpen = panel.classList.contains('open');
+    closeDds();
+    if (!wasOpen) { panel.classList.add('open'); renderCreateCal(); }
+}
+
+function renderCreateCal() {
+    const panel = document.getElementById('createCalPanel');
+    const y = createCalView.getFullYear(), m = createCalView.getMonth();
+    const fd = new Date(y, m, 1).getDay();
+    const dim = new Date(y, m + 1, 0).getDate();
+    const today = new Date();
+    let h = `<div class="cal-nav">
+        <button onclick="shiftCreateCal(-1);event.stopPropagation()">&#8249;</button>
+        <span>${MONTHS[m]} ${y}</span>
+        <button onclick="shiftCreateCal(1);event.stopPropagation()">&#8250;</button>
+    </div><div class="cal-grid">`;
+    WDAYS.forEach(d => h += `<div class="cal-dh">${d}</div>`);
+    for (let i = 0; i < fd; i++) h += `<div class="cal-d empty"></div>`;
+    for (let d = 1; d <= dim; d++) {
+        const isT = today.getFullYear()===y && today.getMonth()===m && today.getDate()===d;
+        const isS = createDate && createDate.getFullYear()===y && createDate.getMonth()===m && createDate.getDate()===d;
+        h += `<div class="cal-d ${isS?'sel':isT?'today':''}" onclick="pickCreateDate(${y},${m},${d});event.stopPropagation()">${d}</div>`;
+    }
+    h += '</div>';
+    panel.innerHTML = h;
+}
+
+function shiftCreateCal(dir) {
+    createCalView = new Date(createCalView.getFullYear(), createCalView.getMonth() + dir, 1);
+    renderCreateCal();
+}
+
+function pickCreateDate(y, m, d) {
+    createDate = new Date(y, m, d);
+    const fmt = `${SMON[m]} ${d}`;
+    document.getElementById('createDateLabel').textContent = fmt;
+    const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    document.getElementById('hiddenDueDate').value = iso;
+    closeDds();
+    renderCreateCal();
+}
+
+// ─── Row: Title inline edit ───────────────────────────────────────────────────
+function editTitle(itemId, current) {
+    const cell = document.getElementById('titleCell_' + itemId);
+    if (!cell) return;
+    const shortId = cell.querySelector('.badge-id').outerHTML;
+    
+    cell.innerHTML = `${shortId}<input class="title-input" type="text" value="${current}" 
+        id="titleInput_${itemId}"
+        onblur="saveTitle('${itemId}', this.value, '${current}')"
+        onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){ this.dataset.cancel='true'; this.blur(); }" />`;
+    const inp = document.getElementById('titleInput_' + itemId);
+    if (inp) { inp.focus(); inp.select(); }
+}
+
+function saveTitle(itemId, val, original) {
+    const inp = document.getElementById('titleInput_' + itemId);
+    if (inp && inp.dataset.cancel === 'true') {
+        renderTitleCell(itemId, original);
+        return;
+    }
+
+    const title = val.trim();
+    if (title === '' || title === original) {
+        renderTitleCell(itemId, original);
+        return;
+    }
+
+    fetch('?handler=UpdateTitle', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': getToken()
+        },
+        body: `itemId=${itemId}&title=${encodeURIComponent(title)}`
+    }).then(r => {
+        if (r.ok) {
+            renderTitleCell(itemId, title);
+            showToast('Title updated', 'Item title has been changed.');
+        } else {
+            renderTitleCell(itemId, original);
+        }
+    }).catch(() => {
+        renderTitleCell(itemId, original);
+    });
+}
+
+function renderTitleCell(itemId, title) {
+    const cell = document.getElementById('titleCell_' + itemId);
+    if (!cell) return;
+    
+    // We need the shortId. We can get it from the badge-id class if it still exists or reconstruct it.
+    // Easiest is to reload if complicated, but let's try to keep it smooth.
+    const badge = cell.querySelector('.badge-id');
+    const shortIdHtml = badge ? badge.outerHTML : ''; 
+
+    cell.innerHTML = `${shortIdHtml}
+        <a href="#" class="title-link">${title}</a>
+        <span class="edit-title-btn" onclick="editTitle('${itemId}', '${title.replace(/'/g, "\\'")}')" title="Edit title">
+            <i class="bi bi-pencil" style="font-size:10px;"></i>
+        </span>`;
+}
+
+// ─── Row: Points inline edit ──────────────────────────────────────────────────
+function editPoints(itemId, current) {
+    const cell = document.getElementById('ptsCell_' + itemId);
+    if (!cell) return;
+    cell.innerHTML = `<input class="pts-input" type="number" min="0" value="${current || ''}" 
+        id="ptsInput_${itemId}"
+        onblur="savePoints('${itemId}', this.value)"
+        onkeydown="if(event.key==='Enter')this.blur();if(event.key==='Escape'){this.blur();}" />`;
+    const inp = document.getElementById('ptsInput_' + itemId);
+    if (inp) { inp.focus(); inp.select(); }
+}
+
+function savePoints(itemId, val) {
+    const pts = val.trim() === '' ? 0 : Math.max(0, parseInt(val) || 0);
+    fetch('?handler=UpdateStoryPoints', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': getToken()
+        },
+        body: `itemId=${itemId}&storyPoints=${pts}`
+    }).then(r => {
+        if (r.ok) {
+            const cell = document.getElementById('ptsCell_' + itemId);
+            if (pts > 0) {
+                cell.innerHTML = `<span class="pts-val" onclick="editPoints('${itemId}', ${pts})" title="Click to edit">${pts}</span>`;
+            } else {
+                cell.innerHTML = `<button type="button" class="ib" onclick="editPoints('${itemId}', 0)" title="Add story points">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+                </button>`;
+            }
+        }
+    }).catch(() => {});
+}
+
+// ─── Row: Status update ───────────────────────────────────────────────────────
+function updateStatus(itemId, status, e) {
+    if (e) e.stopPropagation();
+    closeDds();
+    const sm = STATUS_MAP[status];
+    const btn = document.querySelector(`#statusDd_${itemId}`);
+    if (btn) {
+        const pill = btn.previousElementSibling;
+        if (pill) {
+            pill.className = `pill-status ${sm.cls}`;
+            pill.textContent = sm.label;
+        }
+    }
+    fetch('?handler=UpdateStatus', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': getToken()
+        },
+        body: `itemId=${itemId}&status=${status}`
+    }).catch(() => {});
+}
+
+// ─── Row: Owner update ────────────────────────────────────────────────────────
+function updateOwner(itemId, ownerId, e) {
+    if (e) e.stopPropagation();
+    closeDds();
+    fetch('?handler=UpdateOwner', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': getToken()
+        },
+        body: `itemId=${itemId}&ownerId=${ownerId}`
+    }).then(() => location.reload()).catch(() => {});
+}
+
+// ─── Row: Type update ─────────────────────────────────────────────────────────
+function updateType(itemId, type, e) {
+    if (e) e.stopPropagation();
+    closeDds();
+    fetch('?handler=UpdateType', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': getToken()
+        },
+        body: `itemId=${itemId}&type=${type}`
+    }).then(() => location.reload()).catch(() => {});
+}
+
+// ─── Row: Subproject update ──────────────────────────────────────────────────
+function updateSubProject(itemId, subProjectId, e) {
+    if (e) e.stopPropagation();
+    closeDds();
+    fetch('?handler=UpdateSubProject', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': getToken()
+        },
+        body: `itemId=${itemId}&subProjectId=${subProjectId}`
+    }).then(() => location.reload()).catch(() => {});
+}
+
+// ─── Row: Due date calendar ───────────────────────────────────────────────────
+const itemCalViews = {};
+
+function toggleItemCal(itemId, e) {
+    if (e) e.stopPropagation();
+    const panel = document.getElementById('itemCal_' + itemId);
+    const wasOpen = panel.classList.contains('open');
+    closeDds();
+    if (!wasOpen) {
+        if (!itemCalViews[itemId]) {
+            const stored = panel.dataset.currentDate;
+            const d = stored ? new Date(stored + 'T00:00:00') : new Date();
+            itemCalViews[itemId] = new Date(d.getFullYear(), d.getMonth(), 1);
+        }
+        panel.classList.add('open');
+        renderItemCal(itemId);
+    }
+}
+
+function renderItemCal(itemId) {
+    const panel = document.getElementById('itemCal_' + itemId);
+    const vd = itemCalViews[itemId];
+    const y = vd.getFullYear(), m = vd.getMonth();
+    const fd = new Date(y, m, 1).getDay();
+    const dim = new Date(y, m + 1, 0).getDate();
+    const today = new Date();
+    const stored = panel.dataset.currentDate;
+    const sel = stored ? new Date(stored + 'T00:00:00') : null;
+
+    let h = `<div class="cal-nav">
+        <button onclick="shiftItemCal('${itemId}',-1);event.stopPropagation()">&#8249;</button>
+        <span>${MONTHS[m]} ${y}</span>
+        <button onclick="shiftItemCal('${itemId}',1);event.stopPropagation()">&#8250;</button>
+    </div><div class="cal-grid">`;
+    WDAYS.forEach(d => h += `<div class="cal-dh">${d}</div>`);
+    for (let i = 0; i < fd; i++) h += `<div class="cal-d empty"></div>`;
+    for (let d = 1; d <= dim; d++) {
+        const isT = today.getFullYear()===y && today.getMonth()===m && today.getDate()===d;
+        const isS = sel && sel.getFullYear()===y && sel.getMonth()===m && sel.getDate()===d;
+        h += `<div class="cal-d ${isS?'sel':isT?'today':''}" onclick="pickItemDate('${itemId}',${y},${m},${d});event.stopPropagation()">${d}</div>`;
+    }
+    h += '</div>';
+    panel.innerHTML = h;
+}
+
+function shiftItemCal(itemId, dir) {
+    const vd = itemCalViews[itemId];
+    itemCalViews[itemId] = new Date(vd.getFullYear(), vd.getMonth() + dir, 1);
+    renderItemCal(itemId);
+}
+
+function pickItemDate(itemId, y, m, d) {
+    const dateObj = new Date(y, m, d);
+    const iso = `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const fmt = `${SMON[m]} ${d}`;
+    const panel = document.getElementById('itemCal_' + itemId);
+    panel.dataset.currentDate = iso;
+    const lbl = document.getElementById('dateLbl_' + itemId);
+    if (lbl) lbl.textContent = fmt;
+    closeDds();
+
+    fetch('?handler=UpdateDueDate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': getToken()
+        },
+        body: `itemId=${itemId}&dueDate=${iso}`
+    }).catch(() => {});
+}
+
+// ─── Create form submit ───────────────────────────────────────────────────────
+document.getElementById('createBacklogForm').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('createBtn');
+    const orig = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
+
+    try {
+        const fd = new FormData(this);
+        const resp = await fetch(this.action, {
+            method: 'POST',
+            body: fd,
+            headers: { 'RequestVerificationToken': getToken() }
+        });
+        const text = await resp.text();
+        let result;
+        try { result = JSON.parse(text); }
+        catch { throw new Error('Server error'); }
+
+        if (result.success) {
+            showToast('Item created!', 'success');
+            document.getElementById('newItemTitle').value = '';
+            document.getElementById('hiddenOwner').value = '';
+            document.getElementById('hiddenDueDate').value = '';
+            createDate = null;
+            document.getElementById('createDateLabel').textContent = '';
+            document.getElementById('createAssignIcon').innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>`;
+            setTimeout(() => location.reload(), 600);
+        } else {
+            showToast(result.message || 'Failed to create item', 'danger');
+        }
+    } catch (err) {
+        showToast('Failed to create item', 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = orig;
+    }
+});
+
+// ─── Toast ────────────────────────────────────────────────────────────────────
+function showToast(message, type = 'success') {
+    const el = document.getElementById('liveToast');
+    document.getElementById('toastMessage').textContent = message;
+    document.getElementById('toastTitle').textContent = type === 'danger' ? 'Error' : 'Success';
+    el.className = `toast align-items-center text-white bg-${type} border-0`;
+    new bootstrap.Toast(el).show();
+}
+
+// ─── Token helper ─────────────────────────────────────────────────────────────
+function getToken() {
+    return document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+}
+
+// ─── Select all checkbox ──────────────────────────────────────────────────────
+const selectAll = document.getElementById('selectAll');
+if (selectAll) {
+    selectAll.addEventListener('change', function() {
+        document.querySelectorAll('#backlogTableBody input[type=checkbox]')
+            .forEach(cb => cb.checked = this.checked);
+    });
+}
+</script>

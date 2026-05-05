@@ -58,16 +58,22 @@ public class DetailsModel : PageModel
         var project = await _projectService.GetProjectByIdAsync(projectId);
         ProjectName = project?.Name ?? string.Empty;
 
-        Product = await _productService.GetProductByIdAsync(id);
+        var product = await _productService.GetProductByIdAsync(id);
+        Product = product;
         if (Product == null)
             return NotFound();
 
-        ReleaseNotes = (await _productService.GetReleaseNotesAsync(id)).ToList();
-        SubProjects = await _subProjectService.GetSubProjectsByProductAsync(id);
+        var releaseNotes = await _productService.GetReleaseNotesAsync(id);
+        ReleaseNotes = releaseNotes.ToList();
+
+        var subProjects = await _subProjectService.GetSubProjectsByProductAsync(id);
+        SubProjects = subProjects;
 
         if (CanEditProduct)
         {
-            AvailableTeams = (await _teamService.GetActiveTeamsAsync()).ToList();
+            var teams = await _teamService.GetActiveTeamsAsync();
+            AvailableTeams = teams.ToList();
+
             var allUsers = await _userService.GetActiveUsersAsync();
             ProjectManagers = allUsers.Where(u => u.Roles.Contains("Project Manager") || u.Roles.Contains("Administrator")).ToList();
         }

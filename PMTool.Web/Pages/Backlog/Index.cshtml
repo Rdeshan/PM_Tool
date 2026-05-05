@@ -23,7 +23,11 @@
         </div>
     </div>
 
-    <form method="get" class="row g-2 mb-3">
+    <form method="get" asp-page="/Backlog/Index" class="row g-2 mb-3">
+        @if (Model.SelectedProjectId != Guid.Empty)
+        {
+            <input type="hidden" name="projectId" value="@Model.SelectedProjectId" />
+        }
         @if (isEmbedded)
         {
             <input type="hidden" name="embedded" value="true" />
@@ -60,12 +64,11 @@
                 <tr>
                     <th style="width:32px;"><input type="checkbox" id="selectAll" /></th>
                     <th style="width:36px;"></th>
-                    <th>Title</th>
-                    <th>Type</th>
+                   <th class="title-column">Title</th>
+                    <th class="type-column">Type</th>
                     <th>Status</th>
                     <th>Owner</th>
-                    <th>Parent</th>
-                    <th style="width:110px;">Priority</th>
+                    <th class="parent-column d-none">Parent</th>
                     <th style="width:90px;"></th>
                 </tr>
             </thead>
@@ -75,8 +78,24 @@
                     <td></td>
                     <td>
                         <input class="form-control form-control-sm" id="newTitle" placeholder="Issue title" />
+                        <div id="bulkInputsContainer" class="mt-2"></div>
                         <div id="newDescriptionWrap" class="mt-2 d-none">
                             <textarea id="newDescription" class="form-control form-control-sm" rows="2" placeholder="Use case description (optional)"></textarea>
+                        </div>
+                        <div class="mt-2">
+                            <select class="form-select form-select-sm" id="newParent">
+                                <option value="">No Parent</option>
+                                @foreach (var brd in Model.Brds)
+                                {
+                                    var brdCode = Model.GetItemDisplayCode(brd);
+                                    var brdParentLabel = string.IsNullOrWhiteSpace(brdCode) ? "BR" : brdCode.Replace("BRD-", "BR-");
+                                    <option value="@brd.Id">@brdParentLabel</option>
+                                }
+                                @foreach (var epic in Model.Epics)
+                                {
+                                    <option value="@epic.Id">Epic: @epic.Title</option>
+                                }
+                            </select>
                         </div>
                     </td>
                     <td>
@@ -105,22 +124,14 @@
                             }
                         </select>
                     </td>
-                    <td>
-                        <select class="form-select form-select-sm" id="newParent">
-                            <option value="">No Parent</option>
-                            @foreach (var brd in Model.Brds)
-                            {
-                                <option value="@brd.Id">BRD: @brd.Title</option>
-                            }
-                            @foreach (var epic in Model.Epics)
-                            {
-                                <option value="@epic.Id">Epic: @epic.Title</option>
-                            }
-                        </select>
-                    </td>
-                    <td>-</td>
+                    <td class="parent-column d-none"></td>
                     <td class="text-end">
-                        <button id="saveNewIssue" class="btn btn-sm btn-success" type="button">Save</button>
+                        <div class="d-inline-flex align-items-center gap-2">
+                            <button id="saveNewIssue" class="btn btn-sm btn-success" type="button">Save</button>
+                            <button id="addBulkInputBtn" class="btn btn-sm btn-outline-primary" type="button" title="Add another issue input">
+                                <i class="bi bi-plus-lg"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>
             </tbody>
@@ -128,7 +139,7 @@
                 @for (var i = 0; i < 4; i++)
                 {
                     <tr>
-                        <td colspan="9"><div class="skeleton-line"></div></td>
+                        <td colspan="10"><div class="skeleton-line"></div></td>
                     </tr>
                 }
             </tbody>
@@ -139,6 +150,10 @@
                         <td><input type="checkbox" class="row-check" /></td>
                         <td class="text-muted drag-handle"><i class="bi bi-grip-vertical"></i></td>
                         <td class="editable" data-field="title" style="padding-left:@(0.75 + (Model.GetIndentLevel(item) * 1.25) + (item.Type == (int)BacklogItemType.UseCase ? 1.85 : 0))rem;">
+                            @if (!string.IsNullOrWhiteSpace(Model.GetItemDisplayCode(item)))
+                            {
+                                <span class="item-code badge bg-light text-dark border me-1">@Model.GetItemDisplayCode(item)</span>
+                            }
                             @if (Model.HasChildren(item))
                             {
                                 <button type="button" class="btn btn-sm p-0 me-4 fold-toggle" data-row-id="@item.Id" title="Collapse/Expand">
@@ -149,7 +164,7 @@
                             {
                                 <span class="text-muted me-1 hierarchy-indicator">↳</span>
                             }
-                            @item.Title
+                            <span class="item-title-text" title="@item.Title">@item.Title</span>
                             @if (item.Type == (int)BacklogItemType.UseCase)
                             {
                                 <button type="button" class="btn btn-sm p-0 ms-2 usecase-desc-toggle" data-description="@item.Description" title="View description">
@@ -162,8 +177,7 @@
                         </td>
                         <td class="editable-select" data-field="status" data-value="@item.Status">@item.StatusName</td>
                         <td class="editable-select" data-field="owner" data-value="@item.OwnerId">@(string.IsNullOrWhiteSpace(item.OwnerName) ? "Unassigned" : item.OwnerName)</td>
-                        <td class="editable-select" data-field="parentbacklogitemid" data-value="@item.ParentBacklogItemId">@(Model.Items.FirstOrDefault(x => x.Id == item.ParentBacklogItemId)?.Title ?? "None")</td>
-                        <td class="priority-cell">@item.Priority</td>
+                        <td class="editable-select parent-column d-none" data-field="parentbacklogitemid" data-value="@item.ParentBacklogItemId">@(Model.Items.FirstOrDefault(x => x.Id == item.ParentBacklogItemId)?.Title ?? "None")</td>
                         <td class="text-end action-cell">
                             <button class="btn btn-sm btn-outline-danger delete-btn" type="button" title="Delete">
                                 <i class="bi bi-trash"></i>
@@ -212,9 +226,51 @@
         .editable, .editable-select {
             cursor: pointer;
         }
+        .item-code {
+            font-size: 0.72rem;
+            font-weight: 600;
+            vertical-align: middle;
+        }
+        #backlogTable th.title-column,
+        #backlogTable td.editable {
+            width: 800px;
+            max-width: 800px;
+        }
+        #backlogTable td.editable {
+            white-space: nowrap;
+            overflow: hidden;
+        }
+        .item-title-text {
+            display: inline-block;
+            max-width: calc(100% - 150px);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            vertical-align: middle;
+        }
+        #backlogTable th.type-column,
+        #backlogTable td[data-field="type"] {
+            padding-left: 0.9rem;
+        }
         .skeleton-line { height: 18px; border-radius: 6px; background: linear-gradient(90deg,#ececec 25%,#f8f8f8 37%,#ececec 63%); background-size: 400% 100%; animation: shimmer 1.2s infinite; }
         @@keyframes shimmer { 0% { background-position: 100% 0; } 100% { background-position: 0 0; } }
         .drag-over { outline: 2px dashed #0d6efd; }
+        .due-date-btn { font-size: 0.8rem; white-space: nowrap; text-decoration: none; }
+        .due-date-btn:hover { opacity: 0.75; }
+        #dueDatePicker {
+            position: fixed;
+            z-index: 1070;
+            background: #fff;
+            border: 1px solid #dee2e6;
+            border-radius: 10px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            padding: 12px 14px;
+            min-width: 230px;
+            display: none;
+        }
+        #dueDatePicker h6 { font-size: 0.78rem; color: #6c757d; margin-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+        #dueDatePicker input[type=date] { border-radius: 6px; font-size: 0.85rem; }
+        #dueDatePicker .due-date-clear { font-size: 0.78rem; }
         .drag-handle { cursor: move; }
         .bg-purple { background-color: #6f42c1 !important; }
         .fold-toggle {
@@ -244,6 +300,7 @@
             width: min(320px, calc(100vw - 2rem));
             display: none;
         }
+
     </style>
 }
 
@@ -258,6 +315,8 @@
     const newParent = document.getElementById('newParent');
     const newDescriptionWrap = document.getElementById('newDescriptionWrap');
     const newDescription = document.getElementById('newDescription');
+    const bulkInputsContainer = document.getElementById('bulkInputsContainer');
+    const addBulkInputBtn = document.getElementById('addBulkInputBtn');
     const selectAll = document.getElementById('selectAll');
     const bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
     const rowsBody = document.getElementById('rows');
@@ -269,6 +328,97 @@
     usecaseDescCard.className = 'card shadow-sm';
     usecaseDescCard.innerHTML = '<div class="card-body py-2 px-3"><small class="text-muted d-block mb-1">Use Case Description</small><div id="usecaseDescText"></div></div>';
     document.body.appendChild(usecaseDescCard);
+
+    const MAX_BULK_INPUTS = 10;
+
+    const getAllTitleInputs = () => [
+        document.getElementById('newTitle'),
+        ...bulkInputsContainer.querySelectorAll('.bulk-title-input')
+    ];
+
+    const getTitleInputCount = () => getAllTitleInputs().length;
+
+    const createBulkTitleInput = (index) => {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mt-2 bulk-input-row';
+
+        const topRow = document.createElement('div');
+        topRow.className = 'd-flex align-items-center gap-2';
+
+        const input = document.createElement('input');
+        input.className = 'form-control form-control-sm bulk-title-input';
+        input.placeholder = `Issue title ${index}`;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.type = 'button';
+        removeBtn.className = 'btn btn-sm btn-outline-danger';
+        removeBtn.title = 'Remove';
+        removeBtn.innerHTML = '<i class="bi bi-x-lg"></i>';
+        removeBtn.addEventListener('click', () => {
+            wrapper.remove();
+            toggleAddBulkBtnState();
+            refreshBulkInputPlaceholders();
+        });
+
+        const descWrap = document.createElement('div');
+        descWrap.className = 'mt-2 bulk-desc-wrap d-none';
+
+        const desc = document.createElement('textarea');
+        desc.className = 'form-control form-control-sm bulk-description-input';
+        desc.rows = 2;
+        desc.placeholder = `Use case description ${index} (optional)`;
+        descWrap.appendChild(desc);
+
+        topRow.appendChild(input);
+        topRow.appendChild(removeBtn);
+        wrapper.appendChild(topRow);
+        wrapper.appendChild(descWrap);
+        return wrapper;
+    };
+
+    const refreshBulkInputPlaceholders = () => {
+        const rows = [...bulkInputsContainer.querySelectorAll('.bulk-input-row')];
+        rows.forEach((row, idx) => {
+            const position = idx + 2;
+            const titleInput = row.querySelector('.bulk-title-input');
+            const descInput = row.querySelector('.bulk-description-input');
+            if (titleInput) {
+                titleInput.placeholder = `Issue title ${position}`;
+            }
+            if (descInput) {
+                descInput.placeholder = `Use case description ${position} (optional)`;
+            }
+        });
+    };
+
+    const toggleDescriptionInputsByType = () => {
+        const isUseCase = parseInt(newType.value) === 3;
+        newDescriptionWrap.classList.toggle('d-none', !isUseCase);
+        if (!isUseCase) {
+            newDescription.value = '';
+        }
+
+        bulkInputsContainer.querySelectorAll('.bulk-desc-wrap').forEach(wrap => {
+            wrap.classList.toggle('d-none', !isUseCase);
+            if (!isUseCase) {
+                const descInput = wrap.querySelector('.bulk-description-input');
+                if (descInput) {
+                    descInput.value = '';
+                }
+            }
+        });
+    };
+
+    const toggleAddBulkBtnState = () => {
+        addBulkInputBtn.disabled = getTitleInputCount() >= MAX_BULK_INPUTS;
+    };
+
+    const clearBulkCreateInputs = () => {
+        document.getElementById('newTitle').value = '';
+        newDescription.value = '';
+        bulkInputsContainer.innerHTML = '';
+        toggleAddBulkBtnState();
+    };
 
     setTimeout(() => { skeleton.classList.add('d-none'); rowsBody.classList.remove('d-none'); }, 300);
 
@@ -348,7 +498,7 @@
 
         if (result.success) {
             selectedRows.forEach(r => r.remove());
-            updatePriorityCells();
+            location.reload();
             syncSelectionUi();
         }
     });
@@ -358,6 +508,19 @@
         refreshCreateParentOptions();
         const input = document.getElementById('newTitle');
         input.focus();
+    });
+
+    addBulkInputBtn.addEventListener('click', () => {
+        const nextIndex = getTitleInputCount() + 1;
+        if (nextIndex > MAX_BULK_INPUTS) {
+            notify(`Maximum ${MAX_BULK_INPUTS} issue inputs allowed.`, false);
+            return;
+        }
+
+        const inputRow = createBulkTitleInput(nextIndex);
+        bulkInputsContainer.appendChild(inputRow);
+        toggleAddBulkBtnState();
+        inputRow.querySelector('.bulk-title-input')?.focus();
     });
 
     rowsBody.addEventListener('change', (e) => {
@@ -393,17 +556,14 @@
     function refreshCreateParentOptions() {
         const type = parseInt(newType.value);
         const options = [{ value: '', label: 'No Parent' }];
-        const isUseCase = type === 3;
-
-        newDescriptionWrap.classList.toggle('d-none', !isUseCase);
-        if (!isUseCase) {
-            newDescription.value = '';
-        }
+        toggleDescriptionInputsByType();
 
         if (type === 4) {
             @foreach (var brd in Model.Brds)
             {
-                @:options.push({ value: '@brd.Id', label: 'BRD: @brd.Title' });
+                var brdCode = Model.GetItemDisplayCode(brd);
+                var brdParentLabel = string.IsNullOrWhiteSpace(brdCode) ? "BR" : brdCode.Replace("BRD-", "BR-");
+                @:options.push({ value: '@brd.Id', label: '@brdParentLabel' });
             }
         }
 
@@ -448,47 +608,81 @@
     });
 
     saveNewBtn.addEventListener('click', async () => {
-        const title = document.getElementById('newTitle').value.trim();
-        if (!title) {
+        const entries = [];
+
+        const firstTitle = document.getElementById('newTitle').value.trim();
+        if (firstTitle) {
+            entries.push({
+                title: firstTitle,
+                description: parseInt(newType.value) === 3 ? (newDescription.value || '').trim() : ''
+            });
+        }
+
+        bulkInputsContainer.querySelectorAll('.bulk-input-row').forEach(row => {
+            const titleInput = row.querySelector('.bulk-title-input');
+            const descInput = row.querySelector('.bulk-description-input');
+            const title = titleInput?.value?.trim() ?? '';
+            if (!title) return;
+
+            entries.push({
+                title,
+                description: parseInt(newType.value) === 3 ? (descInput?.value || '').trim() : ''
+            });
+        });
+
+        if (entries.length === 0) {
             notify('Title is required.', false);
             return;
         }
 
-        const payload = {
-            projectId: table.dataset.projectId,
-            productId: table.dataset.productId || null,
-            title,
-            type: parseInt(document.getElementById('newType').value),
-            status: parseInt(document.getElementById('newStatus').value),
-            ownerId: document.getElementById('newOwner').value || null,
-            parentBacklogItemId: document.getElementById('newParent').value || null,
-            description: parseInt(document.getElementById('newType').value) === 3 ? (newDescription.value || '').trim() : ''
-        };
+        let successCount = 0;
+        let firstErrorMessage = '';
 
-        const result = await postJson('Create', payload);
-        notify(result.message, result.success);
-        if (result.success) {
+        for (const entry of entries) {
+            const payload = {
+                projectId: table.dataset.projectId,
+                productId: table.dataset.productId || null,
+                title: entry.title,
+                type: parseInt(document.getElementById('newType').value),
+                status: parseInt(document.getElementById('newStatus').value),
+                ownerId: document.getElementById('newOwner').value || null,
+                parentBacklogItemId: document.getElementById('newParent').value || null,
+                description: entry.description
+            };
+
+            const result = await postJson('Create', payload);
+            if (result.success) {
+                successCount++;
+            } else if (!firstErrorMessage) {
+                firstErrorMessage = result.message || 'Failed to create one or more issues.';
+            }
+        }
+
+        if (successCount === entries.length) {
+            notify(`Created ${successCount} issue(s).`, true);
             location.reload();
+            return;
+        }
+
+        if (successCount > 0) {
+            notify(`Created ${successCount}/${entries.length} issue(s). ${firstErrorMessage}`, false);
+            location.reload();
+        } else {
+            notify(firstErrorMessage || 'Failed to create issues.', false);
         }
     });
 
     const startEditText = (cell) => {
         if (cell.querySelector('input')) return;
+        const existingCodeBadge = cell.querySelector('.item-code');
+        const codeText = existingCodeBadge?.textContent?.trim() ?? '';
         const existingFoldToggle = cell.querySelector('.fold-toggle');
         const foldRowId = existingFoldToggle?.dataset.rowId;
         const existingUsecaseDescToggle = cell.querySelector('.usecase-desc-toggle');
         const usecaseDescription = existingUsecaseDescToggle?.dataset.description ?? '';
         const hasIndicator = !!cell.querySelector('.hierarchy-indicator');
-        const original = [...cell.childNodes]
-            .filter(n => {
-                if (n.nodeType !== Node.ELEMENT_NODE) return true;
-                return !n.classList?.contains('hierarchy-indicator')
-                    && !n.classList?.contains('fold-toggle')
-                    && !n.classList?.contains('usecase-desc-toggle');
-            })
-            .map(n => n.textContent)
-            .join('')
-            .trim();
+        const titleTextEl = cell.querySelector('.item-title-text');
+        const original = titleTextEl?.textContent?.trim() ?? '';
         const input = document.createElement('input');
         input.className = 'form-control form-control-sm';
         input.value = original;
@@ -498,6 +692,14 @@
 
         const setCellText = (text) => {
             cell.innerHTML = '';
+
+            if (codeText) {
+                const code = document.createElement('span');
+                code.className = 'item-code badge bg-light text-dark border me-1'
+                code.textContent = codeText;
+                cell.appendChild(code);
+            }
+
             if (foldRowId) {
                 const toggle = document.createElement('button');
                 toggle.type = 'button';
@@ -518,7 +720,11 @@
                 indicator.textContent = '↳';
                 cell.appendChild(indicator);
             }
-            cell.appendChild(document.createTextNode(text));
+            const titleSpan = document.createElement('span');
+            titleSpan.className = 'item-title-text';
+            titleSpan.title = text;
+            titleSpan.textContent = text;
+            cell.appendChild(titleSpan);
 
             if (existingUsecaseDescToggle) {
                 const descToggle = document.createElement('button');
@@ -588,7 +794,9 @@
             if (rowType === 4) {
                 @foreach (var brd in Model.Brds)
                 {
-                    @:parents.push({ value: '@brd.Id', label: 'BRD: @brd.Title' });
+                    var brdCode = Model.GetItemDisplayCode(brd);
+                    var brdParentLabel = string.IsNullOrWhiteSpace(brdCode) ? "BR" : brdCode.Replace("BRD-", "BR-");
+                    @:parents.push({ value: '@brd.Id', label: '@brdParentLabel' });
                 }
             }
             if (rowType === 2) {
@@ -715,16 +923,10 @@
             notify(result.message, result.success);
             if (result.success) {
                 row.remove();
-                updatePriorityCells();
+                location.reload();
             }
         }
     });
-
-    const updatePriorityCells = () => {
-        [...rowsBody.querySelectorAll('tr')].forEach((r, i) => {
-            r.querySelector('.priority-cell').textContent = i + 1;
-        });
-    };
 
     let dragged = null;
     rowsBody.querySelectorAll('tr').forEach(row => {
@@ -738,7 +940,6 @@
             row.classList.remove('drag-over');
             if (!dragged || dragged === row) return;
             row.parentNode.insertBefore(dragged, row.nextSibling);
-            updatePriorityCells();
 
             const orderedIds = [...rowsBody.querySelectorAll('tr')].map(r => r.dataset.id);
             const payload = {
@@ -748,6 +949,9 @@
             };
             const result = await postJson('Reorder', payload);
             notify(result.message, result.success);
+            if (result.success) {
+                location.reload();
+            }
         });
     });
 
@@ -758,7 +962,93 @@
         usecaseDescCard.dataset.anchorId = '';
     });
 
+    // ── Due Date Picker ──────────────────────────────────────────────────
+    const dueDatePicker = document.createElement('div');
+    dueDatePicker.id = 'dueDatePicker';
+    dueDatePicker.innerHTML = `
+        <h6><i class="bi bi-calendar3 me-1"></i>Set Due Date</h6>
+        <input type="date" class="form-control form-control-sm mb-2" id="dueDateInput" />
+        <div class="d-flex gap-2">
+            <button class="btn btn-sm btn-primary flex-grow-1" id="dueDateSave">Apply</button>
+            <button class="btn btn-sm btn-link due-date-clear text-danger p-0" id="dueDateClear">Clear</button>
+        </div>`;
+    document.body.appendChild(dueDatePicker);
+
+    let activeDueDateRow = null;
+
+    const positionPicker = (anchor) => {
+        const rect = anchor.getBoundingClientRect();
+        const pickerH = 120;
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const top = spaceBelow >= pickerH ? rect.bottom + 4 : rect.top - pickerH - 4;
+        dueDatePicker.style.top = top + 'px';
+        dueDatePicker.style.left = Math.min(rect.left, window.innerWidth - 250) + 'px';
+    };
+
+    const closePicker = () => {
+        dueDatePicker.style.display = 'none';
+        activeDueDateRow = null;
+    };
+
+    const saveDueDate = async (value) => {
+        if (!activeDueDateRow) return;
+        const itemId = activeDueDateRow.dataset.id;
+        const cell = activeDueDateRow.querySelector('.due-date-cell');
+        const result = await postJson('UpdateField', { itemId, field: 'duedate', value: value || '' });
+        notify(result.message, result.success);
+        if (result.success && cell) {
+            cell.dataset.due = value;
+            const btn = cell.querySelector('.due-date-btn');
+            const lbl = cell.querySelector('.due-date-label');
+            if (lbl && btn) {
+                if (value) {
+                    const d = new Date(value + 'T00:00:00');
+                    const isPast = d < new Date(new Date().toDateString());
+                    lbl.className = `due-date-label text-${isPast ? 'danger' : 'secondary'}`;
+                    lbl.innerHTML = `<i class="bi bi-calendar3"></i> ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+                } else {
+                    lbl.className = 'due-date-label text-muted';
+                    lbl.innerHTML = '<i class="bi bi-calendar3"></i>';
+                }
+            }
+        }
+        closePicker();
+    };
+
+    rowsBody.addEventListener('click', (e) => {
+        const btn = e.target.closest('.due-date-btn');
+        if (!btn) return;
+        e.stopPropagation();
+        const row = btn.closest('tr');
+        const cell = btn.closest('.due-date-cell');
+        if (activeDueDateRow === row) { closePicker(); return; }
+        activeDueDateRow = row;
+        document.getElementById('dueDateInput').value = cell?.dataset.due ?? '';
+        positionPicker(btn);
+        dueDatePicker.style.display = 'block';
+        document.getElementById('dueDateInput').focus();
+    });
+
+    document.getElementById('dueDateSave').addEventListener('click', () => {
+        saveDueDate(document.getElementById('dueDateInput').value);
+    });
+
+    document.getElementById('dueDateClear').addEventListener('click', () => {
+        saveDueDate('');
+    });
+
+    document.getElementById('dueDateInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); saveDueDate(e.target.value); }
+        if (e.key === 'Escape') closePicker();
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('#dueDatePicker') && !e.target.closest('.due-date-btn')) closePicker();
+    });
+    // ─────────────────────────────────────────────────────────────────────
+
     refreshCreateParentOptions();
+    toggleAddBulkBtnState();
 })();
 </script>
 }

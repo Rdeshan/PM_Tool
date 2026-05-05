@@ -138,7 +138,7 @@ public class ProjectRepository : IProjectRepository
         return await _context.UserRoles
             .Where(ur => ur.ProjectId == projectId)
             .Include(ur => ur.User)
-            .Select(ur => ur.User)
+            .Select(ur => ur.User!)
             .Distinct()
             .ToListAsync();
     }

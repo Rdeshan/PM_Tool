@@ -102,7 +102,7 @@ public class PermissionRepository : IPermissionRepository
         return await _context.UserRoles
             .Where(ur => ur.UserId == userId && ur.IsActive)
             .Include(ur => ur.Role)
-            .ThenInclude(r => r.Permissions)
+            .ThenInclude(r => r!.Permissions)
             .AnyAsync(ur => ur.Role!.Permissions.Any(p => p.PermissionType == permissionType && p.IsActive));
     }
 }
