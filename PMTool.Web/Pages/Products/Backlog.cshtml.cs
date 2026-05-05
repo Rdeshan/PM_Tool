@@ -436,12 +436,14 @@ namespace PMTool.Web.Pages.Products;
 [Authorize]
 public class BacklogModel : PageModel
 {
+    private const int CustomWorkTypeOffset = 1000;
     private readonly IProjectService _projectService;
     private readonly IProductService _productService;
     private readonly IProductBacklogService _productBacklogService;
     private readonly IUserAdminService _userService;
     private readonly ISubProjectService _subProjectService;
     private readonly ISprintService _sprintService;
+    private readonly IWorkTypeService _workTypeService;
 
     public BacklogModel(
         IProjectService projectService,
@@ -449,7 +451,8 @@ public class BacklogModel : PageModel
         IProductBacklogService productBacklogService,
         IUserAdminService userService,
         ISubProjectService subProjectService,
-        ISprintService sprintService)
+        ISprintService sprintService,
+        IWorkTypeService workTypeService)
     {
         _projectService = projectService;
         _productService = productService;
@@ -457,6 +460,7 @@ public class BacklogModel : PageModel
         _userService = userService;
         _subProjectService = subProjectService;
         _sprintService = sprintService;
+        _workTypeService = workTypeService;
     }
 
     // ── Page Properties ───────────────────────────────────────────────────────
@@ -473,6 +477,7 @@ public class BacklogModel : PageModel
 
     public List<ProductBacklogItemDTO> BacklogItems { get; set; } = new();
     public List<BacklogItemTypeDTO> ItemTypes { get; set; } = new();
+    public List<WorkTypeOptionDTO> WorkTypes { get; set; } = new();
     public List<dynamic> ActiveUsers { get; set; } = new();
     public List<SubProjectDTO> ProductSubProjects { get; set; } = new();
     public List<SprintDTO> Sprints { get; set; } = new();
@@ -513,6 +518,8 @@ public class BacklogModel : PageModel
 
         BacklogItems = await _productBacklogService.GetBacklogItemsAsync(ProductId, null);
         ItemTypes = _productBacklogService.GetBacklogItemTypes();
+        var customWorkTypes = await _workTypeService.GetCustomWorkTypesAsync();
+        WorkTypes = BuildWorkTypes(customWorkTypes);
         ProductSubProjects = await _subProjectService.GetSubProjectsByProductAsync(ProductId);
         Sprints = await _sprintService.GetSprintsByProductAsync(ProductId);
 
@@ -524,6 +531,32 @@ public class BacklogModel : PageModel
         }).ToList();
 
         return Page();
+    }
+
+    public async Task<IActionResult> OnPostCreateWorkTypeAsync([FromBody] CreateWorkTypeRequest request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog)
+        {
+            return Forbid();
+        }
+
+        var created = await _workTypeService.CreateWorkTypeAsync(request);
+        if (created == null)
+        {
+            return new JsonResult(new { success = false, message = "Failed to create work type." });
+        }
+
+        var option = new WorkTypeOptionDTO
+        {
+            Value = CustomWorkTypeOffset + created.Id,
+            Name = created.Name,
+            Description = created.Description,
+            IconClass = created.IconClass,
+            IsCustom = true
+        };
+
+        return new JsonResult(new { success = true, workType = option });
     }
 
     // ── CREATE (AJAX) ─────────────────────────────────────────────────────────
@@ -752,4 +785,26 @@ public class BacklogModel : PageModel
         4 => "Done",
         _ => "To do"
     };
+
+    private static List<WorkTypeOptionDTO> BuildWorkTypes(IEnumerable<WorkTypeDTO> customTypes)
+    {
+        var workTypes = new List<WorkTypeOptionDTO>
+        {
+            new() { Value = 1, Name = "Story", Description = "User Story", IconClass = "bi bi-book", IsCustom = false },
+            new() { Value = 2, Name = "Task", Description = "Task", IconClass = "bi bi-check2-square", IsCustom = false },
+            new() { Value = 3, Name = "Bug", Description = "Bug", IconClass = "bi bi-bug-fill", IsCustom = false },
+            new() { Value = 4, Name = "Epic", Description = "Epic", IconClass = "bi bi-stars", IsCustom = false }
+        };
+
+        workTypes.AddRange(customTypes.Select(type => new WorkTypeOptionDTO
+        {
+            Value = CustomWorkTypeOffset + type.Id,
+            Name = type.Name,
+            Description = type.Description,
+            IconClass = string.IsNullOrWhiteSpace(type.IconClass) ? "bi bi-tag" : type.IconClass,
+            IsCustom = true
+        }));
+
+        return workTypes;
+    }
 }

@@ -1,5 +1,6 @@
 @model PMTool.Application.DTOs.Backlog.ProductBacklogItemDTO
 @using PMTool.Application.DTOs.SubProject
+@using PMTool.Application.DTOs.Backlog
 @{
     var item = Model;
     var itemId = item.Id.ToString();
@@ -45,6 +46,10 @@
     var ownerColors = item.OwnerId.HasValue ? GetAvatarBg(item.OwnerId.Value.ToString()) : (bg: "#dfe1e6", fg: "#42526e");
     var isOverdue = item.DueDate.HasValue && item.DueDate.Value.Date < DateTime.Today;
     var subProjects = ViewData["SubProjects"] as List<SubProjectDTO> ?? new List<SubProjectDTO>();
+    var workTypes = ViewData["WorkTypes"] as List<WorkTypeOptionDTO> ?? new List<WorkTypeOptionDTO>();
+    var currentWorkType = workTypes.FirstOrDefault(x => x.Value == item.Type);
+    var currentWorkIcon = currentWorkType?.IconClass ?? "bi bi-tag";
+    var currentWorkName = currentWorkType?.Name ?? "Work Item";
 }
 
 <tr id="row-@item.Id" data-item-id="@item.Id">
@@ -52,37 +57,20 @@
     <td>
         <!-- Type icon with dropdown -->
         <div class="rel d-inline-flex align-items-center">
-            <button type="button" class="ib" onclick="toggleDd('typeDd_@itemId', event)" title="@item.TypeName">
-                @switch(item.Type)
-                {
-                    case 1: <!-- Story -->
-                        <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#63BA3C"/><path d="M4 7h6M7 4v6" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>
-                        break;
-                    case 3: <!-- Bug -->
-                        <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#FF5630"/><circle cx="7" cy="7" r="3" stroke="#fff" stroke-width="1.2"/></svg>
-                        break;
-                    case 4: <!-- Epic -->
-                        <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#998DD9"/><path d="M7 3l1.5 3.5H12l-2.8 2 1.1 3.5L7 10.2 4.7 12.5l1.1-3.5L3 7h3.5z" fill="#fff"/></svg>
-                        break;
-                    default: <!-- Task -->
-                        <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#4C9AFF"/><path d="M4 7.5l2 2 4-4" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                        break;
-                }
+            <button type="button" class="ib" onclick="toggleDd('typeDd_@itemId', event)" title="@currentWorkName">
+                <i class="@currentWorkIcon"></i>
             </button>
 
             <!-- Type dropdown -->
-            <div class="dd-panel" id="typeDd_@itemId">
-                <div class="dd-item" onclick="updateType('@item.Id', 1, event)">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#63BA3C"/><path d="M4 7h6M7 4v6" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>Story
-                </div>
-                <div class="dd-item" onclick="updateType('@item.Id', 2, event)">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#4C9AFF"/><path d="M4 7.5l2 2 4-4" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>Task
-                </div>
-                <div class="dd-item" onclick="updateType('@item.Id', 3, event)">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#FF5630"/><circle cx="7" cy="7" r="3" stroke="#fff" stroke-width="1.2"/></svg>Bug
-                </div>
-                <div class="dd-item" onclick="updateType('@item.Id', 4, event)">
-                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#998DD9"/><path d="M7 3l1.5 3.5H12l-2.8 2 1.1 3.5L7 10.2 4.7 12.5l1.1-3.5L3 7h3.5z" fill="#fff"/></svg>Epic
+            <div class="dd-panel type-dropdown" id="typeDd_@itemId" data-item-id="@item.Id">
+                @foreach (var workType in workTypes)
+                {
+                    <div class="dd-item work-type-option" data-type-value="@workType.Value" data-icon-class="@workType.IconClass" onclick="updateType('@item.Id', @workType.Value, event)">
+                        <i class="@workType.IconClass"></i> @workType.Name
+                    </div>
+                }
+                <div class="dd-item text-primary" onclick="openWorkTypeModal(event)">
+                    <i class="bi bi-plus-circle"></i> Add work type
                 </div>
             </div>
         </div>

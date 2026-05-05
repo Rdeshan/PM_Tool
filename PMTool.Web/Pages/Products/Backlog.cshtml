@@ -12,6 +12,7 @@
     }
 
     ViewData["Title"] = "Product Backlog";
+    var defaultWorkType = Model.WorkTypes.FirstOrDefault();
 }
 
 @functions {
@@ -145,6 +146,33 @@
             <i class="bi bi-arrow-left"></i> Back
         </a>
     </div>
+
+<div class="modal-overlay" id="workTypeModal">
+    <div class="modal-card" style="width:420px;">
+        <div class="modal-header">
+            <h5 class="modal-title">Add Work Type</h5>
+            <button type="button" class="btn-close" onclick="closeWorkTypeModal()"></button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group mb-3">
+                <label class="form-label fw-bold small">Name</label>
+                <input type="text" id="workTypeName" class="form-control" placeholder="e.g. Research" />
+            </div>
+            <div class="form-group mb-3">
+                <label class="form-label fw-bold small">Description</label>
+                <textarea id="workTypeDescription" class="form-control" rows="2" placeholder="Optional description"></textarea>
+            </div>
+            <div class="form-group mb-3">
+                <label class="form-label fw-bold small">Icon (Bootstrap class)</label>
+                <input type="text" id="workTypeIcon" class="form-control" placeholder="bi bi-lightning" />
+            </div>
+        </div>
+        <div class="modal-footer d-flex justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-sm btn-link text-muted text-decoration-none" onclick="closeWorkTypeModal()">Cancel</button>
+            <button type="button" class="btn btn-sm btn-primary px-4" id="submitWorkTypeBtn" onclick="submitWorkType()">Add</button>
+        </div>
+    </div>
+</div>
     
     @foreach (var sprint in Model.Sprints)
     {
@@ -197,7 +225,8 @@
                         {
                             @await Html.PartialAsync("_BacklogItemRow", item, new ViewDataDictionary(ViewData)
                             {
-                                ["SubProjects"] = Model.ProductSubProjects
+                                ["SubProjects"] = Model.ProductSubProjects,
+                                ["WorkTypes"] = Model.WorkTypes
                             })
                         }
                         @if (!sprintItems.Any())
@@ -247,32 +276,33 @@
                     <div class="rel">
                         <button type="button" class="ib" id="createTypeBtn" onclick="toggleDd('createTypeDd',event)" title="Select type">
                             <span id="createTypeIcon">
-                                @* Default: Task icon *@
-                                <svg width="16" height="16" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#4C9AFF"/><path d="M4 7.5l2 2 4-4" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                                @if (defaultWorkType != null)
+                                {
+                                    <i class="@defaultWorkType.IconClass"></i>
+                                }
+                                else
+                                {
+                                    <i class="bi bi-tag"></i>
+                                }
                             </span>
                         </button>
                         <div class="dd-panel" id="createTypeDd">
-                            <div class="dd-item" onclick="setCreateType(1,'story',event)">
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#63BA3C"/><path d="M4 7h6M7 4v6" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>
-                                Story
-                            </div>
-                            <div class="dd-item" onclick="setCreateType(2,'task',event)">
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#4C9AFF"/><path d="M4 7.5l2 2 4-4" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                                Task
-                            </div>
-                            <div class="dd-item" onclick="setCreateType(3,'bug',event)">
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#FF5630"/><circle cx="7" cy="7" r="3" stroke="#fff" stroke-width="1.2"/></svg>
-                                Bug
-                            </div>
-                            <div class="dd-item" onclick="setCreateType(4,'epic',event)">
-                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#998DD9"/><path d="M7 3l1.5 3.5H12l-2.8 2 1.1 3.5L7 10.2 4.7 12.5l1.1-3.5L3 7h3.5z" fill="#fff"/></svg>
-                                Epic
+                            @foreach (var workType in Model.WorkTypes)
+                            {
+                                <div class="dd-item work-type-option" data-type-value="@workType.Value" data-icon-class="@workType.IconClass" onclick="setCreateType(@workType.Value, '@workType.IconClass', event)">
+                                    <i class="@workType.IconClass"></i>
+                                    @workType.Name
+                                </div>
+                            }
+                            <div class="dd-item text-primary" id="addWorkTypeItem" onclick="openWorkTypeModal(event)">
+                                <i class="bi bi-plus-circle"></i>
+                                Add work type
                             </div>
                         </div>
                     </div>
 
                     <!-- Hidden fields for the form -->
-                    <input type="hidden" id="hiddenType" name="NewItem.Type" value="2" />
+                    <input type="hidden" id="hiddenType" name="NewItem.Type" value="@(defaultWorkType?.Value ?? 1)" />
                     <input type="hidden" id="hiddenOwner" name="NewItem.OwnerId" value="" />
                     <input type="hidden" id="hiddenDueDate" name="NewItem.DueDate" value="" />
 
@@ -357,7 +387,8 @@
                         {
                             @await Html.PartialAsync("_BacklogItemRow", item, new ViewDataDictionary(ViewData)
                             {
-                                ["SubProjects"] = Model.ProductSubProjects
+                                ["SubProjects"] = Model.ProductSubProjects,
+                                ["WorkTypes"] = Model.WorkTypes
                             })
                         }
                         @if (!backlogItems.Any())
@@ -443,6 +474,19 @@ function openCreateSprintModal(e) {
 }
 function closeCreateSprintModal() {
     document.getElementById('createSprintModal').style.display = 'none';
+}
+
+function openWorkTypeModal(e) {
+    if (e) e.stopPropagation();
+    closeDds();
+    document.getElementById('workTypeModal').style.display = 'flex';
+}
+
+function closeWorkTypeModal() {
+    document.getElementById('workTypeModal').style.display = 'none';
+    document.getElementById('workTypeName').value = '';
+    document.getElementById('workTypeDescription').value = '';
+    document.getElementById('workTypeIcon').value = '';
 }
 
 async function submitCreateSprint() {
@@ -654,8 +698,83 @@ document.addEventListener('click', closeDds);
 function setCreateType(value, key, e) {
     if (e) e.stopPropagation();
     document.getElementById('hiddenType').value = value;
-    document.getElementById('createTypeIcon').innerHTML = TYPE_ICONS[value];
+    const iconClass = key || 'bi bi-tag';
+    document.getElementById('createTypeIcon').innerHTML = `<i class="${iconClass}"></i>`;
     closeDds();
+}
+
+async function submitWorkType() {
+    const name = document.getElementById('workTypeName').value.trim();
+    const description = document.getElementById('workTypeDescription').value.trim();
+    const iconClass = document.getElementById('workTypeIcon').value.trim();
+    const btn = document.getElementById('submitWorkTypeBtn');
+
+    if (!name || !iconClass) {
+        showToast('Name and icon are required', 'danger');
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+    try {
+        const resp = await fetch('?handler=CreateWorkType', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getToken()
+            },
+            body: JSON.stringify({ name, description, iconClass })
+        });
+
+        const result = await resp.json();
+        if (result.success && result.workType) {
+            appendWorkTypeOption(result.workType);
+            closeWorkTypeModal();
+            showToast('Work type added', 'success');
+        } else {
+            showToast(result.message || 'Failed to add work type', 'danger');
+        }
+    } catch (err) {
+        showToast('Failed to add work type', 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = 'Add';
+    }
+}
+
+function appendWorkTypeOption(workType) {
+    const iconClass = workType.iconClass || 'bi bi-tag';
+    const createOption = document.createElement('div');
+    createOption.className = 'dd-item work-type-option';
+    createOption.dataset.typeValue = workType.value;
+    createOption.dataset.iconClass = iconClass;
+    createOption.innerHTML = `<i class="${iconClass}"></i> ${workType.name}`;
+    createOption.addEventListener('click', (e) => setCreateType(workType.value, iconClass, e));
+
+    const createDropdown = document.getElementById('createTypeDd');
+    const addWorkTypeItem = document.getElementById('addWorkTypeItem');
+    if (createDropdown && addWorkTypeItem) {
+        createDropdown.insertBefore(createOption, addWorkTypeItem);
+    }
+
+    document.querySelectorAll('.type-dropdown').forEach(dropdown => {
+        const itemId = dropdown.dataset.itemId;
+        if (!itemId) return;
+        const option = document.createElement('div');
+        option.className = 'dd-item work-type-option';
+        option.dataset.typeValue = workType.value;
+        option.dataset.iconClass = iconClass;
+        option.innerHTML = `<i class="${iconClass}"></i> ${workType.name}`;
+        option.addEventListener('click', (e) => updateType(itemId, workType.value, e));
+
+        const addEntry = dropdown.querySelector('.dd-item.text-primary');
+        if (addEntry) {
+            dropdown.insertBefore(option, addEntry);
+        } else {
+            dropdown.appendChild(option);
+        }
+    });
 }
 
 // ─── Create bar: Assign ───────────────────────────────────────────────────────
