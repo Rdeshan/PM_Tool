@@ -28,6 +28,7 @@ public class AppDbContext : DbContext
     public DbSet<TeamMember> TeamMembers { get; set; } = null!;
     public DbSet<Sprint> Sprints { get; set; } = null!;
     public DbSet<SprintScopeChange> SprintScopeChanges { get; set; } = null!;
+    public DbSet<WorkType> WorkTypes { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -66,6 +67,22 @@ public class AppDbContext : DbContext
                 .WithOne(ur => ur.User)
                 .HasForeignKey(ur => ur.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<WorkType>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Key)
+                .IsRequired()
+                .HasMaxLength(50);
+
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.Description)
+                .HasMaxLength(500);
         });
 
         // Role configuration
