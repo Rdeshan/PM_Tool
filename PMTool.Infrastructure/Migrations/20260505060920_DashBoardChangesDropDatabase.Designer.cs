@@ -12,8 +12,8 @@ using PMTool.Infrastructure.Data;
 namespace PMTool.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260421090408_AddTimelineDates")]
-    partial class AddTimelineDates
+    [Migration("20260505060920_DashBoardChangesDropDatabase")]
+    partial class DashBoardChangesDropDatabase
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -114,6 +114,74 @@ namespace PMTool.Infrastructure.Migrations
                     b.ToTable("Products");
                 });
 
+            modelBuilder.Entity("PMTool.Domain.Entities.ProductBacklog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("OwnerId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ParentBacklogItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SprintId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StoryPoints")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("SubProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.HasIndex("ParentBacklogItemId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("SprintId");
+
+                    b.HasIndex("SubProjectId");
+
+                    b.ToTable("ProductBacklogs");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.Project", b =>
                 {
                     b.Property<Guid>("Id")
@@ -202,6 +270,9 @@ namespace PMTool.Infrastructure.Migrations
                     b.Property<Guid?>("OwnerId")
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("ParentBacklogItemId")
+                        .HasColumnType("uniqueidentifier");
+
                     b.Property<int>("Priority")
                         .HasColumnType("int");
 
@@ -236,6 +307,8 @@ namespace PMTool.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerId");
+
+                    b.HasIndex("ParentBacklogItemId");
 
                     b.HasIndex("ProductId");
 
@@ -414,11 +487,96 @@ namespace PMTool.Infrastructure.Migrations
                     b.ToTable("RolePermissions");
                 });
 
+            modelBuilder.Entity("PMTool.Domain.Entities.Sprint", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Goal")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId");
+
+                    b.ToTable("Sprints");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.SprintScopeChange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BacklogItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("ChangeDate")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("ChangeType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<Guid>("ChangedById")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SprintId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("BacklogItemId");
+
+                    b.HasIndex("ChangedById");
+
+                    b.HasIndex("SprintId");
+
+                    b.ToTable("SprintScopeChanges");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.SubProject", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("ColorCode")
+                        .HasMaxLength(7)
+                        .HasColumnType("nvarchar(7)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -756,12 +914,53 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("Project");
                 });
 
+            modelBuilder.Entity("PMTool.Domain.Entities.ProductBacklog", b =>
+                {
+                    b.HasOne("PMTool.Domain.Entities.User", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId");
+
+                    b.HasOne("PMTool.Domain.Entities.ProductBacklog", "ParentBacklogItem")
+                        .WithMany("ChildBacklogItems")
+                        .HasForeignKey("ParentBacklogItemId");
+
+                    b.HasOne("PMTool.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PMTool.Domain.Entities.Sprint", "Sprint")
+                        .WithMany("BacklogItems")
+                        .HasForeignKey("SprintId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("PMTool.Domain.Entities.SubProject", "SubProject")
+                        .WithMany()
+                        .HasForeignKey("SubProjectId");
+
+                    b.Navigation("Owner");
+
+                    b.Navigation("ParentBacklogItem");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Sprint");
+
+                    b.Navigation("SubProject");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.ProjectBacklog", b =>
                 {
                     b.HasOne("PMTool.Domain.Entities.User", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PMTool.Domain.Entities.ProjectBacklog", "ParentBacklogItem")
+                        .WithMany("ChildBacklogItems")
+                        .HasForeignKey("ParentBacklogItemId")
+                        .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("PMTool.Domain.Entities.Product", "Product")
                         .WithMany("Backlogs")
@@ -780,6 +979,8 @@ namespace PMTool.Infrastructure.Migrations
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.Navigation("Owner");
+
+                    b.Navigation("ParentBacklogItem");
 
                     b.Navigation("Product");
 
@@ -843,6 +1044,44 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("Permission");
 
                     b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.Sprint", b =>
+                {
+                    b.HasOne("PMTool.Domain.Entities.Product", "Product")
+                        .WithMany("Sprints")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.SprintScopeChange", b =>
+                {
+                    b.HasOne("PMTool.Domain.Entities.ProductBacklog", "BacklogItem")
+                        .WithMany()
+                        .HasForeignKey("BacklogItemId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.HasOne("PMTool.Domain.Entities.User", "ChangedBy")
+                        .WithMany()
+                        .HasForeignKey("ChangedById")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PMTool.Domain.Entities.Sprint", "Sprint")
+                        .WithMany("ScopeChanges")
+                        .HasForeignKey("SprintId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("BacklogItem");
+
+                    b.Navigation("ChangedBy");
+
+                    b.Navigation("Sprint");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.SubProject", b =>
@@ -950,7 +1189,14 @@ namespace PMTool.Infrastructure.Migrations
 
                     b.Navigation("ReleaseNotes");
 
+                    b.Navigation("Sprints");
+
                     b.Navigation("SubProjects");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.ProductBacklog", b =>
+                {
+                    b.Navigation("ChildBacklogItems");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.Project", b =>
@@ -964,9 +1210,21 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("TeamMembers");
                 });
 
+            modelBuilder.Entity("PMTool.Domain.Entities.ProjectBacklog", b =>
+                {
+                    b.Navigation("ChildBacklogItems");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.Role", b =>
                 {
                     b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.Sprint", b =>
+                {
+                    b.Navigation("BacklogItems");
+
+                    b.Navigation("ScopeChanges");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.SubProject", b =>
