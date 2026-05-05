@@ -64,6 +64,9 @@
     .s-inprog  { background: #deebff; color: #0747a6; }
     .s-inreview{ background: #fff0b3; color: #974f0c; }
     .s-done    { background: #e3fcef; color: #006644; }
+    .sprint-card.collapsed .sprint-table-wrap,
+.sprint-card.collapsed .sprint-goal { display: none; }
+.sprint-card.collapsed .chevron-toggle { transform: rotate(-90deg); }
     .dd-panel { display: none; position: absolute; background: #fff; border: 0.5px solid #ddd; border-radius: 4px; padding: 4px; z-index: 9999; min-width: 150px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
     .dd-panel.open { display: block; }
     .dd-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; color: #172b4d; }
@@ -108,6 +111,8 @@
     .container { max-width: 100% !important; padding-left: 30px !important; padding-right: 30px !important; }
 
     /* Sprint Styles */
+
+
     .sprint-card { background: #f4f5f7; border-radius: 6px; padding: 12px; margin-bottom: 20px; }
     .sprint-header { background: #fff; border-radius: 4px; padding: 8px 12px; display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; border: 0.5px solid #e0e0e0; cursor: pointer; }
     .sprint-meta { font-size: 11px; color: #6b778c; display: flex; align-items: center; gap: 12px; }
@@ -131,12 +136,20 @@
 </style>
 
 <div class="mt-2">
-    <!-- Breadcrumbs / Top Actions omitted for brevity -->
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="mb-0 fw-bold">@Model.ProductName Product Backlog</h5>
+        <a class="btn btn-sm btn-secondary"
+           asp-page="/Products/Details"
+           asp-route-projectId="@Model.ProjectId"
+           asp-route-id="@Model.ProductId">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
     
     @foreach (var sprint in Model.Sprints)
     {
         <div class="sprint-card" id="sprint_@sprint.Id">
-            <div class="sprint-header">
+            <div class="sprint-header" onclick="toggleSprint('@sprint.Id')">
                 <div class="d-flex align-items-center gap-3">
                     <i class="bi bi-chevron-down chevron-toggle"></i>
                     <div>
@@ -162,10 +175,36 @@
             
             <div class="sprint-table-wrap">
                 <table class="table-backlog mb-0">
+                    <colgroup>
+                        <col style="width:32px;" />
+                        <col style="width:28px;" />
+                        <col />
+                        <col style="width:900px;" />
+                        <col style="width:110px;" />
+                        <col style="width:80px;" />
+                        <col style="width:64px;" />
+                        <col style="width:95px;" />
+                        <col style="width:36px;" />
+                    </colgroup>
                     <tbody class="sprint-drop-zone" data-sprint-id="@sprint.Id">
-                        @foreach (var item in Model.BacklogItems.Where(x => x.SprintId == sprint.Id).OrderBy(x => x.Priority))
+                        @{
+                            var sprintItems = Model.BacklogItems
+                                .Where(x => x.SprintId == sprint.Id)
+                                .OrderBy(x => x.Priority)
+                                .ToList();
+                        }
+                        @foreach (var item in sprintItems)
                         {
-                            @await Html.PartialAsync("_BacklogItemRow", item)
+                            @await Html.PartialAsync("_BacklogItemRow", item, new ViewDataDictionary(ViewData)
+                            {
+                                ["SubProjects"] = Model.ProductSubProjects
+                            })
+                        }
+                        @if (!sprintItems.Any())
+                        {
+                            <tr class="drop-placeholder text-center" data-placeholder="true">
+                                <td colspan="9" class="text-muted small py-3">Drop items here</td>
+                            </tr>
                         }
                     </tbody>
                 </table>
@@ -181,13 +220,13 @@
                 <i class="bi bi-chevron-down chevron-toggle"></i>
                 <div>
                     <h6 class="mb-0 fw-bold" style="font-size:14px;">Backlog</h6>
-                    <small class="text-muted">(@Model.BacklogItems.Count work items)</small>
+                    <small class="text-muted">(<span id="backlogTotalCount">@Model.BacklogItems.Count</span> work items)</small>
                 </div>
                 <div class="d-flex gap-1 align-items-center ms-2">
-                    <span class="stat-pill" style="background:#dfe1e6;color:#42526e;" title="To do">@Model.TodoCount</span>
-                    <span class="stat-pill" style="background:#deebff;color:#0747a6;" title="In progress">@Model.InProgressCount</span>
-                    <span class="stat-pill" style="background:#fff0b3;color:#974f0c;" title="In review">@Model.InReviewCount</span>
-                    <small class="text-muted">(@Model.BacklogItems.Count(x => x.SprintId == null) work items)</small>
+                    <span class="stat-pill" style="background:#dfe1e6;color:#42526e;" title="To do"><span id="backlogTodoCount">@Model.TodoCount</span></span>
+                    <span class="stat-pill" style="background:#deebff;color:#0747a6;" title="In progress"><span id="backlogInProgressCount">@Model.InProgressCount</span></span>
+                    <span class="stat-pill" style="background:#fff0b3;color:#974f0c;" title="In review"><span id="backlogInReviewCount">@Model.InReviewCount</span></span>
+                    <small class="text-muted">(<span id="backlogAvailableCount">@Model.BacklogItems.Count(x => x.SprintId == null)</span> work items)</small>
                 </div>
             </div>
             @if (Model.CanEditBacklog)
@@ -299,7 +338,7 @@
                             <th style="width:32px;"><input type="checkbox" id="selectAll" /></th>
                             <th style="width:28px;"></th>
                             <th>Title</th>
-                            <th style="width:140px; text-align:center;">Subproject</th>
+                            <th style="width:900px; text-align:center;">Subproject</th>
                             <th style="width:110px;">Status</th>
                             <th style="width:80px;">Assignee</th>
                             <th style="width:64px;">Points</th>
@@ -308,9 +347,24 @@
                         </tr>
                     </thead>
                     <tbody id="backlogTableBody" class="sprint-drop-zone" data-sprint-id="">
-                        @foreach (var item in Model.BacklogItems.Where(x => x.SprintId == null).OrderBy(x => x.Priority))
+                        @{
+                            var backlogItems = Model.BacklogItems
+                                .Where(x => x.SprintId == null)
+                                .OrderBy(x => x.Priority)
+                                .ToList();
+                        }
+                        @foreach (var item in backlogItems)
                         {
-                            @await Html.PartialAsync("_BacklogItemRow", item)
+                            @await Html.PartialAsync("_BacklogItemRow", item, new ViewDataDictionary(ViewData)
+                            {
+                                ["SubProjects"] = Model.ProductSubProjects
+                            })
+                        }
+                        @if (!backlogItems.Any())
+                        {
+                            <tr class="drop-placeholder text-center" data-placeholder="true">
+                                <td colspan="9" class="text-muted small py-3">Drop items here</td>
+                            </tr>
                         }
                     </tbody>
                 </table>
@@ -438,6 +492,59 @@ async function deleteSprint(id) {
     if((await resp.json()).success) location.reload();
 }
 
+function updateBacklogStats() {
+    const backlogZone = document.getElementById('backlogTableBody');
+    if (!backlogZone) return;
+
+    const totalCountEl = document.getElementById('backlogTotalCount');
+    const availableCountEl = document.getElementById('backlogAvailableCount');
+    const todoCountEl = document.getElementById('backlogTodoCount');
+    const inProgressCountEl = document.getElementById('backlogInProgressCount');
+    const inReviewCountEl = document.getElementById('backlogInReviewCount');
+
+    const backlogRows = [...backlogZone.querySelectorAll('tr')];
+    const totalRows = document.querySelectorAll('.sprint-drop-zone tr').length;
+
+    if (totalCountEl) totalCountEl.textContent = totalRows.toString();
+    if (availableCountEl) availableCountEl.textContent = backlogRows.length.toString();
+
+    let todo = 0;
+    let inProgress = 0;
+    let inReview = 0;
+
+    backlogRows.forEach(row => {
+        const status = row.querySelector('.pill-status');
+        if (!status) return;
+        if (status.classList.contains('s-todo')) todo += 1;
+        if (status.classList.contains('s-inprog')) inProgress += 1;
+        if (status.classList.contains('s-inreview')) inReview += 1;
+    });
+
+    if (todoCountEl) todoCountEl.textContent = todo.toString();
+    if (inProgressCountEl) inProgressCountEl.textContent = inProgress.toString();
+    if (inReviewCountEl) inReviewCountEl.textContent = inReview.toString();
+}
+
+function updateDropPlaceholders() {
+    const zones = document.querySelectorAll('.sprint-drop-zone');
+    zones.forEach(zone => {
+        const items = [...zone.querySelectorAll('tr')].filter(row => !row.classList.contains('drop-placeholder'));
+        const placeholder = zone.querySelector('.drop-placeholder');
+
+        if (items.length === 0) {
+            if (!placeholder) {
+                const row = document.createElement('tr');
+                row.className = 'drop-placeholder text-center';
+                row.dataset.placeholder = 'true';
+                row.innerHTML = '<td colspan="9" class="text-muted small py-3">Drop items here</td>';
+                zone.appendChild(row);
+            }
+        } else if (placeholder) {
+            placeholder.remove();
+        }
+    });
+}
+
 // ── DRAG AND DROP ────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
     const zones = document.querySelectorAll('.sprint-drop-zone');
@@ -447,6 +554,7 @@ document.addEventListener('DOMContentLoaded', function() {
             animation: 150,
             ghostClass: 'sortable-ghost',
             chosenClass: 'sortable-chosen',
+            filter: '.drop-placeholder',
             onEnd: async function(evt) {
                 if (evt.from === evt.to) return; // Didn't move between lists
 
@@ -469,6 +577,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         showToast('Moved successfully');
                         updatePoints(evt.from);
                         updatePoints(evt.to);
+                        updateBacklogStats();
+                        updateDropPlaceholders();
                     } else {
                         throw new Error('Server returned false');
                     }
@@ -480,10 +590,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     } else {
                         evt.from.appendChild(evt.item);
                     }
+                    updateDropPlaceholders();
                 }
             }
         });
     });
+
+    updateBacklogStats();
+    updateDropPlaceholders();
 });
 
 function updatePoints(container) {
@@ -815,6 +929,11 @@ function shiftItemCal(itemId, dir) {
     const vd = itemCalViews[itemId];
     itemCalViews[itemId] = new Date(vd.getFullYear(), vd.getMonth() + dir, 1);
     renderItemCal(itemId);
+}
+function toggleSprint(id) {
+
+    document.getElementById('sprint_' + id).classList.toggle('collapsed');
+
 }
 
 function pickItemDate(itemId, y, m, d) {

@@ -1,4 +1,5 @@
 @model PMTool.Application.DTOs.Backlog.ProductBacklogItemDTO
+@using PMTool.Application.DTOs.SubProject
 @{
     var item = Model;
     var itemId = item.Id.ToString();
@@ -43,6 +44,7 @@
     var ownerInitials = item.OwnerName != null ? GetInitials(item.OwnerName) : "";
     var ownerColors = item.OwnerId.HasValue ? GetAvatarBg(item.OwnerId.Value.ToString()) : (bg: "#dfe1e6", fg: "#42526e");
     var isOverdue = item.DueDate.HasValue && item.DueDate.Value.Date < DateTime.Today;
+    var subProjects = ViewData["SubProjects"] as List<SubProjectDTO> ?? new List<SubProjectDTO>();
 }
 
 <tr id="row-@item.Id" data-item-id="@item.Id">
@@ -106,6 +108,12 @@
                     <div class="dd-item text-danger" onclick="updateSubProject('@item.Id', '', event)">
                         <i class="bi bi-x-circle me-1"></i> Remove from sub-project
                     </div>
+                    @foreach (var subProject in subProjects)
+                    {
+                        <div class="dd-item" onclick="updateSubProject('@item.Id', '@subProject.Id', event)">
+                            <i class="bi bi-diagram-3"></i> @subProject.Name
+                        </div>
+                    }
                 </div>
             </div>
         }
@@ -115,6 +123,21 @@
                 <button type="button" class="subproj-btn" onclick="toggleDd('subProjDd_@itemId', event)" style="margin-left:0;">
                     <i class="bi bi-plus"></i> Subprojects
                 </button>
+                <div class="dd-panel" id="subProjDd_@itemId">
+                    @if (subProjects.Count == 0)
+                    {
+                        <div class="dd-item text-muted">No sub-projects available</div>
+                    }
+                    else
+                    {
+                        @foreach (var subProject in subProjects)
+                        {
+                            <div class="dd-item" onclick="updateSubProject('@item.Id', '@subProject.Id', event)">
+                                <i class="bi bi-diagram-3"></i> @subProject.Name
+                            </div>
+                        }
+                    }
+                </div>
             </div>
         }
     </td>
