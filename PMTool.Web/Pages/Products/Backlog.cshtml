@@ -137,16 +137,53 @@
 </style>
 
 <div class="mt-2">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <h5 class="mb-0 fw-bold">@Model.ProductName Product Backlog</h5>
+
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        
+        <!-- Left: Product Name -->
+        <h5 class="mb-0 fw-bold">
+            @Model.ProductName Product Backlog
+        </h5>
+
+        <!-- Center: Navigation -->
+        <ul class="nav nav-pills mb-0">
+            <li class="nav-item">
+                <a class="nav-link" 
+                   asp-page="/Products/Summary"
+                   asp-route-projectId="@Model.ProjectId"
+                   asp-route-id="@Model.ProductId">
+                    Summary
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" 
+                   asp-page="/Products/Backlog"
+                   asp-route-projectId="@Model.ProjectId"
+                   asp-route-id="@Model.ProductId">
+                    Backlog
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" 
+                   asp-page="/Products/Board"
+                   asp-route-projectId="@Model.ProjectId"
+                   asp-route-id="@Model.ProductId">
+                    Board
+                </a>
+            </li>
+        </ul>
+
+        <!-- Right: Back Button -->
         <a class="btn btn-sm btn-secondary"
            asp-page="/Products/Details"
            asp-route-projectId="@Model.ProjectId"
            asp-route-id="@Model.ProductId">
             <i class="bi bi-arrow-left"></i> Back
         </a>
+
     </div>
 
+</div>
 <div class="modal-overlay" id="workTypeModal">
     <div class="modal-card" style="width:420px;">
         <div class="modal-header">
