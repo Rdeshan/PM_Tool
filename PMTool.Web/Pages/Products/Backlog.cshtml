@@ -231,9 +231,25 @@
                         </div>
                     </div>
                 </div>
-                <div class="d-flex align-items-center gap-2">
-                    <button class="btn btn-sm btn-link text-muted" onclick="deleteSprint('@sprint.Id')"><i class="bi bi-trash"></i></button>
-                    @if(sprint.Status == 1){ <button class="btn btn-sm btn-primary">Start sprint</button> }
+                <div class="d-flex align-items-center gap-2" onclick="event.stopPropagation()">
+                    <button class="btn btn-sm btn-link text-muted" onclick="deleteSprint('@sprint.Id')" title="Delete sprint"><i class="bi bi-trash"></i></button>
+                    @if (sprint.Status == 1)
+                    {
+                        <button class="btn btn-sm btn-primary"
+                                onclick="openStartSprintModal('@sprint.Id','@HtmlEncoder.Default.Encode(sprint.Name)','@sprint.StartDate.ToString("yyyy-MM-dd")','@sprint.EndDate.ToString("yyyy-MM-dd")','@HtmlEncoder.Default.Encode(sprint.Goal)')"
+                                id="startSprintBtn_@sprint.Id">
+                            Start sprint
+                        </button>
+                    }
+                    @if (sprint.Status == 2)
+                    {
+                        <span class="badge bg-success" style="font-size:10px;">ACTIVE</span>
+                        <button class="btn btn-sm btn-danger"
+                                onclick="completeSprint('@sprint.Id')"
+                                id="completeSprintBtn_@sprint.Id">
+                            Complete Sprint
+                        </button>
+                    }
                 </div>
             </div>
             @if(!string.IsNullOrEmpty(sprint.Goal)) { <div class="px-2 mb-2 sprint-goal">Goal: @sprint.Goal</div> }
@@ -263,7 +279,8 @@
                             @await Html.PartialAsync("_BacklogItemRow", item, new ViewDataDictionary(ViewData)
                             {
                                 ["SubProjects"] = Model.ProductSubProjects,
-                                ["WorkTypes"] = Model.WorkTypes
+                                ["WorkTypes"] = Model.WorkTypes,
+                                ["ActiveUsers"] = Model.ActiveUsers
                             })
                         }
                         @if (!sprintItems.Any())
@@ -362,11 +379,12 @@
                             </div>
                             @foreach (var user in Model.ActiveUsers)
                             {
-                                var initials = GetInitials((string)user.displayName);
-                                var bg = GetAvatarBg((string)user.id);
-                                <div class="dd-item" onclick="setCreateOwner('@user.id','@user.displayName',event)" data-id="@user.id">
+                                var uName = user.DisplayName ?? $"{user.FirstName} {user.LastName}";
+                                var initials = GetInitials(uName);
+                                var bg = GetAvatarBg(user.Id.ToString());
+                                <div class="dd-item" onclick="setCreateOwner('@user.Id','@uName',event)" data-id="@user.Id">
                                     <div class="avatar-circle" style="background:@bg.bg;color:@bg.fg">@initials</div>
-                                    @user.displayName
+                                    @uName
                                 </div>
                             }
                         </div>
@@ -425,7 +443,8 @@
                             @await Html.PartialAsync("_BacklogItemRow", item, new ViewDataDictionary(ViewData)
                             {
                                 ["SubProjects"] = Model.ProductSubProjects,
-                                ["WorkTypes"] = Model.WorkTypes
+                                ["WorkTypes"] = Model.WorkTypes,
+                                ["ActiveUsers"] = Model.ActiveUsers
                             })
                         }
                         @if (!backlogItems.Any())
@@ -486,6 +505,53 @@
         <div class="modal-footer d-flex justify-content-end gap-2 mt-4">
             <button type="button" class="btn btn-sm btn-link text-muted text-decoration-none" onclick="closeCreateSprintModal()">Cancel</button>
             <button type="button" class="btn btn-sm btn-primary px-4" id="submitSprintBtn" onclick="submitCreateSprint()">Create</button>
+        </div>
+    </div>
+</div>
+
+<!-- Start Sprint Modal -->
+<div class="modal-overlay" id="startSprintModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h5 class="modal-title">
+                <i class="bi bi-play-circle me-2 text-primary"></i>Start Sprint
+            </h5>
+            <button type="button" class="btn-close" onclick="closeStartSprintModal()"></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="startSprintId" />
+            <div class="form-group mb-3">
+                <label class="form-label fw-bold small">Sprint Name</label>
+                <input type="text" id="startSprintName" class="form-control" readonly style="background:#f4f5f7;" />
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-bold small">Start Date</label>
+                        <input type="date" id="startSprintStart" class="form-control" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-bold small">End Date</label>
+                        <input type="date" id="startSprintEnd" class="form-control" />
+                    </div>
+                </div>
+            </div>
+            <div class="form-group mb-3">
+                <label class="form-label fw-bold small">Sprint Goal</label>
+                <textarea id="startSprintGoal" class="form-control" rows="2" readonly style="background:#f4f5f7;"></textarea>
+            </div>
+            <div class="alert alert-info py-2 px-3" style="font-size:12px;">
+                <i class="bi bi-info-circle me-1"></i>
+                Starting this sprint will move it to the <strong>Board</strong> view where your team can track progress.
+            </div>
+        </div>
+        <div class="modal-footer d-flex justify-content-end gap-2 mt-2">
+            <button type="button" class="btn btn-sm btn-link text-muted text-decoration-none" onclick="closeStartSprintModal()">Cancel</button>
+            <button type="button" class="btn btn-sm btn-primary px-4" id="submitStartSprintBtn" onclick="submitStartSprint()">
+                <i class="bi bi-play-fill me-1"></i>Start
+            </button>
         </div>
     </div>
 </div>
@@ -563,9 +629,78 @@ async function submitCreateSprint() {
     }
 }
 
+// ── START SPRINT MODAL ───────────────────────────────────────────────────────
+function openStartSprintModal(id, name, startDate, endDate, goal) {
+    document.getElementById('startSprintId').value    = id;
+    document.getElementById('startSprintName').value  = decodeURIComponent(name.replace(/\+/g,' '));
+    document.getElementById('startSprintStart').value = startDate;
+    document.getElementById('startSprintEnd').value   = endDate;
+    document.getElementById('startSprintGoal').value  = decodeURIComponent(goal.replace(/\+/g,' '));
+    document.getElementById('startSprintModal').style.display = 'flex';
+}
+function closeStartSprintModal() {
+    document.getElementById('startSprintModal').style.display = 'none';
+}
+
+async function submitStartSprint() {
+    const id    = document.getElementById('startSprintId').value;
+    const start = document.getElementById('startSprintStart').value;
+    const end   = document.getElementById('startSprintEnd').value;
+    const btn   = document.getElementById('submitStartSprintBtn');
+
+    if (!start || !end) { showToast('Please set start and end dates', 'danger'); return; }
+    if (new Date(end) <= new Date(start)) { showToast('End date must be after start date', 'danger'); return; }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Starting...';
+
+    try {
+        const resp = await fetch('?handler=StartSprint', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getToken()
+            },
+            body: JSON.stringify({ sprintId: id, startDate: start, endDate: end })
+        });
+        const result = await resp.json();
+        if (result.success) {
+            closeStartSprintModal();
+            showToast('Sprint started! Navigating to Board...');
+            setTimeout(() => window.location.href = result.boardUrl, 800);
+        } else {
+            showToast(result.message || 'Failed to start sprint', 'danger');
+        }
+    } catch (err) {
+        showToast('An error occurred', 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-play-fill me-1"></i>Start';
+    }
+}
+
+async function completeSprint(id) {
+    if (!confirm('Complete this sprint? All remaining items will stay in the sprint.')) return;
+    try {
+        const resp = await fetch(`?handler=CompleteSprint&sprintId=${id}`, {
+            method: 'POST',
+            headers: { 'RequestVerificationToken': getToken() }
+        });
+        const result = await resp.json();
+        if (result.success) {
+            showToast('Sprint completed!');
+            setTimeout(() => location.reload(), 800);
+        } else {
+            showToast('Failed to complete sprint', 'danger');
+        }
+    } catch (err) {
+        showToast('An error occurred', 'danger');
+    }
+}
+
 async function deleteSprint(id) {
     if(!confirm('Are you sure? Items will be moved back to backlog.')) return;
-    
+
     const resp = await fetch(`?handler=DeleteSprint&sprintId=${id}`, {
         method: 'POST',
         headers: { 'RequestVerificationToken': getToken() }

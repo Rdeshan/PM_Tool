@@ -22,6 +22,7 @@ public class SprintRepository : ISprintRepository
     {
         return await _context.Sprints
             .Include(s => s.BacklogItems)
+                .ThenInclude(b => b.Owner)
             .FirstOrDefaultAsync(s => s.Id == id);
     }
 
@@ -32,6 +33,17 @@ public class SprintRepository : ISprintRepository
             .Include(s => s.BacklogItems)
             .OrderBy(s => s.CreatedAt)
             .ToListAsync();
+    }
+
+    public async Task<Sprint?> GetActiveByProductIdAsync(Guid productId)
+    {
+        return await _context.Sprints
+            .Where(s => s.ProductId == productId && s.Status == 2)
+            .Include(s => s.BacklogItems)
+                .ThenInclude(b => b.Owner)
+            .Include(s => s.BacklogItems)
+                .ThenInclude(b => b.SubProject)
+            .FirstOrDefaultAsync();
     }
 
     public async Task<Sprint> AddAsync(Sprint sprint)

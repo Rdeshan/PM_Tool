@@ -430,6 +430,7 @@ using PMTool.Application.Services.SubProject;
 using PMTool.Application.DTOs.SubProject;
 using PMTool.Application.DTOs.Sprint;
 using System.Security.Claims;
+using PMTool.Application.DTOs.User;
 
 namespace PMTool.Web.Pages.Products;
 
@@ -478,7 +479,7 @@ public class BacklogModel : PageModel
     public List<ProductBacklogItemDTO> BacklogItems { get; set; } = new();
     public List<BacklogItemTypeDTO> ItemTypes { get; set; } = new();
     public List<WorkTypeOptionDTO> WorkTypes { get; set; } = new();
-    public List<dynamic> ActiveUsers { get; set; } = new();
+    public List<UserDTO> ActiveUsers { get; set; } = new();
     public List<SubProjectDTO> ProductSubProjects { get; set; } = new();
     public List<SprintDTO> Sprints { get; set; } = new();
 
@@ -523,12 +524,8 @@ public class BacklogModel : PageModel
         ProductSubProjects = await _subProjectService.GetSubProjectsByProductAsync(ProductId);
         Sprints = await _sprintService.GetSprintsByProductAsync(ProductId);
 
-        var users = await _userService.GetActiveUsersAsync();
-        ActiveUsers = users.Select(u => (dynamic)new
-        {
-            id = u.Id.ToString(),
-            displayName = u.DisplayName ?? $"{u.FirstName} {u.LastName}"
-        }).ToList();
+        var users = await _userService.GetActiveUsersAsync() ?? new List<UserDTO>();
+        ActiveUsers = users.ToList();
 
         return Page();
     }
@@ -769,6 +766,30 @@ public class BacklogModel : PageModel
         if (!CanEditBacklog) return Forbid();
 
         var success = await _sprintService.DeleteSprintAsync(sprintId);
+        return new JsonResult(new { success });
+    }
+
+    public async Task<IActionResult> OnPostStartSprintAsync([FromBody] StartSprintRequest request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var sprint = await _sprintService.StartSprintAsync(request.SprintId, request.StartDate, request.EndDate);
+        if (sprint == null)
+            return new JsonResult(new { success = false, message = "Sprint not found" });
+
+        var boardUrl = Url.Page("/Products/Board",
+            new { projectId = ProjectId, id = ProductId });
+
+        return new JsonResult(new { success = true, boardUrl });
+    }
+
+    public async Task<IActionResult> OnPostCompleteSprintAsync(Guid sprintId)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var success = await _sprintService.CompleteSprintAsync(sprintId);
         return new JsonResult(new { success });
     }
 

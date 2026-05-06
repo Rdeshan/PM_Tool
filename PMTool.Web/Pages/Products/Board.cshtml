@@ -1,4 +1,709 @@
-﻿@page
+@page "{projectId:guid}/{id:guid}/board"
+@using System.Text.Encodings.Web
 @model PMTool.Web.Pages.Products.BoardModel
 @{
+    Layout = "_Layout";
+    ViewData["Title"] = "Sprint Board";
+
+    string GetInitials(string? name) {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[^1][0]}".ToUpper()
+            : name.Substring(0, Math.Min(2, name.Length)).ToUpper();
+    }
+
+    (string bg, string fg) GetAvatarBg(string? id) {
+        var palettes = new[] {
+            (bg: "#deebff", fg: "#0747a6"),
+            (bg: "#e3fcef", fg: "#006644"),
+            (bg: "#fff0b3", fg: "#974f0c"),
+            (bg: "#ffebe6", fg: "#bf2600"),
+            (bg: "#e6fcff", fg: "#006c8a"),
+            (bg: "#f3f0ff", fg: "#403294"),
+        };
+        var idx = (uint)(id ?? "").GetHashCode() % (uint)palettes.Length;
+        return palettes[idx];
+    }
+
+    string TypeIcon(int type) => type switch {
+        1 => """<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#63BA3C"/><path d="M4 7h6M7 4v6" stroke="#fff" stroke-width="1.4" stroke-linecap="round"/></svg>""",
+        2 => """<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#4C9AFF"/><path d="M4 7.5l2 2 4-4" stroke="#fff" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>""",
+        3 => """<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#FF5630"/><circle cx="7" cy="7" r="3" stroke="#fff" stroke-width="1.4"/></svg>""",
+        4 => """<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#998DD9"/><path d="M7 3l1.5 3.5H12l-2.8 2 1.1 3.5L7 10.2 4.7 12.5l1.1-3.5L3 7h3.5z" fill="#fff"/></svg>""",
+        _ => """<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><rect x="1" y="1" width="12" height="12" rx="2" fill="#8993A4"/></svg>"""
+    };
 }
+
+<style>
+    :root {
+        --board-bg:     #f0f1f3;
+        --col-bg:       #ffffff;
+        --col-header-todo:      #dfe1e6;
+        --col-header-inprog:    #deebff;
+        --col-header-inreview:  #fff0b3;
+        --col-header-done:      #e3fcef;
+        --col-header-todo-fg:   #42526e;
+        --col-header-inprog-fg: #0747a6;
+        --col-header-rev-fg:    #974f0c;
+        --col-header-done-fg:   #006644;
+        --card-bg:      #ffffff;
+        --card-border:  #e8e8e8;
+        --card-shadow:  0 1px 4px rgba(9,30,66,.1);
+        --card-hover-shadow: 0 4px 14px rgba(9,30,66,.18);
+        --text-primary: #172b4d;
+        --text-muted:   #6b778c;
+        --accent:       #0052cc;
+        --radius:       8px;
+        --col-width:    280px;
+    }
+
+    body { background: var(--board-bg); }
+
+    /* ── Top bar ── */
+    .board-topbar {
+        background: #fff;
+        border-bottom: 1px solid #e0e0e0;
+        padding: 10px 28px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+    }
+    .board-topbar-left  { display: flex; align-items: center; gap: 14px; }
+    .board-topbar-right { display: flex; align-items: center; gap: 10px; }
+    .sprint-title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+    .sprint-dates { font-size: 11px; color: var(--text-muted); }
+    .sprint-pts   { font-size: 11px; font-weight: 600; background: #dfe1e6; color: var(--col-header-todo-fg); padding: 2px 8px; border-radius: 10px; }
+    .badge-active { background: #e3fcef; color: #006644; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 10px; letter-spacing: .03em; }
+
+    /* ── Board columns ── */
+    .board-wrap {
+        display: flex;
+        gap: 14px;
+        padding: 20px 28px;
+        overflow-x: auto;
+        min-height: calc(100vh - 130px);
+        align-items: flex-start;
+    }
+
+    .board-col {
+        flex: 0 0 var(--col-width);
+        background: var(--col-bg);
+        border-radius: var(--radius);
+        box-shadow: 0 1px 3px rgba(9,30,66,.08);
+        display: flex;
+        flex-direction: column;
+        min-height: 200px;
+        overflow: hidden;
+    }
+
+    .col-header {
+        padding: 10px 14px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        border-bottom: 2px solid transparent;
+        user-select: none;
+    }
+    .col-header-todo     { background: var(--col-header-todo);     border-color: #adb5bd; }
+    .col-header-inprog   { background: var(--col-header-inprog);   border-color: #4c9aff; }
+    .col-header-inreview { background: var(--col-header-inreview); border-color: #f6c000; }
+    .col-header-done     { background: var(--col-header-done);     border-color: #00875a; }
+
+    .col-title {
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: .06em;
+        text-transform: uppercase;
+    }
+    .col-title-todo     { color: var(--col-header-todo-fg); }
+    .col-title-inprog   { color: var(--col-header-inprog-fg); }
+    .col-title-inreview { color: var(--col-header-rev-fg); }
+    .col-title-done     { color: var(--col-header-done-fg); }
+
+    .col-count {
+        font-size: 11px;
+        font-weight: 600;
+        min-width: 20px;
+        height: 20px;
+        border-radius: 10px;
+        padding: 0 6px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0,0,0,.08);
+    }
+
+    .col-body {
+        padding: 10px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        min-height: 80px;
+    }
+
+    /* ── Kanban card ── */
+    .k-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: 6px;
+        padding: 10px 12px;
+        box-shadow: var(--card-shadow);
+        cursor: grab;
+        transition: box-shadow .15s, transform .15s;
+        position: relative;
+    }
+    .k-card:hover {
+        box-shadow: var(--card-hover-shadow);
+        transform: translateY(-1px);
+    }
+    .k-card:active { cursor: grabbing; }
+
+    .card-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+        margin-bottom: 8px;
+    }
+    .card-title {
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-primary);
+        line-height: 1.4;
+        flex: 1;
+    }
+    .card-type { flex-shrink: 0; display: inline-flex; align-items: center; }
+
+    .card-key {
+        font-size: 10px;
+        color: var(--text-muted);
+        font-family: monospace;
+        background: #f4f5f7;
+        padding: 1px 5px;
+        border-radius: 3px;
+    }
+
+    .card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 8px;
+    }
+    .card-footer-left  { display: flex; align-items: center; gap: 6px; }
+    .card-footer-right { display: flex; align-items: center; gap: 6px; }
+
+    .card-pts {
+        font-size: 11px;
+        font-weight: 600;
+        background: #f4f5f7;
+        color: var(--text-muted);
+        padding: 1px 7px;
+        border-radius: 10px;
+    }
+
+    .card-due {
+        font-size: 10px;
+        color: var(--text-muted);
+        background: #f4f5f7;
+        padding: 1px 6px;
+        border-radius: 3px;
+    }
+    .card-due.overdue { background: #ffebe6; color: #bf2600; font-weight: 600; }
+
+    .card-avatar {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 8px;
+        font-weight: 700;
+        flex-shrink: 0;
+        cursor: pointer;
+        border: none;
+        padding: 0;
+    }
+    .card-avatar:hover { opacity: 0.8; }
+
+    /* ── Dropdown panel ── */
+    .rel { position: relative; display: inline-flex; }
+    .dd-panel {
+        display: none; position: absolute; top: 100%; right: 0; width: 180px;
+        background: #fff; border-radius: 6px; box-shadow: 0 4px 12px rgba(0,0,0,.15);
+        border: 1px solid #e0e0e0; z-index: 1000; padding: 6px 0; margin-top: 4px;
+    }
+    .dd-item {
+        padding: 6px 12px; font-size: 13px; color: var(--text-primary);
+        display: flex; align-items: center; gap: 10px; cursor: pointer;
+    }
+    .dd-item:hover { background: #f4f5f7; }
+    .avatar-circle {
+        width: 20px; height: 20px; border-radius: 50%; display: flex;
+        align-items: center; justify-content: center; font-size: 8px; font-weight: 700;
+    }
+
+    /* ── Drag states ── */
+    .sortable-ghost {
+        opacity: 0.35;
+        background: #deebff !important;
+        border: 2px dashed #4c9aff !important;
+    }
+    .sortable-chosen {
+        box-shadow: 0 8px 20px rgba(9,30,66,.22) !important;
+        transform: rotate(1.5deg);
+    }
+    .sortable-drag { opacity: 0; }
+
+    /* ── Empty placeholder ── */
+    .col-empty {
+        border: 2px dashed #dfe1e6;
+        border-radius: 6px;
+        padding: 20px 14px;
+        text-align: center;
+        color: var(--text-muted);
+        font-size: 12px;
+        user-select: none;
+        transition: background .2s;
+        min-height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .col-over .col-empty {
+        background: #e6f0ff;
+        border-color: #4c9aff;
+        color: var(--accent);
+    }
+
+    /* ── No active sprint ── */
+    .no-sprint-panel {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 55vh;
+        text-align: center;
+        gap: 12px;
+        color: var(--text-muted);
+    }
+    .no-sprint-icon { font-size: 56px; opacity: .18; }
+
+    /* ── Nav pills ── */
+    .nav-pills .nav-link         { font-size: 13px; color: var(--text-muted); padding: 5px 14px; border-radius: 20px; }
+    .nav-pills .nav-link.active  { background: var(--accent); color: #fff; }
+    .nav-pills .nav-link:hover:not(.active) { background: #ebecf0; color: var(--text-primary); }
+
+    /* ── Scrollbar ── */
+    .board-wrap::-webkit-scrollbar { height: 6px; }
+    .board-wrap::-webkit-scrollbar-track { background: transparent; }
+    .board-wrap::-webkit-scrollbar-thumb { background: #c1c7d0; border-radius: 3px; }
+
+    /* ── Toast ── */
+    .board-toast {
+        position: fixed; bottom: 24px; right: 24px;
+        background: #172b4d; color: #fff;
+        padding: 10px 18px; border-radius: 6px;
+        font-size: 13px; font-weight: 500;
+        box-shadow: 0 4px 12px rgba(0,0,0,.25);
+        z-index: 9999;
+        opacity: 0; transform: translateY(8px);
+        transition: all .25s;
+        pointer-events: none;
+    }
+    .board-toast.show { opacity: 1; transform: translateY(0); }
+    .board-toast.error { background: #bf2600; }
+
+    /* ── Complete modal ── */
+    .modal-overlay { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,.5); z-index:10000; align-items:center; justify-content:center; }
+    .modal-card    { background:#fff; border-radius:10px; width:480px; padding:28px; box-shadow:0 12px 32px rgba(0,0,0,.22); }
+    .modal-title   { font-size:18px; font-weight:700; color:var(--text-primary); }
+    .container { max-width: 100% !important; padding-left: 0 !important; padding-right: 0 !important; }
+</style>
+
+<!-- Top bar -->
+<div class="board-topbar">
+    <div class="board-topbar-left">
+        <!-- Nav tabs -->
+        <ul class="nav nav-pills mb-0">
+            <li class="nav-item">
+                <a class="nav-link"
+                   asp-page="/Products/Backlog"
+                   asp-route-projectId="@Model.ProjectId"
+                   asp-route-id="@Model.ProductId">Backlog</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link active" href="#">Board</a>
+            </li>
+        </ul>
+
+        @if (Model.ActiveSprint != null)
+        {
+            <div style="width:1px;height:28px;background:#e0e0e0;"></div>
+            <span class="badge-active">ACTIVE</span>
+            <div>
+                <div class="sprint-title">@Model.ActiveSprint.Name</div>
+                <div class="sprint-dates">
+                    @Model.ActiveSprint.StartDate.ToString("MMM d") – @Model.ActiveSprint.EndDate.ToString("MMM d, yyyy")
+                </div>
+            </div>
+            <span class="sprint-pts">
+                <i class="bi bi-lightning-charge-fill" style="color:#0052cc;"></i>
+                @Model.ActiveSprint.TotalPoints pts
+            </span>
+        }
+    </div>
+
+    <div class="board-topbar-right">
+        @if (Model.ActiveSprint != null && Model.CanEditBoard)
+        {
+            <button class="btn btn-sm btn-danger px-3" onclick="openCompleteModal()">
+                <i class="bi bi-check-circle me-1"></i>Complete Sprint
+            </button>
+        }
+        <a class="btn btn-sm btn-outline-secondary"
+           asp-page="/Products/Details"
+           asp-route-projectId="@Model.ProjectId"
+           asp-route-id="@Model.ProductId">
+            <i class="bi bi-arrow-left me-1"></i>Back
+        </a>
+    </div>
+</div>
+
+@if (Model.ActiveSprint == null)
+{
+    <div class="no-sprint-panel">
+        <div class="no-sprint-icon"><i class="bi bi-kanban"></i></div>
+        <h5 class="fw-bold mb-1" style="color:#172b4d;">No Active Sprint</h5>
+        <p class="mb-3">Start a sprint from the Backlog to see the board.</p>
+        <a asp-page="/Products/Backlog"
+           asp-route-projectId="@Model.ProjectId"
+           asp-route-id="@Model.ProductId"
+           class="btn btn-primary">Go to Backlog</a>
+    </div>
+}
+else
+{
+    <!-- Board columns -->
+    <div class="board-wrap" id="boardWrap">
+
+        @{
+            var columns = new[]
+            {
+                new { Id = "col-todo",     Status = 1, Label = "TO DO",       CssHeader = "col-header-todo",     CssTitle = "col-title-todo",     Items = Model.TodoItems       },
+                new { Id = "col-inprog",   Status = 2, Label = "IN PROGRESS", CssHeader = "col-header-inprog",   CssTitle = "col-title-inprog",   Items = Model.InProgressItems },
+                new { Id = "col-inreview", Status = 3, Label = "IN REVIEW",   CssHeader = "col-header-inreview", CssTitle = "col-title-inreview", Items = Model.InReviewItems   },
+                new { Id = "col-done",     Status = 4, Label = "DONE",        CssHeader = "col-header-done",     CssTitle = "col-title-done",     Items = Model.DoneItems       }
+            };
+        }
+
+        @foreach (var col in columns)
+        {
+            <div class="board-col">
+                <!-- Column header -->
+                <div class="col-header @col.CssHeader">
+                    <span class="col-title @col.CssTitle">@col.Label</span>
+                    <span class="col-count">@col.Items.Count</span>
+                </div>
+
+                <!-- Cards drop zone -->
+                <div class="col-body kanban-col"
+                     id="@col.Id"
+                     data-status="@col.Status">
+
+                    @if (!col.Items.Any())
+                    {
+                        <div class="col-empty" data-empty="true">Drop items here</div>
+                    }
+                    else
+                    {
+                        @foreach (var item in col.Items)
+                        {
+                            var av   = GetAvatarBg(item.OwnerId?.ToString());
+                            var init = GetInitials(item.OwnerName);
+                            var isOverdue = item.DueDate.HasValue && item.DueDate.Value < DateTime.Today && item.Status != 4;
+
+                            <div class="k-card"
+                                 data-item-id="@item.Id"
+                                 data-item-status="@item.Status"
+                                 title="@item.Title">
+
+                                <div class="card-top">
+                                    <div class="card-title">@item.Title</div>
+                                    <div class="card-type">@Html.Raw(TypeIcon(item.Type))</div>
+                                </div>
+
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <span class="card-key">@item.Key</span>
+                                </div>
+
+                                <div class="card-footer">
+                                    <div class="card-footer-left">
+                                        @if (item.StoryPoints > 0)
+                                        {
+                                            <span class="card-pts">@item.StoryPoints</span>
+                                        }
+                                        @if (item.DueDate.HasValue)
+                                        {
+                                            <span class="card-due @(isOverdue ? "overdue" : "")">
+                                                @item.DueDate.Value.ToString("MMM d")
+                                            </span>
+                                        }
+                                    </div>
+                                    <div class="card-footer-right">
+                                        <div class="rel">
+                                            <button type="button" class="card-avatar" 
+                                                    style="background:@(item.OwnerId.HasValue ? av.bg : "#dfe1e6");color:@(item.OwnerId.HasValue ? av.fg : "#42526e");"
+                                                    title="@(item.OwnerName ?? "Unassigned")"
+                                                    onclick="toggleDd('assignDd_@item.Id', event)">
+                                                @if (!string.IsNullOrWhiteSpace(item.OwnerName))
+                                                {
+                                                    @init
+                                                }
+                                                else
+                                                {
+                                                    <svg width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+                                                }
+                                            </button>
+                                            <div class="dd-panel" id="assignDd_@item.Id">
+                                                <div class="dd-item" onclick="updateOwner('@item.Id', '', event)">
+                                                    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+                                                    Unassigned
+                                                </div>
+                                                @foreach (var user in Model.ActiveUsers)
+                                                {
+                                                    var uName = user.DisplayName ?? $"{user.FirstName} {user.LastName}";
+                                                    var uInit = GetInitials(uName);
+                                                    var uBg = GetAvatarBg(user.Id.ToString());
+                                                    <div class="dd-item" onclick="updateOwner('@item.Id', '@user.Id', event)">
+                                                        <div class="avatar-circle" style="background:@uBg.bg;color:@uBg.fg">@uInit</div>
+                                                        @uName
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<!-- Complete Sprint confirmation modal -->
+@if (Model.ActiveSprint != null)
+{
+    <div class="modal-overlay" id="completeSprintModal">
+        <div class="modal-card">
+            <div class="d-flex align-items-center justify-content-between mb-4">
+                <h5 class="modal-title">
+                    <i class="bi bi-check-circle-fill text-success me-2"></i>Complete Sprint
+                </h5>
+                <button class="btn-close" onclick="closeCompleteModal()"></button>
+            </div>
+            <p style="font-size:14px;color:#172b4d;">
+                Are you sure you want to complete <strong>@Model.ActiveSprint.Name</strong>?
+            </p>
+            <ul style="font-size:13px;color:#6b778c;margin-bottom:20px;">
+                <li>Done items: <strong class="text-success">@Model.DoneItems.Count</strong></li>
+                <li>Remaining items: <strong class="text-warning">@(Model.TodoItems.Count + Model.InProgressItems.Count + Model.InReviewItems.Count)</strong></li>
+            </ul>
+            <div class="d-flex justify-content-end gap-2">
+                <button class="btn btn-sm btn-link text-muted text-decoration-none" onclick="closeCompleteModal()">Cancel</button>
+                <button class="btn btn-sm btn-danger px-4" id="confirmCompleteBtn"
+                        onclick="confirmCompleteSprint('@Model.ActiveSprint.Id')">
+                    <i class="bi bi-check-circle me-1"></i>Complete Sprint
+                </button>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Toast -->
+<div class="board-toast" id="boardToast"></div>
+
+@Html.AntiForgeryToken()
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+<script>
+// ── Token ────────────────────────────────────────────────────────────────────
+function getToken() {
+    return document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+}
+
+// ── Dropdowns ─────────────────────────────────────────────────────────────────
+function toggleDd(id, e) {
+    if(e) e.stopPropagation();
+    const el = document.getElementById(id);
+    const wasOpen = el.style.display === 'block';
+    
+    // Close all others
+    document.querySelectorAll('.dd-panel').forEach(d => d.style.display = 'none');
+    
+    if (!wasOpen) el.style.display = 'block';
+}
+
+// Close dropdowns on outside click
+document.addEventListener('click', () => {
+    document.querySelectorAll('.dd-panel').forEach(d => d.style.display = 'none');
+});
+
+// ── Update Owner ─────────────────────────────────────────────────────────────
+async function updateOwner(itemId, ownerId, e) {
+    if(e) e.stopPropagation();
+    try {
+        const resp = await fetch(`?handler=UpdateOwner&itemId=${itemId}&ownerId=${ownerId}`, {
+            method: 'POST',
+            headers: { 'RequestVerificationToken': getToken() }
+        });
+        const result = await resp.json();
+        if (result.success) {
+            showToast('Assignee updated ✓');
+            setTimeout(() => location.reload(), 600);
+        } else {
+            showToast('Failed to update assignee', true);
+        }
+    } catch (err) {
+        showToast('An error occurred', true);
+    }
+}
+
+// ── Toast ────────────────────────────────────────────────────────────────────
+let _toastTimer = null;
+function showToast(msg, isError = false) {
+    const el = document.getElementById('boardToast');
+    el.textContent = msg;
+    el.className   = 'board-toast show' + (isError ? ' error' : '');
+    clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ── Column count badge update ─────────────────────────────────────────────────
+function refreshCounts() {
+    document.querySelectorAll('.kanban-col').forEach(col => {
+        const cards  = col.querySelectorAll('.k-card');
+        const badge  = col.closest('.board-col').querySelector('.col-count');
+        if (badge) badge.textContent = cards.length;
+
+        // empty placeholder
+        let empty = col.querySelector('[data-empty]');
+        if (cards.length === 0) {
+            if (!empty) {
+                empty = document.createElement('div');
+                empty.className   = 'col-empty';
+                empty.dataset.empty = 'true';
+                empty.textContent  = 'Drop items here';
+                col.appendChild(empty);
+            }
+        } else if (empty) {
+            empty.remove();
+        }
+    });
+}
+
+// ── Drag-and-drop ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+    const cols = document.querySelectorAll('.kanban-col');
+
+    cols.forEach(col => {
+        new Sortable(col, {
+            group:       'kanban',
+            animation:   180,
+            ghostClass:  'sortable-ghost',
+            chosenClass: 'sortable-chosen',
+            dragClass:   'sortable-drag',
+            filter:      '[data-empty]',
+
+            onStart: function () {
+                // highlight all columns while dragging
+                document.querySelectorAll('.board-col').forEach(c => c.classList.add('dragging-active'));
+            },
+            onEnd: async function (evt) {
+                document.querySelectorAll('.board-col').forEach(c => c.classList.remove('dragging-active'));
+
+                const card      = evt.item;
+                const newCol    = evt.to;
+                const oldCol    = evt.from;
+                const newStatus = parseInt(newCol.dataset.status);
+                const oldStatus = parseInt(card.dataset.itemStatus);
+                const itemId    = card.dataset.itemId;
+
+                if (newStatus === oldStatus && evt.from === evt.to) return;
+
+                card.dataset.itemStatus = newStatus;
+                refreshCounts();
+
+                try {
+                    const resp = await fetch(`?handler=UpdateItemStatus&itemId=${itemId}&status=${newStatus}`, {
+                        method: 'POST',
+                        headers: {
+                            'RequestVerificationToken': getToken(),
+                            'Accept': 'application/json'
+                        }
+                    });
+
+                    const result = await resp.json();
+
+                    if (result.success) {
+                        showToast('Status updated ✓');
+                    } else {
+                        throw new Error('Server returned false');
+                    }
+                } catch (err) {
+                    // Revert card back to original column
+                    if (oldCol.children.length > evt.oldIndex) {
+                        oldCol.insertBefore(card, oldCol.children[evt.oldIndex]);
+                    } else {
+                        oldCol.appendChild(card);
+                    }
+                    card.dataset.itemStatus = oldStatus;
+                    refreshCounts();
+                    showToast('Failed to update status', true);
+                }
+            }
+        });
+    });
+
+    refreshCounts();
+});
+
+// ── Complete Sprint modal ─────────────────────────────────────────────────────
+function openCompleteModal()  { document.getElementById('completeSprintModal').style.display = 'flex'; }
+function closeCompleteModal() { document.getElementById('completeSprintModal').style.display = 'none'; }
+
+async function confirmCompleteSprint(sprintId) {
+    const btn = document.getElementById('confirmCompleteBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Completing...';
+
+    try {
+        const resp = await fetch(`?handler=CompleteSprint&sprintId=${sprintId}`, {
+            method: 'POST',
+            headers: { 'RequestVerificationToken': getToken() }
+        });
+        const result = await resp.json();
+
+        if (result.success) {
+            showToast('Sprint completed! Returning to Backlog...');
+            closeCompleteModal();
+            setTimeout(() => window.location.href = result.backlogUrl, 900);
+        } else {
+            showToast('Failed to complete sprint', true);
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Complete Sprint';
+        }
+    } catch (err) {
+        showToast('An error occurred', true);
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Complete Sprint';
+    }
+}
+</script>
