@@ -29,7 +29,11 @@ public class AppDbContext : DbContext
     public DbSet<Sprint> Sprints { get; set; } = null!;
     public DbSet<SprintScopeChange> SprintScopeChanges { get; set; } = null!;
     public DbSet<WorkType> WorkTypes { get; set; } = null!;
-
+    //sub task
+    public DbSet<WorkItem> WorkItems { get; set; } = null!;
+    public DbSet<SubTask> SubTasks { get; set; } = null!;
+    public DbSet<WorkComment> WorkComments { get; set; } = null!;
+    public DbSet<WorkStatus> WorkStatuses { get; set; } = null!;
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -559,6 +563,108 @@ public class AppDbContext : DbContext
                 .WithMany(s => s.BacklogItems)
                 .HasForeignKey(pb => pb.SprintId)
                 .OnDelete(DeleteBehavior.NoAction);
+        });
+        // NEW: WorkStatus configuration
+        modelBuilder.Entity<WorkStatus>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.Color)
+                .HasMaxLength(20);
+        });
+        // NEW: WorkItem configuration
+        modelBuilder.Entity<WorkItem>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Title)
+                .IsRequired()
+                .HasMaxLength(300);
+
+            entity.Property(e => e.Description)
+                .HasMaxLength(3000);
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            // NEW: WorkType relation
+            entity.HasOne(w => w.WorkType)
+                .WithMany()
+                .HasForeignKey(w => w.WorkTypeId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // NEW: WorkStatus relation
+            entity.HasOne(w => w.WorkStatus)
+                .WithMany(ws => ws.WorkItems)
+                .HasForeignKey(w => w.WorkStatusId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // NEW: Assignee relation
+            entity.HasOne(w => w.Assignee)
+                .WithMany()
+                .HasForeignKey(w => w.AssigneeId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // NEW: Project relation
+            entity.HasOne(w => w.Project)
+                .WithMany()
+                .HasForeignKey(w => w.ProjectId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // NEW: Sprint relation
+            entity.HasOne(w => w.Sprint)
+                .WithMany()
+                .HasForeignKey(w => w.SprintId)
+                .OnDelete(DeleteBehavior.NoAction);
+        });
+        // NEW: SubTask configuration
+        modelBuilder.Entity<SubTask>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Title)
+                .IsRequired()
+                .HasMaxLength(300);
+
+            // NEW: Work item relation
+            entity.HasOne(st => st.WorkItem)
+                .WithMany(w => w.SubTasks)
+                .HasForeignKey(st => st.WorkItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // NEW: Assignee relation
+            entity.HasOne(st => st.Assignee)
+                .WithMany()
+                .HasForeignKey(st => st.AssigneeId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+        // NEW: WorkComment configuration
+        modelBuilder.Entity<WorkComment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Comment)
+                .IsRequired()
+                .HasMaxLength(2000);
+
+            // NEW: Work item relation
+            entity.HasOne(c => c.WorkItem)
+                .WithMany(w => w.Comments)
+                .HasForeignKey(c => c.WorkItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // NEW: User relation
+            entity.HasOne(c => c.User)
+                .WithMany()
+                .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

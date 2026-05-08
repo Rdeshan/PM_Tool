@@ -691,6 +691,40 @@ namespace PMTool.Infrastructure.Migrations
                     b.ToTable("SubProjectTeams");
                 });
 
+            modelBuilder.Entity("PMTool.Domain.Entities.SubTask", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid?>("AssigneeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<int>("WorkItemId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssigneeId");
+
+                    b.HasIndex("WorkItemId");
+
+                    b.ToTable("SubTasks");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.Team", b =>
                 {
                     b.Property<Guid>("Id")
@@ -898,6 +932,129 @@ namespace PMTool.Infrastructure.Migrations
                         .HasFilter("[ProjectId] IS NOT NULL");
 
                     b.ToTable("UserRoles");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.WorkComment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Comment")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("WorkItemId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("WorkItemId");
+
+                    b.ToTable("WorkComments");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.WorkItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<Guid?>("AssigneeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(3000)
+                        .HasColumnType("nvarchar(3000)");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Progress")
+                        .HasColumnType("int");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("SprintId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<int>("WorkStatusId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("WorkTypeId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssigneeId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("SprintId");
+
+                    b.HasIndex("WorkStatusId");
+
+                    b.HasIndex("WorkTypeId");
+
+                    b.ToTable("WorkItems");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.WorkStatus", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("WorkStatuses");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.WorkType", b =>
@@ -1171,6 +1328,24 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("Team");
                 });
 
+            modelBuilder.Entity("PMTool.Domain.Entities.SubTask", b =>
+                {
+                    b.HasOne("PMTool.Domain.Entities.User", "Assignee")
+                        .WithMany()
+                        .HasForeignKey("AssigneeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PMTool.Domain.Entities.WorkItem", "WorkItem")
+                        .WithMany("SubTasks")
+                        .HasForeignKey("WorkItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Assignee");
+
+                    b.Navigation("WorkItem");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.TeamMember", b =>
                 {
                     b.HasOne("PMTool.Domain.Entities.Team", "Team")
@@ -1211,6 +1386,66 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("Role");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.WorkComment", b =>
+                {
+                    b.HasOne("PMTool.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PMTool.Domain.Entities.WorkItem", "WorkItem")
+                        .WithMany("Comments")
+                        .HasForeignKey("WorkItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+
+                    b.Navigation("WorkItem");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.WorkItem", b =>
+                {
+                    b.HasOne("PMTool.Domain.Entities.User", "Assignee")
+                        .WithMany()
+                        .HasForeignKey("AssigneeId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PMTool.Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PMTool.Domain.Entities.Sprint", "Sprint")
+                        .WithMany()
+                        .HasForeignKey("SprintId")
+                        .OnDelete(DeleteBehavior.NoAction);
+
+                    b.HasOne("PMTool.Domain.Entities.WorkStatus", "WorkStatus")
+                        .WithMany("WorkItems")
+                        .HasForeignKey("WorkStatusId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PMTool.Domain.Entities.WorkType", "WorkType")
+                        .WithMany()
+                        .HasForeignKey("WorkTypeId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Assignee");
+
+                    b.Navigation("Project");
+
+                    b.Navigation("Sprint");
+
+                    b.Navigation("WorkStatus");
+
+                    b.Navigation("WorkType");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.Product", b =>
@@ -1278,6 +1513,18 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("TeamMembers");
 
                     b.Navigation("UserRoles");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.WorkItem", b =>
+                {
+                    b.Navigation("Comments");
+
+                    b.Navigation("SubTasks");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.WorkStatus", b =>
+                {
+                    b.Navigation("WorkItems");
                 });
 #pragma warning restore 612, 618
         }

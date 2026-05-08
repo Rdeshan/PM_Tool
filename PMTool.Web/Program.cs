@@ -21,6 +21,8 @@ using PMTool.Infrastructure.Services;
 using PMTool.Infrastructure.Services.Interfaces;
 using PMTool.Infrastructure.Settings;
 using PMTool.Application.Interfaces;
+using PMTool.Application.Services.Subtask;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -93,6 +95,9 @@ builder.Services.AddScoped<IUserAdminService, UserAdminService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ISprintService, SprintService>();
+builder.Services.AddScoped<IWorkItemService, WorkItemService>();
+builder.Services.AddScoped<ISubTaskService, SubTaskService>();
+builder.Services.AddScoped<ICommentService, CommentService>();
 
 var app = builder.Build();
 
