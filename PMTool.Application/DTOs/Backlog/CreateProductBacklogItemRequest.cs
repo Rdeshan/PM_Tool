@@ -12,4 +12,5 @@ public class CreateProductBacklogItemRequest
     public DateTime? StartDate { get; set; }
     public DateTime? DueDate { get; set; }
     public int StoryPoints { get; set; } = 0;
+    public Guid? SprintId { get; set; }
 }

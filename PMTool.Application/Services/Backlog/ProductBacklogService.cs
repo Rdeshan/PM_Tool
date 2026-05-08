@@ -43,12 +43,13 @@ public class ProductBacklogService : IProductBacklogService
             Title = request.Title.Trim(),
             Description = request.Description?.Trim() ?? string.Empty,
             Type = request.Type,
-            Status = request.Status,
+            Status = request.Status == 0 ? (int)BacklogItemStatus.Draft : request.Status,
             Priority = nextPriority,
             OwnerId = request.OwnerId,
             StartDate = request.StartDate,
             DueDate = request.DueDate,
             StoryPoints = request.StoryPoints,
+            SprintId = request.SprintId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };

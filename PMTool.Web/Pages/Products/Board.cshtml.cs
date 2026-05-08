@@ -76,7 +76,7 @@ public class BoardModel : PageModel
 
         if (ActiveSprint?.BacklogItems != null)
         {
-            TodoItems       = ActiveSprint.BacklogItems.Where(x => x.Status == 1).OrderBy(x => x.Priority).ToList();
+            TodoItems       = ActiveSprint.BacklogItems.Where(x => x.Status == 1 || x.Status == 0).OrderBy(x => x.Priority).ToList();
             InProgressItems = ActiveSprint.BacklogItems.Where(x => x.Status == 2).OrderBy(x => x.Priority).ToList();
             InReviewItems   = ActiveSprint.BacklogItems.Where(x => x.Status == 3).OrderBy(x => x.Priority).ToList();
             DoneItems       = ActiveSprint.BacklogItems.Where(x => x.Status == 4).OrderBy(x => x.Priority).ToList();
@@ -88,7 +88,7 @@ public class BoardModel : PageModel
         return Page();
     }
 
-    public async Task<IActionResult> OnPostUpdateOwnerAsync(Guid itemId, Guid? ownerId)
+    public async Task<IActionResult> OnPostUpdateFieldAsync(Guid itemId, string field, string value)
     {
         SetPermissions();
         if (!CanEditBoard) return Forbid();
@@ -96,30 +96,24 @@ public class BoardModel : PageModel
         var request = new UpdateProductBacklogFieldRequest
         {
             ItemId = itemId,
-            Field = "owner",
-            Value = ownerId?.ToString() ?? ""
+            Field = field,
+            Value = value
         };
 
         var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
         return new JsonResult(new { success = result != null });
     }
 
+    public async Task<IActionResult> OnPostUpdateOwnerAsync(Guid itemId, Guid? ownerId)
+    {
+        return await OnPostUpdateFieldAsync(itemId, "owner", ownerId?.ToString() ?? "");
+    }
+
     // ── Update item status (drag-drop from board) ─────────────────────────────
 
     public async Task<IActionResult> OnPostUpdateItemStatusAsync(Guid itemId, int status)
     {
-        SetPermissions();
-        if (!CanEditBoard) return Forbid();
-
-        var request = new UpdateProductBacklogFieldRequest
-        {
-            ItemId = itemId,
-            Field  = "status",
-            Value  = status.ToString()
-        };
-
-        var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
-        return new JsonResult(new { success = result != null });
+        return await OnPostUpdateFieldAsync(itemId, "status", status.ToString());
     }
 
     // ── Complete sprint from Board ────────────────────────────────────────────
@@ -139,5 +133,37 @@ public class BoardModel : PageModel
         }
 
         return new JsonResult(new { success = false });
+    }
+
+    public async Task<IActionResult> OnPostDeleteItemAsync(Guid itemId)
+    {
+        SetPermissions();
+        if (!CanEditBoard) return Forbid();
+
+        var success = await _productBacklogService.DeleteItemAsync(itemId);
+        return new JsonResult(new { success });
+    }
+
+    public async Task<IActionResult> OnPostCreateItemAsync(int status, string title)
+    {
+        SetPermissions();
+        if (!CanEditBoard) return Forbid();
+
+        if (string.IsNullOrWhiteSpace(title)) return new JsonResult(new { success = false, message = "Title is required" });
+
+        var activeSprint = await _sprintService.GetActiveSprintAsync(ProductId);
+        if (activeSprint == null) return new JsonResult(new { success = false, message = "No active sprint found" });
+
+        var request = new CreateProductBacklogItemRequest
+        {
+            ProductId = ProductId,
+            Title = title.Trim(),
+            Status = status,
+            Type = 2, // Default to UserStory or similar
+            SprintId = activeSprint.Id
+        };
+
+        var result = await _productBacklogService.CreateBacklogItemAsync(request);
+        return new JsonResult(new { success = result != null });
     }
 }

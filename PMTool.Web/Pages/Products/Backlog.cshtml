@@ -791,6 +791,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     const result = await resp.json();
                     if(result.success) {
                         showToast('Moved successfully');
+                        signalChange();
                         updatePoints(evt.from);
                         updatePoints(evt.to);
                         updateBacklogStats();
@@ -1269,6 +1270,7 @@ document.getElementById('createBacklogForm').addEventListener('submit', async fu
 
         if (result.success) {
             showToast('Item created!', 'success');
+            signalChange();
             document.getElementById('newItemTitle').value = '';
             document.getElementById('hiddenOwner').value = '';
             document.getElementById('hiddenDueDate').value = '';
@@ -1299,6 +1301,10 @@ function showToast(message, type = 'success') {
 // ─── Token helper ─────────────────────────────────────────────────────────────
 function getToken() {
     return document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+}
+
+function signalChange() {
+    localStorage.setItem('backlog_updated', Date.now());
 }
 
 // ─── Select all checkbox ──────────────────────────────────────────────────────
