@@ -75,6 +75,7 @@ builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ISubProjectRepository, SubProjectRepository>();
 builder.Services.AddScoped<IProjectBacklogRepository, ProjectBacklogRepository>();
 builder.Services.AddScoped<IProductBacklogRepository, ProductBacklogRepository>();
+builder.Services.AddScoped<IBacklogSubtaskRepository, BacklogSubtaskRepository>();
 builder.Services.AddScoped<IWorkTypeRepository, WorkTypeRepository>();
 builder.Services.AddScoped<IUserAdminRepository, UserAdminRepository>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();

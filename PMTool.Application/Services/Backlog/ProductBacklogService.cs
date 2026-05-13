@@ -9,11 +9,16 @@ namespace PMTool.Application.Services.Backlog;
 public class ProductBacklogService : IProductBacklogService
 {
     private readonly IProductBacklogRepository _backlogRepository;
+    private readonly IBacklogSubtaskRepository _subtaskRepository;
     private readonly IUserRepository _userRepository;
 
-    public ProductBacklogService(IProductBacklogRepository backlogRepository, IUserRepository userRepository)
+    public ProductBacklogService(
+        IProductBacklogRepository backlogRepository,
+        IBacklogSubtaskRepository subtaskRepository,
+        IUserRepository userRepository)
     {
         _backlogRepository = backlogRepository;
+        _subtaskRepository = subtaskRepository;
         _userRepository = userRepository;
     }
 
@@ -153,6 +158,60 @@ public class ProductBacklogService : IProductBacklogService
         return await _backlogRepository.UpdateRangeAsync(backlogItems);
     }
 
+    public async Task<BacklogSubtaskDto?> CreateSubtaskAsync(Guid parentId, CreateBacklogSubtaskDto request)
+    {
+        if (parentId == Guid.Empty || string.IsNullOrWhiteSpace(request.Title))
+        {
+            return null;
+        }
+
+        var parent = await _backlogRepository.GetByIdAsync(parentId);
+        if (parent == null)
+        {
+            return null;
+        }
+
+        var subtask = new BacklogSubtask
+        {
+            Id = Guid.NewGuid(),
+            ParentId = parentId,
+            ProductBacklogId = parentId,
+            Title = request.Title.Trim(),
+            Priority = request.Priority == 0 ? 3 : request.Priority,
+            AssigneeId = request.AssigneeId,
+            Status = request.Status == 0 ? 1 : request.Status,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        var created = await _subtaskRepository.CreateAsync(subtask);
+        if (!created)
+        {
+            return null;
+        }
+
+        if (subtask.AssigneeId.HasValue)
+        {
+            subtask.Assignee = await _userRepository.GetByIdAsync(subtask.AssigneeId.Value);
+        }
+
+        return MapSubtaskToDto(subtask);
+    }
+
+    public async Task<bool> UpdateSubtaskStatusAsync(Guid subtaskId, int status)
+    {
+        var subtask = await _subtaskRepository.GetByIdAsync(subtaskId);
+        if (subtask == null)
+        {
+            return false;
+        }
+
+        subtask.Status = status;
+        subtask.UpdatedAt = DateTime.UtcNow;
+
+        return await _subtaskRepository.UpdateAsync(subtask);
+    }
+
     public Task<bool> DeleteItemAsync(Guid itemId)
     {
         return _backlogRepository.DeleteAsync(itemId);
@@ -181,8 +240,43 @@ public class ProductBacklogService : IProductBacklogService
             SubProjectName = item.SubProject?.Name,
             SubProjectColor = item.SubProject?.ColorCode,
             SprintId = item.SprintId,
+            Subtasks = item.Subtasks
+                .OrderBy(s => s.CreatedAt)
+                .Select(MapSubtaskToDto)
+                .ToList(),
             CreatedAt = item.CreatedAt,
             UpdatedAt = item.UpdatedAt
+        };
+    }
+
+    private static BacklogSubtaskDto MapSubtaskToDto(BacklogSubtask subtask)
+    {
+        return new BacklogSubtaskDto
+        {
+            Id = subtask.Id,
+            ParentId = subtask.ParentId,
+            Title = subtask.Title,
+            Priority = subtask.Priority,
+            PriorityName = subtask.Priority switch
+            {
+                1 => "Highest",
+                2 => "High",
+                3 => "Medium",
+                4 => "Low",
+                _ => "Medium"
+            },
+            AssigneeId = subtask.AssigneeId,
+            AssigneeName = subtask.Assignee == null ? null : $"{subtask.Assignee.FirstName} {subtask.Assignee.LastName}".Trim(),
+            Status = subtask.Status,
+            StatusName = subtask.Status switch
+            {
+                1 => "To Do",
+                2 => "In Progress",
+                3 => "Done",
+                _ => "To Do"
+            },
+            CreatedAt = subtask.CreatedAt,
+            UpdatedAt = subtask.UpdatedAt
         };
     }
 

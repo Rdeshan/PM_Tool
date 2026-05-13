@@ -706,6 +706,38 @@ public class BacklogModel : PageModel
         return new JsonResult(new { success = result != null });
     }
 
+    public async Task<IActionResult> OnPostUpdateDescriptionAsync(Guid itemId, string description)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var request = new UpdateProductBacklogFieldRequest
+        {
+            ItemId = itemId,
+            Field = "description",
+            Value = description ?? string.Empty
+        };
+
+        var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
+        return new JsonResult(new { success = result != null });
+    }
+
+    public async Task<IActionResult> OnPostUpdateStartDateAsync(Guid itemId, string startDate)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var request = new UpdateProductBacklogFieldRequest
+        {
+            ItemId = itemId,
+            Field = "startdate",
+            Value = startDate ?? string.Empty
+        };
+
+        var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
+        return new JsonResult(new { success = result != null });
+    }
+
     // ── UPDATE SUBPROJECT (AJAX) ──────────────────────────────────────────────
     public async Task<IActionResult> OnPostUpdateSubProjectAsync(Guid itemId, string subProjectId)
     {
@@ -721,6 +753,39 @@ public class BacklogModel : PageModel
 
         var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
         return new JsonResult(new { success = result != null });
+    }
+
+    public async Task<IActionResult> OnPostSubtaskAsync([FromBody] CreateBacklogSubtaskDto request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        if (request.ParentId == Guid.Empty || string.IsNullOrWhiteSpace(request.Title))
+        {
+            return new JsonResult(new { success = false, message = "Subtask title is required." }) { StatusCode = 400 };
+        }
+
+        var subtask = await _productBacklogService.CreateSubtaskAsync(request.ParentId, request);
+        if (subtask == null)
+        {
+            return new JsonResult(new { success = false, message = "Failed to create subtask." }) { StatusCode = 400 };
+        }
+
+        return new JsonResult(new { success = true, subtask, message = "Subtask added." });
+    }
+
+    public async Task<IActionResult> OnPostUpdateSubtaskStatusAsync([FromBody] UpdateSubtaskStatusRequest request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        if (request.SubtaskId == Guid.Empty)
+        {
+            return new JsonResult(new { success = false, message = "Invalid subtask." }) { StatusCode = 400 };
+        }
+
+        var success = await _productBacklogService.UpdateSubtaskStatusAsync(request.SubtaskId, request.Status);
+        return new JsonResult(new { success });
     }
 
     // ── DELETE ────────────────────────────────────────────────────────────────
@@ -827,5 +892,11 @@ public class BacklogModel : PageModel
         }));
 
         return workTypes;
+    }
+
+    public class UpdateSubtaskStatusRequest
+    {
+        public Guid SubtaskId { get; set; }
+        public int Status { get; set; }
     }
 }

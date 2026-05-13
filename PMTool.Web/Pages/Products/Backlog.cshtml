@@ -107,6 +107,19 @@
     tr:hover .edit-title-btn { visibility: visible; }
     .edit-title-btn:hover { background: #ebecf0; color: #172b4d; }
     .title-input { width: 100%; font-size: 13px; color: #172b4d; border: 2px solid #0052cc; border-radius: 3px; padding: 2px 6px; outline: none; background: #fff; }
+    .item-title-stack { display: flex; flex-direction: column; gap: 5px; padding: 6px 0; min-width: 0; }
+    .subtask-add-btn { visibility: hidden; border: 1px solid #dfe1e6; background: #fff; color: #42526e; width: 20px; height: 20px; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; padding: 0; font-size: 10px; }
+    tr:hover .subtask-add-btn { visibility: visible; }
+    .subtask-add-btn:hover { background: #0052cc; border-color: #0052cc; color: #fff; }
+    .subtask-count { display: inline-flex; align-items: center; gap: 3px; color: #42526e; background: #f4f5f7; border-radius: 10px; padding: 1px 6px; font-size: 10px; font-weight: 600; }
+    .subtask-create { display: flex; align-items: center; gap: 6px; max-width: 360px; color: #6b778c; }
+    .subtask-create input { flex: 1; min-width: 120px; border: 1px solid #dfe1e6; border-radius: 3px; padding: 3px 6px; font-size: 12px; outline: none; }
+    .subtask-create input:focus { border-color: #0052cc; }
+    .subtask-create button { border: none; background: #0052cc; color: #fff; border-radius: 3px; padding: 3px 8px; font-size: 11px; font-weight: 600; }
+    .product-subtasks { display: flex; flex-direction: column; gap: 3px; margin-left: 28px; }
+    .product-subtask { display: flex; align-items: center; gap: 6px; width: fit-content; max-width: 100%; margin: 0; color: #42526e; font-size: 11px; line-height: 1.3; }
+    .product-subtask input { width: 12px; height: 12px; margin: 0; }
+    .product-subtask.done span { color: #6b778c; text-decoration: line-through; }
     
     /* Make content full width */
     .container { max-width: 100% !important; padding-left: 30px !important; padding-right: 30px !important; }
@@ -134,6 +147,33 @@
     .form-group label { display: block; font-size: 12px; font-weight: 600; color: #6b778c; margin-bottom: 4px; }
     .form-control { width: 100%; padding: 8px; border: 1.5px solid #dfe1e6; border-radius: 3px; font-size: 14px; }
     .form-control:focus { border-color: #4c9aff; outline: none; }
+    .sidebar-overlay { position: fixed; inset: 0; z-index: 99999; background: rgba(9, 30, 66, 0.55); display: flex; justify-content: flex-end; }
+    .sidebar-overlay.d-none { display: none !important; }
+    .sidebar-panel { width: 485px; max-width: 100%; height: 100%; background: #fff; display: flex; flex-direction: column; box-shadow: -4px 0 16px rgba(9, 30, 66, 0.25); animation: slideSidebar .18s ease-out; }
+    .sidebar-header { padding: 14px 16px 10px; border-bottom: 1px solid #dfe1e6; }
+    .sidebar-title { font-size: 15px; font-weight: 700; color: #172b4d; margin: 0; }
+    .sidebar-key { display: block; margin-top: 2px; font-size: 10px; color: #6b778c; }
+    .sidebar-status { width: 100%; height: 28px; border: 1px solid #dfe1e6; border-radius: 3px; color: #172b4d; font-size: 12px; padding: 3px 8px; background: #fff; }
+    .sidebar-body { flex: 1; overflow-y: auto; padding: 14px 16px; }
+    .sidebar-footer { border-top: 1px solid #dfe1e6; padding: 8px 12px; display: flex; gap: 8px; background: #fafbfc; }
+    .sidebar-footer input { flex: 1; border: 1px solid #dfe1e6; border-radius: 2px; padding: 5px 7px; font-size: 11px; outline: none; }
+    .sidebar-footer input:focus { border-color: #4c9aff; }
+    .sidebar-footer button { border: none; border-radius: 2px; background: #0052cc; color: #fff; padding: 5px 12px; font-size: 10px; font-weight: 600; }
+    .sidebar-section-title { font-size: 11px; font-weight: 700; color: #172b4d; margin: 0; }
+    .sidebar-field-label { font-size: 10px; font-weight: 600; color: #42526e; margin-bottom: 4px; }
+    .sidebar-muted-link { border: none; background: transparent; color: #0052cc; padding: 0; font-size: 10px; }
+    .sidebar-details-toggle { border: none; background: transparent; color: #6b778c; padding: 0; }
+    .sidebar-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; }
+    .sidebar-detail-value { min-height: 28px; font-size: 11px; color: #172b4d; display: flex; align-items: center; }
+    .sidebar-detail-input { width: 100%; height: 28px; border: 1px solid #dfe1e6; border-radius: 3px; padding: 3px 7px; font-size: 11px; color: #172b4d; }
+    .sidebar-tabs { display: flex; gap: 22px; border-bottom: 1px solid #dfe1e6; margin-top: 16px; }
+    .sidebar-tab { border: none; background: transparent; color: #0052cc; font-size: 11px; padding: 8px 0; border-bottom: 2px solid transparent; }
+    .sidebar-tab.active { color: #172b4d; border-bottom-color: #0052cc; font-weight: 600; }
+    .sidebar-tab-panel { padding: 12px 0; font-size: 11px; color: #6b778c; }
+    .sidebar-subtask-list { display: flex; flex-direction: column; gap: 7px; }
+    .sidebar-subtask-list .product-subtask { width: 100%; background: #fafbfc; border: 1px solid #ebecf0; border-radius: 4px; padding: 6px 7px; font-size: 12px; }
+    .sidebar-subtask-list .text-muted { border: 1px dashed #dfe1e6; border-radius: 4px; padding: 10px; }
+    @@keyframes slideSidebar { from { transform: translateX(100%); } to { transform: translateX(0); } }
 </style>
 
 <div class="mt-2">
@@ -456,6 +496,127 @@
                     </tbody>
                 </table>
             }
+        </div>
+    </div>
+</div>
+
+<!-- Product Backlog Subtask Sidebar -->
+<div id="productSubtaskSidebar" class="sidebar-overlay d-none">
+    <div class="sidebar-panel">
+        <div class="sidebar-header">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 id="sidebarTaskTitle" class="sidebar-title">Subtask</h5>
+                    <span id="sidebarTaskKey" class="sidebar-key">PB-0000</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeProductSidebar()">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <select id="sidebarStatus" class="sidebar-status mt-2" onchange="updateSidebarStatus(this.value)">
+                <option value="1">To do</option>
+                <option value="2">In progress</option>
+                <option value="3">In review</option>
+                <option value="4">Done</option>
+            </select>
+        </div>
+
+        <div class="sidebar-body">
+            <div class="mb-4">
+                <label class="form-label fw-bold small">Description</label>
+                <textarea id="sidebarDescription"
+                          class="form-control"
+                          rows="4"
+                          placeholder="Add a description..."
+                          onblur="saveSidebarDescription()"></textarea>
+            </div>
+
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="sidebar-section-title">Details</h6>
+                    <button type="button" class="sidebar-details-toggle" onclick="toggleSidebarDetails()" title="Collapse details">
+                        <i class="bi bi-chevron-down" id="sidebarDetailsChevron"></i>
+                    </button>
+                </div>
+                <div class="sidebar-details-grid" id="sidebarDetailsGrid">
+                    <div>
+                        <div class="sidebar-field-label">Assignee</div>
+                        <div class="sidebar-detail-value">
+                            <span id="sidebarAssignee">Unassigned</span>
+                            <button type="button" class="sidebar-muted-link ms-2">Assign to me</button>
+                        </div>
+                    </div>
+                    <div>
+                        <div class="sidebar-field-label">Priority</div>
+                        <select id="sidebarPriority" class="sidebar-detail-input">
+                            <option>Highest</option>
+                            <option>High</option>
+                            <option>Medium</option>
+                            <option>Low</option>
+                        </select>
+                    </div>
+                    <div>
+                        <div class="sidebar-field-label">Parent</div>
+                        <div id="sidebarParentTitle" class="sidebar-detail-value"></div>
+                    </div>
+                    <div>
+                        <div class="sidebar-field-label">Due date</div>
+                        <input id="sidebarDueDate" type="date" class="sidebar-detail-input" onchange="saveSidebarDueDate()" />
+                    </div>
+                    <div>
+                        <div class="sidebar-field-label">Labels</div>
+                        <div class="sidebar-detail-value">-</div>
+                    </div>
+                    <div>
+                        <div class="sidebar-field-label">Start date</div>
+                        <input id="sidebarStartDate" type="date" class="sidebar-detail-input" onchange="saveSidebarStartDate()" />
+                    </div>
+                    <div>
+                        <div class="sidebar-field-label">Sprint</div>
+                        <div id="sidebarSprint" class="sidebar-detail-value">Backlog</div>
+                    </div>
+                    <div>
+                        <div class="sidebar-field-label">Story point estimate</div>
+                        <input id="sidebarStoryPoints" type="number" min="0" class="sidebar-detail-input" onchange="saveSidebarStoryPoints()" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0">Subtasks</h6>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="showSubtaskInput()">
+                        <i class="bi bi-plus"></i>
+                    </button>
+                </div>
+
+                <div id="sidebarSubtaskList" class="sidebar-subtask-list"></div>
+
+                <div id="newSubtaskWrap" class="d-none mt-2">
+                    <div class="input-group">
+                        <input type="text"
+                               id="newSubtaskInput"
+                               class="form-control"
+                               placeholder="Subtask title..."
+                               onkeydown="if(event.key==='Enter')createSidebarSubtask(event);if(event.key==='Escape')hideSubtaskInput();" />
+                        <button type="button" class="btn btn-primary" onclick="createSidebarSubtask(event)">Add</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="hideSubtaskInput()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-tabs">
+                <button type="button" class="sidebar-tab active" onclick="setSidebarTab('all', event)">All</button>
+                <button type="button" class="sidebar-tab" onclick="setSidebarTab('comments', event)">Comments</button>
+                <button type="button" class="sidebar-tab" onclick="setSidebarTab('history', event)">History</button>
+                <button type="button" class="sidebar-tab" onclick="setSidebarTab('worklog', event)">Work log</button>
+            </div>
+            <div id="sidebarActivity" class="sidebar-tab-panel">No activity yet.</div>
+        </div>
+
+        <div class="sidebar-footer">
+            <input id="sidebarCommentInput" type="text" placeholder="Add a comment..." onkeydown="if(event.key==='Enter')addSidebarComment();" />
+            <button type="button" onclick="addSidebarComment()">Comment</button>
         </div>
     </div>
 </div>
@@ -1065,14 +1226,405 @@ function renderTitleCell(itemId, title) {
     const badge = cell.querySelector('.badge-id');
     const shortIdHtml = badge ? badge.outerHTML : ''; 
 
+    const shortIdText = cell.querySelector('.badge-id')?.textContent || '';
+    const titleArg = JSON.stringify(title);
+
     cell.innerHTML = `${shortIdHtml}
-        <a href="#" class="title-link">${title}</a>
+        <a href="#" class="title-link" onclick="openProductSidebar('${itemId}', ${titleArg}, '${shortIdText}', false, event)">${title}</a>
+        <button type="button" class="subtask-add-btn" onclick="openProductSidebar('${itemId}', ${titleArg}, '${shortIdText}', true, event)" title="Add subtask">
+            <i class="bi bi-plus-lg"></i>
+        </button>
         <span class="edit-title-btn" onclick="editTitle('${itemId}', '${title.replace(/'/g, "\\'")}')" title="Edit title">
             <i class="bi bi-pencil" style="font-size:10px;"></i>
         </span>`;
 }
 
 // ─── Row: Points inline edit ──────────────────────────────────────────────────
+function toggleSubtaskForm(itemId, e, forceClose) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    const form = document.getElementById('subtaskForm_' + itemId);
+    const input = document.getElementById('subtaskInput_' + itemId);
+    if (!form) return;
+
+    if (forceClose || !form.classList.contains('d-none')) {
+        form.classList.add('d-none');
+        if (input) input.value = '';
+        return;
+    }
+
+    form.classList.remove('d-none');
+    if (input) input.focus();
+}
+
+async function createSubtask(itemId, e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    const input = document.getElementById('subtaskInput_' + itemId);
+    const title = input?.value.trim();
+    if (!title) return;
+
+    const resp = await fetch('?handler=Subtask', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getToken()
+        },
+        body: JSON.stringify({
+            parentId: itemId,
+            title,
+            priority: 3,
+            status: 1
+        })
+    });
+
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        showToast(result.message || 'Failed to add subtask', 'danger');
+        return;
+    }
+
+    const list = document.getElementById('subtaskList_' + itemId);
+    if (list) {
+        list.classList.remove('d-none');
+        const label = document.createElement('label');
+        label.className = 'product-subtask';
+        label.innerHTML = `<input type="checkbox" onchange="updateProductSubtaskStatus('${result.subtask.id}', this.checked ? 3 : 1, event)" /><span></span>`;
+        label.querySelector('input').dataset.subtaskId = result.subtask.id;
+        label.querySelector('span').textContent = result.subtask.title;
+        list.appendChild(label);
+    }
+
+    updateSubtaskCount(itemId);
+    if (currentBacklogId === itemId) renderSidebarSubtasks(itemId);
+    toggleSubtaskForm(itemId, e, true);
+    showToast('Subtask added', 'success');
+}
+
+async function updateProductSubtaskStatus(subtaskId, status, e) {
+    if (e) e.stopPropagation();
+
+    const checkbox = e?.target;
+    const label = checkbox?.closest('.product-subtask');
+    if (label) label.classList.toggle('done', status === 3);
+
+    const resp = await fetch('?handler=UpdateSubtaskStatus', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getToken()
+        },
+        body: JSON.stringify({ subtaskId, status })
+    });
+
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        if (checkbox) checkbox.checked = status !== 3;
+        if (label) label.classList.toggle('done', status !== 3);
+        showToast('Failed to update subtask', 'danger');
+        return false;
+    }
+
+    document.querySelectorAll(`input[data-subtask-id="${subtaskId}"]`).forEach(cb => {
+        cb.checked = status === 3;
+        cb.closest('.product-subtask, .sidebar-subtask')?.classList.toggle('done', status === 3);
+    });
+    return true;
+}
+
+let currentBacklogId = null;
+let currentBacklogTitle = '';
+let currentBacklogKey = '';
+let currentSidebarTab = 'all';
+const sidebarComments = {};
+
+function openProductSidebar(id, title, key, focusNewSubtask, e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    currentBacklogId = id;
+    currentBacklogTitle = title || '';
+    currentBacklogKey = key || '';
+
+    const row = document.getElementById('row-' + id);
+    const ds = row?.dataset || {};
+    const sprintCard = row?.closest('.sprint-card');
+    const sprintName = sprintCard?.querySelector('.sprint-header h6')?.textContent?.trim() || 'Backlog';
+
+    document.getElementById('sidebarTaskTitle').textContent = currentBacklogTitle || 'Subtask';
+    document.getElementById('sidebarTaskKey').textContent = currentBacklogKey ? `SCRUM-${currentBacklogKey}` : 'SCRUM';
+    document.getElementById('sidebarStatus').value = ds.itemStatus || '1';
+    document.getElementById('sidebarDescription').value = ds.itemDescription || '';
+    document.getElementById('sidebarParentTitle').textContent = currentBacklogTitle;
+    document.getElementById('sidebarAssignee').textContent = ds.itemAssignee || 'Unassigned';
+    document.getElementById('sidebarDueDate').value = ds.itemDueDate || '';
+    document.getElementById('sidebarStartDate').value = ds.itemStartDate || '';
+    document.getElementById('sidebarStoryPoints').value = ds.itemStoryPoints || '';
+    document.getElementById('sidebarSprint').textContent = sprintName;
+    renderSidebarSubtasks(id);
+    renderSidebarActivity();
+
+    document.getElementById('productSubtaskSidebar').classList.remove('d-none');
+
+    if (focusNewSubtask) {
+        showSubtaskInput();
+    } else {
+        hideSubtaskInput();
+    }
+}
+
+function closeProductSidebar() {
+    document.getElementById('productSubtaskSidebar').classList.add('d-none');
+    hideSubtaskInput();
+}
+
+function toggleSidebarDetails() {
+    const grid = document.getElementById('sidebarDetailsGrid');
+    const icon = document.getElementById('sidebarDetailsChevron');
+    grid.classList.toggle('d-none');
+    icon.classList.toggle('bi-chevron-down');
+    icon.classList.toggle('bi-chevron-right');
+}
+
+function setSidebarTab(tab, e) {
+    if (e) e.preventDefault();
+    currentSidebarTab = tab;
+    document.querySelectorAll('.sidebar-tab').forEach(btn => btn.classList.remove('active'));
+    e?.target?.classList.add('active');
+    renderSidebarActivity();
+}
+
+function renderSidebarActivity() {
+    const panel = document.getElementById('sidebarActivity');
+    const comments = currentBacklogId ? (sidebarComments[currentBacklogId] || []) : [];
+
+    if (currentSidebarTab === 'comments') {
+        panel.innerHTML = comments.length
+            ? comments.map(c => `<div class="mb-2"><strong>Admin User</strong><div>${escapeHtml(c)}</div></div>`).join('')
+            : 'No comments yet.';
+        return;
+    }
+
+    if (currentSidebarTab === 'history') {
+        panel.textContent = 'No history yet.';
+        return;
+    }
+
+    if (currentSidebarTab === 'worklog') {
+        panel.textContent = 'No work logged yet.';
+        return;
+    }
+
+    panel.innerHTML = comments.length
+        ? comments.map(c => `<div class="mb-2"><strong>Admin User</strong><div>${escapeHtml(c)}</div></div>`).join('')
+        : 'No activity yet.';
+}
+
+function addSidebarComment() {
+    if (!currentBacklogId) return;
+
+    const input = document.getElementById('sidebarCommentInput');
+    const comment = input.value.trim();
+    if (!comment) return;
+
+    sidebarComments[currentBacklogId] = sidebarComments[currentBacklogId] || [];
+    sidebarComments[currentBacklogId].push(comment);
+    input.value = '';
+    currentSidebarTab = 'comments';
+    document.querySelectorAll('.sidebar-tab').forEach(btn => btn.classList.toggle('active', btn.textContent.trim() === 'Comments'));
+    renderSidebarActivity();
+}
+
+function escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = value;
+    return div.innerHTML;
+}
+
+function updateSidebarStatus(status) {
+    if (!currentBacklogId) return;
+    updateStatus(currentBacklogId, Number(status));
+    const row = document.getElementById('row-' + currentBacklogId);
+    if (row) {
+        row.dataset.itemStatus = status;
+        row.dataset.itemStatusLabel = STATUS_MAP[status]?.label || 'To do';
+    }
+}
+
+function saveSidebarDescription() {
+    if (!currentBacklogId) return;
+    const description = document.getElementById('sidebarDescription').value;
+    const row = document.getElementById('row-' + currentBacklogId);
+    if (row) row.dataset.itemDescription = description;
+
+    fetch('?handler=UpdateDescription', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': getToken()
+        },
+        body: `itemId=${currentBacklogId}&description=${encodeURIComponent(description)}`
+    }).catch(() => {});
+}
+
+function saveSidebarDueDate() {
+    if (!currentBacklogId) return;
+    const dueDate = document.getElementById('sidebarDueDate').value;
+    const row = document.getElementById('row-' + currentBacklogId);
+    if (row) row.dataset.itemDueDate = dueDate;
+    if (dueDate) pickItemDateFromIso(currentBacklogId, dueDate);
+}
+
+function saveSidebarStartDate() {
+    if (!currentBacklogId) return;
+    const startDate = document.getElementById('sidebarStartDate').value;
+    const row = document.getElementById('row-' + currentBacklogId);
+    if (row) row.dataset.itemStartDate = startDate;
+
+    fetch('?handler=UpdateStartDate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': getToken()
+        },
+        body: `itemId=${currentBacklogId}&startDate=${startDate}`
+    }).catch(() => {});
+}
+
+function saveSidebarStoryPoints() {
+    if (!currentBacklogId) return;
+    const points = Math.max(0, parseInt(document.getElementById('sidebarStoryPoints').value) || 0);
+    const row = document.getElementById('row-' + currentBacklogId);
+    if (row) row.dataset.itemStoryPoints = points.toString();
+    savePoints(currentBacklogId, points.toString());
+}
+
+function showSubtaskInput() {
+    const wrap = document.getElementById('newSubtaskWrap');
+    const input = document.getElementById('newSubtaskInput');
+    wrap.classList.remove('d-none');
+    input.focus();
+}
+
+function hideSubtaskInput() {
+    const wrap = document.getElementById('newSubtaskWrap');
+    const input = document.getElementById('newSubtaskInput');
+    wrap.classList.add('d-none');
+    input.value = '';
+}
+
+function renderSidebarSubtasks(itemId) {
+    const sidebarList = document.getElementById('sidebarSubtaskList');
+    const rowList = document.getElementById('subtaskList_' + itemId);
+    sidebarList.innerHTML = '';
+
+    const subtasks = rowList ? [...rowList.querySelectorAll('.product-subtask')] : [];
+    if (subtasks.length === 0) {
+        sidebarList.innerHTML = '<div class="text-muted small py-2">No subtasks yet.</div>';
+        return;
+    }
+
+    subtasks.forEach(subtask => {
+        const rowCheckbox = subtask.querySelector('input[type="checkbox"]');
+        const subtaskId = rowCheckbox?.dataset.subtaskId;
+        const title = subtask.querySelector('span')?.textContent || '';
+        const checked = rowCheckbox?.checked ? 'checked' : '';
+        const doneClass = rowCheckbox?.checked ? ' done' : '';
+
+        const label = document.createElement('label');
+        label.className = `sidebar-subtask product-subtask${doneClass}`;
+        label.innerHTML = `<input type="checkbox" data-subtask-id="${subtaskId}" ${checked} onchange="updateProductSubtaskStatus('${subtaskId}', this.checked ? 3 : 1, event)" /><span></span>`;
+        label.querySelector('span').textContent = title;
+        sidebarList.appendChild(label);
+    });
+}
+
+async function createSidebarSubtask(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    if (!currentBacklogId) return;
+
+    const input = document.getElementById('newSubtaskInput');
+    const title = input.value.trim();
+    if (!title) return;
+
+    const resp = await fetch('?handler=Subtask', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getToken()
+        },
+        body: JSON.stringify({
+            parentId: currentBacklogId,
+            title,
+            priority: 3,
+            status: 1
+        })
+    });
+
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        showToast(result.message || 'Failed to add subtask', 'danger');
+        return;
+    }
+
+    appendSubtaskToRow(currentBacklogId, result.subtask);
+    renderSidebarSubtasks(currentBacklogId);
+    updateSubtaskCount(currentBacklogId);
+    hideSubtaskInput();
+    showToast('Subtask added', 'success');
+}
+
+function appendSubtaskToRow(itemId, subtask) {
+    const list = document.getElementById('subtaskList_' + itemId);
+    if (!list) return;
+
+    list.classList.remove('d-none');
+
+    const label = document.createElement('label');
+    label.className = 'product-subtask';
+    label.innerHTML = `<input type="checkbox" data-subtask-id="${subtask.id}" onchange="updateProductSubtaskStatus('${subtask.id}', this.checked ? 3 : 1, event)" /><span></span>`;
+    label.querySelector('span').textContent = subtask.title;
+    list.appendChild(label);
+}
+
+function updateSubtaskCount(itemId) {
+    const list = document.getElementById('subtaskList_' + itemId);
+    const cell = document.getElementById('titleCell_' + itemId);
+    if (!list || !cell) return;
+
+    const count = list.querySelectorAll('.product-subtask').length;
+    let badge = cell.querySelector('.subtask-count');
+
+    if (count === 0) {
+        badge?.remove();
+        return;
+    }
+
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'subtask-count';
+        badge.innerHTML = '<i class="bi bi-diagram-2"></i> <span class="subtask-count-value"></span>';
+        const addButton = cell.querySelector('.subtask-add-btn');
+        cell.insertBefore(badge, addButton);
+    }
+
+    badge.title = `${count} subtask(s)`;
+    const value = badge.querySelector('.subtask-count-value');
+    if (value) value.textContent = count;
+}
+
 function editPoints(itemId, current) {
     const cell = document.getElementById('ptsCell_' + itemId);
     if (!cell) return;
@@ -1237,6 +1789,26 @@ function pickItemDate(itemId, y, m, d) {
     const lbl = document.getElementById('dateLbl_' + itemId);
     if (lbl) lbl.textContent = fmt;
     closeDds();
+
+    fetch('?handler=UpdateDueDate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': getToken()
+        },
+        body: `itemId=${itemId}&dueDate=${iso}`
+    }).catch(() => {});
+}
+
+function pickItemDateFromIso(itemId, iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    if (!y || !m || !d) return;
+
+    const lbl = document.getElementById('dateLbl_' + itemId);
+    if (lbl) lbl.textContent = `${SMON[m - 1]} ${d}`;
+
+    const panel = document.getElementById('itemCal_' + itemId);
+    if (panel) panel.dataset.currentDate = iso;
 
     fetch('?handler=UpdateDueDate', {
         method: 'POST',

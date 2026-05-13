@@ -22,6 +22,51 @@ namespace PMTool.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("PMTool.Domain.Entities.BacklogSubtask", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("AssigneeId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("ParentId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<Guid?>("ProductBacklogId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid?>("ProjectBacklogId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AssigneeId");
+
+                    b.HasIndex("ProductBacklogId");
+
+                    b.HasIndex("ProjectBacklogId");
+
+                    b.ToTable("BacklogSubtasks");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.Permission", b =>
                 {
                     b.Property<Guid>("Id")
@@ -283,6 +328,9 @@ namespace PMTool.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("StoryPoints")
                         .HasColumnType("int");
 
                     b.Property<Guid?>("SubProjectId")
@@ -1090,6 +1138,29 @@ namespace PMTool.Infrastructure.Migrations
                     b.ToTable("WorkTypes");
                 });
 
+            modelBuilder.Entity("PMTool.Domain.Entities.BacklogSubtask", b =>
+                {
+                    b.HasOne("PMTool.Domain.Entities.User", "Assignee")
+                        .WithMany()
+                        .HasForeignKey("AssigneeId");
+
+                    b.HasOne("PMTool.Domain.Entities.ProductBacklog", "ProductBacklog")
+                        .WithMany("Subtasks")
+                        .HasForeignKey("ProductBacklogId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.HasOne("PMTool.Domain.Entities.ProjectBacklog", "ProjectBacklog")
+                        .WithMany("Subtasks")
+                        .HasForeignKey("ProjectBacklogId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
+                    b.Navigation("Assignee");
+
+                    b.Navigation("ProductBacklog");
+
+                    b.Navigation("ProjectBacklog");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.Product", b =>
                 {
                     b.HasOne("PMTool.Domain.Entities.Project", "Project")
@@ -1462,6 +1533,8 @@ namespace PMTool.Infrastructure.Migrations
             modelBuilder.Entity("PMTool.Domain.Entities.ProductBacklog", b =>
                 {
                     b.Navigation("ChildBacklogItems");
+
+                    b.Navigation("Subtasks");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.Project", b =>
@@ -1478,6 +1551,8 @@ namespace PMTool.Infrastructure.Migrations
             modelBuilder.Entity("PMTool.Domain.Entities.ProjectBacklog", b =>
                 {
                     b.Navigation("ChildBacklogItems");
+
+                    b.Navigation("Subtasks");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.Role", b =>
