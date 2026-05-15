@@ -788,6 +788,32 @@ public class BacklogModel : PageModel
         return new JsonResult(new { success });
     }
 
+    public async Task<IActionResult> OnPostUpdateSubtaskAsync([FromBody] UpdateSubtaskRequest request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var dto = new CreateBacklogSubtaskDto
+        {
+            Title = request.Title,
+            Priority = request.Priority,
+            AssigneeId = request.AssigneeId,
+            Status = request.Status
+        };
+
+        var success = await _productBacklogService.UpdateSubtaskAsync(request.SubtaskId, dto);
+        return new JsonResult(new { success });
+    }
+
+    public async Task<IActionResult> OnPostDeleteSubtaskAsync(Guid subtaskId)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var success = await _productBacklogService.DeleteSubtaskAsync(subtaskId);
+        return new JsonResult(new { success });
+    }
+
     // ── DELETE ────────────────────────────────────────────────────────────────
     public async Task<IActionResult> OnPostDeleteAsync(Guid itemId)
     {
@@ -897,6 +923,15 @@ public class BacklogModel : PageModel
     public class UpdateSubtaskStatusRequest
     {
         public Guid SubtaskId { get; set; }
+        public int Status { get; set; }
+    }
+
+    public class UpdateSubtaskRequest
+    {
+        public Guid SubtaskId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public int Priority { get; set; }
+        public Guid? AssigneeId { get; set; }
         public int Status { get; set; }
     }
 }

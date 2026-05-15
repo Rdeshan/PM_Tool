@@ -95,7 +95,10 @@
                    onclick="openProductSidebar('@itemId', '@System.Web.HttpUtility.JavaScriptStringEncode(item.Title)', '@shortId', false, event)">@item.Title</a>
                 @if (item.Subtasks.Any())
                 {
-                    <span class="subtask-count" title="@item.Subtasks.Count subtask(s)">
+                    <span class="subtask-count" 
+                          style="cursor:pointer;"
+                          onclick="openProductSidebar('@itemId', '@System.Web.HttpUtility.JavaScriptStringEncode(item.Title)', '@shortId', false, event)"
+                          title="@item.Subtasks.Count subtask(s)">
                         <i class="bi bi-diagram-2"></i> @item.Subtasks.Count
                     </span>
                 }
@@ -117,25 +120,26 @@
                        onkeydown="if(event.key==='Enter')createSubtask('@itemId', event);if(event.key==='Escape')toggleSubtaskForm('@itemId', event, true);" />
                 <button type="button" onclick="createSubtask('@itemId', event)">Add</button>
             </div>
-            @if (item.Subtasks.Any())
-            {
-                <div class="product-subtasks" id="subtaskList_@itemId">
+            <div class="product-subtasks d-none" id="subtaskList_@itemId">
+                @if (item.Subtasks.Any())
+                {
                     @foreach (var subtask in item.Subtasks)
                     {
-                        <label class="product-subtask @(subtask.Status == 3 ? "done" : "")">
+                        <div class="product-subtask @(subtask.Status == 3 ? "done" : "")" 
+                             data-subtask-id="@subtask.Id"
+                             data-subtask-title="@subtask.Title"
+                             data-subtask-status="@subtask.Status"
+                             data-subtask-priority="@subtask.Priority"
+                             data-subtask-assignee-id="@(subtask.AssigneeId?.ToString() ?? "")">
                             <input type="checkbox"
                                    data-subtask-id="@subtask.Id"
                                    @(subtask.Status == 3 ? "checked" : "")
                                    onchange="updateProductSubtaskStatus('@subtask.Id', this.checked ? 3 : 1, event)" />
                             <span>@subtask.Title</span>
-                        </label>
+                        </div>
                     }
-                </div>
-            }
-            else
-            {
-                <div class="product-subtasks d-none" id="subtaskList_@itemId"></div>
-            }
+                }
+            </div>
         </div>
     </td>
     <td style="text-align:center;">

@@ -212,6 +212,25 @@ public class ProductBacklogService : IProductBacklogService
         return await _subtaskRepository.UpdateAsync(subtask);
     }
 
+    public async Task<bool> UpdateSubtaskAsync(Guid subtaskId, CreateBacklogSubtaskDto request)
+    {
+        var subtask = await _subtaskRepository.GetByIdAsync(subtaskId);
+        if (subtask == null) return false;
+
+        subtask.Title = request.Title.Trim();
+        subtask.Priority = request.Priority == 0 ? 3 : request.Priority;
+        subtask.AssigneeId = request.AssigneeId;
+        subtask.Status = request.Status == 0 ? 1 : request.Status;
+        subtask.UpdatedAt = DateTime.UtcNow;
+
+        return await _subtaskRepository.UpdateAsync(subtask);
+    }
+
+    public async Task<bool> DeleteSubtaskAsync(Guid subtaskId)
+    {
+        return await _subtaskRepository.DeleteAsync(subtaskId);
+    }
+
     public Task<bool> DeleteItemAsync(Guid itemId)
     {
         return _backlogRepository.DeleteAsync(itemId);
