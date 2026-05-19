@@ -200,15 +200,18 @@
                                                 <div class="sub-project-card-details">
                                                     <p class="card-text small text-secondary mb-3">@sub.Description</p>
 
-                                                    <div class="mb-3">
+                                                    <div class="mb-3" data-subproject-id="@sub.Id">
                                                         <div class="d-flex justify-content-between align-items-center mb-1">
                                                             <small class="fw-bold">Progress</small>
-                                                            <small class="text-muted">@sub.Progress% (@sub.CompletedTicketCount/@sub.TicketCount tickets)</small>
+                                                            <small class="text-muted sp-progress-label" id="sp-label-@sub.Id">
+                                                                @sub.Progress% (@sub.CompletedTicketCount/@sub.TicketCount tickets)
+                                                            </small>
                                                         </div>
                                                         <div class="progress" style="height: 8px;">
-                                                            <div class="progress-bar @Model.GetProgressColorClass(sub.Progress)"
+                                                            <div class="progress-bar @Model.GetProgressColorClass(sub.Progress) sp-progress-bar"
+                                                                 id="sp-bar-@sub.Id"
                                                                  role="progressbar"
-                                                                 style="width: @sub.Progress%"
+                                                                 style="width: @sub.Progress%; transition: width 0.6s ease;"
                                                                  aria-valuenow="@sub.Progress"
                                                                  aria-valuemin="0"
                                                                  aria-valuemax="100"></div>
@@ -1000,6 +1003,78 @@
         }
 
         document.addEventListener('DOMContentLoaded', initializeFoldableSubProjectCards);
+
+        // ── Live Sub-Project Progress ────────────────────────────────────────────
+        // Determines what CSS class to apply to the progress bar based on progress %
+        function getProgressBarClass(progress) {
+            if (progress >= 100) return 'bg-success';
+            if (progress >= 75)  return 'bg-success';
+            if (progress >= 25)  return 'bg-warning';
+            return 'bg-danger';
+        }
+
+        // Fetch fresh progress data from the server and update DOM
+        async function refreshSubProjectProgress() {
+            try {
+                const resp = await fetch(`?handler=SubProjectsProgress&projectId=@Model.ProjectId&id=@Model.Product?.Id`);
+                if (!resp.ok) return;
+                const data = await resp.json();
+
+                data.forEach(sp => {
+                    const bar   = document.getElementById(`sp-bar-${sp.id}`);
+                    const label = document.getElementById(`sp-label-${sp.id}`);
+                    if (!bar || !label) return;
+
+                    const pct = sp.progress;
+
+                    // Update bar width and colour
+                    bar.style.width = `${pct}%`;
+                    bar.setAttribute('aria-valuenow', pct);
+                    bar.className = `progress-bar sp-progress-bar ${getProgressBarClass(pct)}`;
+                    bar.style.transition = 'width 0.6s ease';
+
+                    // Update text label
+                    label.textContent = `${pct}% (${sp.completedTicketCount}/${sp.ticketCount} tickets)`;
+
+                    // Pulse animation on change (add briefly, then remove)
+                    bar.classList.add('progress-bar-striped', 'progress-bar-animated');
+                    setTimeout(() => {
+                        bar.classList.remove('progress-bar-striped', 'progress-bar-animated');
+                    }, 1200);
+                });
+            } catch (e) {
+                // Silently ignore network errors - progress will update on next poll
+                console.debug('[SubProject Progress] Poll error:', e);
+            }
+        }
+
+        // Poll every 20 seconds while tab is active
+        let _progressTimer = null;
+
+        function startProgressPolling() {
+            refreshSubProjectProgress(); // immediate fetch on start
+            _progressTimer = setInterval(() => {
+                if (!document.hidden) refreshSubProjectProgress();
+            }, 20000);
+        }
+
+        // Re-fetch immediately when user comes back to this tab
+        // (e.g. after editing in the Backlog or Board page)
+        document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) refreshSubProjectProgress();
+        });
+
+        // Also refresh when the storage event fires (cross-tab backlog update signal)
+        window.addEventListener('storage', (e) => {
+            if (e.key === 'backlog_updated') refreshSubProjectProgress();
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Only start polling if there are sub-projects on the page
+            if (document.querySelector('[data-subproject-id]')) {
+                startProgressPolling();
+            }
+        });
     </script>
 }
 

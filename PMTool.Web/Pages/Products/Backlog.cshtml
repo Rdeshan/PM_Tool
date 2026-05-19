@@ -1128,12 +1128,13 @@ function savePoints(itemId, val) {
         body: `itemId=${itemId}&storyPoints=${pts}`
     }).then(r => {
         if (r.ok) {
+            signalChange();
             const cell = document.getElementById('ptsCell_' + itemId);
             if (pts > 0) {
                 cell.innerHTML = `<span class="pts-val" onclick="editPoints('${itemId}', ${pts})" title="Click to edit">${pts}</span>`;
             } else {
                 cell.innerHTML = `<button type="button" class="ib" onclick="editPoints('${itemId}', 0)" title="Add story points">
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
                 </button>`;
             }
         }
@@ -1165,6 +1166,8 @@ function updateStatus(itemId, status, e) {
             'RequestVerificationToken': getToken()
         },
         body: `itemId=${itemId}&status=${status}`
+    }).then(() => {
+        signalChange();
     }).catch(() => {});
 }
 
@@ -1179,7 +1182,10 @@ function updateOwner(itemId, ownerId, e) {
             'RequestVerificationToken': getToken()
         },
         body: `itemId=${itemId}&ownerId=${ownerId}`
-    }).then(() => location.reload()).catch(() => {});
+    }).then(() => {
+        signalChange();
+        location.reload();
+    }).catch(() => {});
 }
 
 // ─── Row: Type update ─────────────────────────────────────────────────────────
@@ -1193,7 +1199,10 @@ function updateType(itemId, type, e) {
             'RequestVerificationToken': getToken()
         },
         body: `itemId=${itemId}&type=${type}`
-    }).then(() => location.reload()).catch(() => {});
+    }).then(() => {
+        signalChange();
+        location.reload();
+    }).catch(() => {});
 }
 
 // ─── Row: Subproject update ──────────────────────────────────────────────────
@@ -1207,7 +1216,10 @@ function updateSubProject(itemId, subProjectId, e) {
             'RequestVerificationToken': getToken()
         },
         body: `itemId=${itemId}&subProjectId=${subProjectId}`
-    }).then(() => location.reload()).catch(() => {});
+    }).then(() => {
+        signalChange();
+        location.reload();
+    }).catch(() => {});
 }
 
 // ─── Row: Due date calendar ───────────────────────────────────────────────────
@@ -1283,6 +1295,10 @@ function pickItemDate(itemId, y, m, d) {
             'RequestVerificationToken': getToken()
         },
         body: `itemId=${itemId}&dueDate=${iso}`
+    }).then(r => {
+        if (r.ok) {
+            signalChange();
+        }
     }).catch(() => {});
 }
 

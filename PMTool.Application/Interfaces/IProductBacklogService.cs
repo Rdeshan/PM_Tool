@@ -4,6 +4,7 @@ namespace PMTool.Application.Interfaces;
 
 public interface IProductBacklogService
 {
+    Task<ProductBacklogItemDTO?> GetItemByIdAsync(Guid itemId);
     Task<List<ProductBacklogItemDTO>> GetBacklogItemsAsync(Guid productId, int? status);
     Task<ProductBacklogItemDTO?> CreateBacklogItemAsync(CreateProductBacklogItemRequest request);
     Task<ProductBacklogItemDTO?> UpdateBacklogFieldAsync(UpdateProductBacklogFieldRequest request);

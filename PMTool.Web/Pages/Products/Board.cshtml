@@ -1083,25 +1083,30 @@ function initSortable(col) {
 
                 const result = await resp.json();
 
-                if (result.success) {
-                    showToast('Status updated ✓');
-                } else {
-                    throw new Error('Server returned false');
+                    if (result.success) {
+                        showToast('Status updated ✓');
+                        // Signal other tabs (e.g. Details page) to refresh sub-project progress
+                        localStorage.setItem('backlog_updated', Date.now().toString());
+                    } else {
+                        throw new Error('Server returned false');
+                    }
+                } catch (err) {
+                    // Revert card back to original column
+                    if (oldCol.children.length > evt.oldIndex) {
+                        oldCol.insertBefore(card, oldCol.children[evt.oldIndex]);
+                    } else {
+                        oldCol.appendChild(card);
+                    }
+                    card.dataset.itemStatus = oldStatus;
+                    refreshCounts();
+                    showToast('Failed to update status', true);
                 }
-            } catch (err) {
-                // Revert card back to original column
-                if (oldCol.children.length > evt.oldIndex) {
-                    oldCol.insertBefore(card, oldCol.children[evt.oldIndex]);
-                } else {
-                    oldCol.appendChild(card);
-                }
-                card.dataset.itemStatus = oldStatus;
-                refreshCounts();
-                showToast('Failed to update status', true);
             }
-        }
+        });
     });
-}
+
+    refreshCounts();
+});
 
 // ── Complete Sprint modal ─────────────────────────────────────────────────────
 function openCompleteModal()  { document.getElementById('completeSprintModal').style.display = 'flex'; }

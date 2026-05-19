@@ -5,6 +5,7 @@ using PMTool.Application.DTOs.Backlog;
 using PMTool.Application.DTOs.Board;
 using PMTool.Application.DTOs.Sprint;
 using PMTool.Application.Interfaces;
+using PMTool.Application.Services.SubProject;
 using System.Security.Claims;
 
 using PMTool.Application.DTOs.User;
@@ -20,6 +21,7 @@ public class BoardModel : PageModel
     private readonly IProjectService _projectService;
     private readonly IUserAdminService _userService;
     private readonly IBoardColumnService _boardColumnService;
+    private readonly ISubProjectService _subProjectService;
 
     public BoardModel(
         ISprintService sprintService,
@@ -27,7 +29,8 @@ public class BoardModel : PageModel
         IProductService productService,
         IProjectService projectService,
         IUserAdminService userService,
-        IBoardColumnService boardColumnService)
+        IBoardColumnService boardColumnService,
+        ISubProjectService subProjectService)
     {
         _sprintService         = sprintService;
         _productBacklogService = productBacklogService;
@@ -35,6 +38,7 @@ public class BoardModel : PageModel
         _projectService        = projectService;
         _userService           = userService;
         _boardColumnService    = boardColumnService;
+        _subProjectService     = subProjectService;
     }
 
     // ── Page properties ───────────────────────────────────────────────────────
@@ -122,7 +126,27 @@ public class BoardModel : PageModel
 
     public async Task<IActionResult> OnPostUpdateItemStatusAsync(Guid itemId, int status)
     {
-        return await OnPostUpdateFieldAsync(itemId, "status", status.ToString());
+        SetPermissions();
+        if (!CanEditBoard) return Forbid();
+
+        // Fetch item first so we know its SubProjectId
+        var item = await _productBacklogService.GetItemByIdAsync(itemId);
+
+        var request = new UpdateProductBacklogFieldRequest
+        {
+            ItemId = itemId,
+            Field  = "status",
+            Value  = status.ToString()
+        };
+        var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
+
+        // Recalculate sub-project progress whenever a board item changes status
+        if (result != null && item?.SubProjectId.HasValue == true)
+        {
+            await _subProjectService.UpdateProgressAsync(item.SubProjectId.Value);
+        }
+
+        return new JsonResult(new { success = result != null });
     }
 
     // ── Complete sprint from Board ────────────────────────────────────────────
@@ -149,7 +173,16 @@ public class BoardModel : PageModel
         SetPermissions();
         if (!CanEditBoard) return Forbid();
 
+        var existing = await _productBacklogService.GetItemByIdAsync(itemId);
+        var subProjectId = existing?.SubProjectId;
+
         var success = await _productBacklogService.DeleteItemAsync(itemId);
+
+        if (success && subProjectId.HasValue)
+        {
+            await _subProjectService.UpdateProgressAsync(subProjectId.Value);
+        }
+
         return new JsonResult(new { success });
     }
 

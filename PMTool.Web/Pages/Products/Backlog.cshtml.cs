@@ -597,11 +597,14 @@ public class BacklogModel : PageModel
         });
     }
 
-    // ── UPDATE STATUS (AJAX-friendly) ─────────────────────────────────────────
+    // ── UPDATE STATUS (AJAX-friendly) ─────────────────────────────────
     public async Task<IActionResult> OnPostUpdateStatusAsync(Guid itemId, int status)
     {
         SetPermissions();
         if (!CanEditBacklog) return Forbid();
+
+        // Fetch item before update to know its sub-project
+        var existing = await _productBacklogService.GetItemByIdAsync(itemId);
 
         var request = new UpdateProductBacklogFieldRequest
         {
@@ -611,6 +614,12 @@ public class BacklogModel : PageModel
         };
 
         var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
+
+        // Recalculate sub-project progress if item belongs to one
+        if (result != null && existing?.SubProjectId.HasValue == true)
+        {
+            await _subProjectService.UpdateProgressAsync(existing.SubProjectId.Value);
+        }
 
         // Return JSON if it looks like an AJAX call, otherwise redirect
         if (IsAjaxRequest())
@@ -718,6 +727,9 @@ public class BacklogModel : PageModel
         SetPermissions();
         if (!CanEditBacklog) return Forbid();
 
+        var existing = await _productBacklogService.GetItemByIdAsync(itemId);
+        var oldSubProjectId = existing?.SubProjectId;
+
         var request = new UpdateProductBacklogFieldRequest
         {
             ItemId = itemId,
@@ -726,6 +738,20 @@ public class BacklogModel : PageModel
         };
 
         var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
+
+        if (result != null)
+        {
+            if (oldSubProjectId.HasValue)
+            {
+                await _subProjectService.UpdateProgressAsync(oldSubProjectId.Value);
+            }
+
+            if (Guid.TryParse(subProjectId, out var newSubProjGuid) && newSubProjGuid != Guid.Empty)
+            {
+                await _subProjectService.UpdateProgressAsync(newSubProjGuid);
+            }
+        }
+
         return new JsonResult(new { success = result != null });
     }
 
@@ -735,7 +761,15 @@ public class BacklogModel : PageModel
         SetPermissions();
         if (!CanEditBacklog) return Forbid();
 
+        var existing = await _productBacklogService.GetItemByIdAsync(itemId);
+        var subProjectId = existing?.SubProjectId;
+
         var success = await _productBacklogService.DeleteItemAsync(itemId);
+
+        if (success && subProjectId.HasValue)
+        {
+            await _subProjectService.UpdateProgressAsync(subProjectId.Value);
+        }
 
         TempData[success ? "SuccessMessage" : "ErrorMessage"] =
             success ? "Item deleted" : "Failed to delete item";

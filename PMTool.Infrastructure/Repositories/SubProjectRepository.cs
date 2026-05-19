@@ -222,14 +222,26 @@ public class SubProjectRepository : ISubProjectRepository
 
     public async Task<int> CalculateProgressAsync(Guid subProjectId)
     {
-        var tickets = await _context.ProjectBacklogs
+        var tickets = await _context.ProductBacklogs
             .Where(pb => pb.SubProjectId == subProjectId)
             .ToListAsync();
 
         if (tickets.Count == 0) return 0;
 
-        var completedTickets = tickets.Count(pb => pb.Status == 3); // Assuming 3 = Completed
-        return (completedTickets * 100) / tickets.Count;
+        double totalContribution = 0;
+        foreach (var ticket in tickets)
+        {
+            totalContribution += ticket.Status switch
+            {
+                1 => 0.0,   // To Do: 0% contribution
+                2 => 0.2,   // In Progress: 20% contribution (very small amount)
+                3 => 0.5,   // In Review: 50% contribution (more than In Progress)
+                4 => 1.0,   // Done: 100% contribution (fills progress bar fully)
+                _ => 0.0
+            };
+        }
+
+        return (int)Math.Round((totalContribution * 100) / tickets.Count);
     }
 
     public async Task<bool> UpdateProgressAsync(Guid subProjectId, int progress)
