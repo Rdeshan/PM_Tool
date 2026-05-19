@@ -429,6 +429,7 @@ using PMTool.Application.Interfaces;
 using PMTool.Application.Services.SubProject;
 using PMTool.Application.DTOs.SubProject;
 using PMTool.Application.DTOs.Sprint;
+using PMTool.Application.DTOs.Board;
 using System.Security.Claims;
 using PMTool.Application.DTOs.User;
 
@@ -445,6 +446,7 @@ public class BacklogModel : PageModel
     private readonly ISubProjectService _subProjectService;
     private readonly ISprintService _sprintService;
     private readonly IWorkTypeService _workTypeService;
+    private readonly IBoardColumnService _boardColumnService;
 
     public BacklogModel(
         IProjectService projectService,
@@ -453,7 +455,8 @@ public class BacklogModel : PageModel
         IUserAdminService userService,
         ISubProjectService subProjectService,
         ISprintService sprintService,
-        IWorkTypeService workTypeService)
+        IWorkTypeService workTypeService,
+        IBoardColumnService boardColumnService)
     {
         _projectService = projectService;
         _productService = productService;
@@ -462,6 +465,7 @@ public class BacklogModel : PageModel
         _subProjectService = subProjectService;
         _sprintService = sprintService;
         _workTypeService = workTypeService;
+        _boardColumnService = boardColumnService;
     }
 
     // ── Page Properties ───────────────────────────────────────────────────────
@@ -482,6 +486,7 @@ public class BacklogModel : PageModel
     public List<UserDTO> ActiveUsers { get; set; } = new();
     public List<SubProjectDTO> ProductSubProjects { get; set; } = new();
     public List<SprintDTO> Sprints { get; set; } = new();
+    public List<BoardColumnDTO> CustomBoardColumns { get; set; } = new();
 
     // Status counts — 1=To do, 2=In progress, 3=In review, 4=Done
     public int TodoCount      => BacklogItems.Count(x => x.Status == 1);
@@ -523,6 +528,7 @@ public class BacklogModel : PageModel
         WorkTypes = BuildWorkTypes(customWorkTypes);
         ProductSubProjects = await _subProjectService.GetSubProjectsByProductAsync(ProductId);
         Sprints = await _sprintService.GetSprintsByProductAsync(ProductId);
+        CustomBoardColumns = await _boardColumnService.GetColumnsByProductAsync(ProductId);
 
         var users = await _userService.GetActiveUsersAsync() ?? new List<UserDTO>();
         ActiveUsers = users.ToList();

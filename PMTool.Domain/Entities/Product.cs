@@ -20,4 +20,5 @@ public class Product
     public ICollection<ProjectBacklog> Backlogs { get; set; } = new List<ProjectBacklog>();
     public ICollection<Sprint> Sprints { get; set; } = new List<Sprint>();
     public ICollection<SubProject> SubProjects { get; set; } = new List<SubProject>();
+    public ICollection<BoardColumn> BoardColumns { get; set; } = new List<BoardColumn>();
 }

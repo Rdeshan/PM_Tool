@@ -1,5 +1,6 @@
 @page "{projectId:guid}/{id:guid}/backlog"
 @using System.Text.Encodings.Web
+@using System.Text.Json
 @model PMTool.Web.Pages.Products.BacklogModel
 @{
     if (Model.IsEmbedded)
@@ -65,6 +66,7 @@
     .s-inprog  { background: #deebff; color: #0747a6; }
     .s-inreview{ background: #fff0b3; color: #974f0c; }
     .s-done    { background: #e3fcef; color: #006644; }
+    .s-custom  { background: #f1f2f4; color: #42526e; }
     .sprint-card.collapsed .sprint-table-wrap,
 .sprint-card.collapsed .sprint-goal { display: none; }
 .sprint-card.collapsed .chevron-toggle { transform: rotate(-90deg); }
@@ -281,7 +283,8 @@
                             {
                                 ["SubProjects"] = Model.ProductSubProjects,
                                 ["WorkTypes"] = Model.WorkTypes,
-                                ["ActiveUsers"] = Model.ActiveUsers
+                                ["ActiveUsers"] = Model.ActiveUsers,
+                                ["CustomStatuses"] = Model.CustomBoardColumns
                             })
                         }
                         @if (!sprintItems.Any())
@@ -445,7 +448,8 @@
                             {
                                 ["SubProjects"] = Model.ProductSubProjects,
                                 ["WorkTypes"] = Model.WorkTypes,
-                                ["ActiveUsers"] = Model.ActiveUsers
+                                ["ActiveUsers"] = Model.ActiveUsers,
+                                ["CustomStatuses"] = Model.CustomBoardColumns
                             })
                         }
                         @if (!backlogItems.Any())
@@ -848,6 +852,34 @@ const STATUS_MAP = {
     4: { cls: 's-done',     label: 'Done' }
 };
 
+const CUSTOM_STATUSES = @Html.Raw(JsonSerializer.Serialize(
+    Model.CustomBoardColumns.Select(x => new { status = x.StatusValue, name = x.Name })));
+
+function extendStatusMapWithCustom() {
+    CUSTOM_STATUSES.forEach(status => {
+        if (!status || !status.status || !status.name) return;
+        STATUS_MAP[status.status] = { cls: 's-custom', label: status.name };
+    });
+}
+
+function applyCustomStatusLabels() {
+    document.querySelectorAll('tr[data-item-id]').forEach(row => {
+        const status = Number.parseInt(row.dataset.status, 10);
+        if (Number.isNaN(status)) return;
+        const pill = row.querySelector('.pill-status');
+        const map = STATUS_MAP[status];
+        if (!pill || !map) return;
+        pill.className = `pill-status ${map.cls}`;
+        pill.textContent = map.label;
+        pill.dataset.status = status.toString();
+    });
+}
+
+function initCustomStatuses() {
+    extendStatusMapWithCustom();
+    applyCustomStatusLabels();
+}
+
 // ─── Create bar state ─────────────────────────────────────────────────────────
 let createDate = null;
 let createCalView = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
@@ -1112,14 +1144,19 @@ function savePoints(itemId, val) {
 function updateStatus(itemId, status, e) {
     if (e) e.stopPropagation();
     closeDds();
-    const sm = STATUS_MAP[status];
+    const sm = STATUS_MAP[status] ?? { cls: 's-custom', label: 'Custom' };
     const btn = document.querySelector(`#statusDd_${itemId}`);
     if (btn) {
         const pill = btn.previousElementSibling;
         if (pill) {
             pill.className = `pill-status ${sm.cls}`;
             pill.textContent = sm.label;
+            pill.dataset.status = status.toString();
         }
+    }
+    const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
+    if (row) {
+        row.dataset.status = status.toString();
     }
     fetch('?handler=UpdateStatus', {
         method: 'POST',

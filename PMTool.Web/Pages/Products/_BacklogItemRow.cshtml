@@ -1,18 +1,21 @@
 @model PMTool.Application.DTOs.Backlog.ProductBacklogItemDTO
 @using PMTool.Application.DTOs.SubProject
 @using PMTool.Application.DTOs.Backlog
+@using PMTool.Application.DTOs.Board
 @{
     var item = Model;
     var itemId = item.Id.ToString();
     var shortId = item.Id.ToString("N").Substring(0, 4).ToUpper();
-    var statusCls = item.Status switch {
+    var customStatuses = ViewData["CustomStatuses"] as List<BoardColumnDTO> ?? new List<BoardColumnDTO>();
+    var customStatus = customStatuses.FirstOrDefault(x => x.StatusValue == item.Status);
+    var statusCls = customStatus != null ? "s-custom" : item.Status switch {
         1 => "s-todo",
         2 => "s-inprog",
         3 => "s-inreview",
         4 => "s-done",
         _ => "s-todo"
     };
-    var statusLabel = item.Status switch {
+    var statusLabel = customStatus?.Name ?? item.Status switch {
         1 => "To do",
         2 => "In progress",
         3 => "In review",
@@ -52,7 +55,7 @@
     var currentWorkName = currentWorkType?.Name ?? "Work Item";
 }
 
-<tr id="row-@item.Id" data-item-id="@item.Id">
+<tr id="row-@item.Id" data-item-id="@item.Id" data-status="@item.Status">
     <td><input type="checkbox" value="@item.Id" /></td>
     <td>
         <!-- Type icon with dropdown -->
@@ -132,7 +135,7 @@
     <td>
         <!-- Status pill with dropdown -->
         <div class="rel">
-            <button type="button" class="pill-status @statusCls" onclick="toggleDd('statusDd_@itemId', event)">
+            <button type="button" class="pill-status @statusCls" data-status="@item.Status" onclick="toggleDd('statusDd_@itemId', event)">
                 @statusLabel
             </button>
             <div class="dd-panel" id="statusDd_@itemId">
@@ -148,6 +151,12 @@
                 <div class="dd-item" onclick="updateStatus('@item.Id', 4, event)">
                     <span class="pill-status s-done" style="pointer-events:none;font-size:10px;">Done</span>
                 </div>
+                @foreach (var status in customStatuses)
+                {
+                    <div class="dd-item" onclick="updateStatus('@item.Id', @status.StatusValue, event)">
+                        <span class="pill-status s-custom" style="pointer-events:none;font-size:10px;">@status.Name</span>
+                    </div>
+                }
             </div>
         </div>
     </td>

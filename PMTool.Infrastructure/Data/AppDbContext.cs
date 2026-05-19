@@ -29,6 +29,7 @@ public class AppDbContext : DbContext
     public DbSet<Sprint> Sprints { get; set; } = null!;
     public DbSet<SprintScopeChange> SprintScopeChanges { get; set; } = null!;
     public DbSet<WorkType> WorkTypes { get; set; } = null!;
+    public DbSet<BoardColumn> BoardColumns { get; set; } = null!;
     //sub task
     public DbSet<WorkItem> WorkItems { get; set; } = null!;
     public DbSet<SubTask> SubTasks { get; set; } = null!;
@@ -87,6 +88,29 @@ public class AppDbContext : DbContext
 
             entity.Property(e => e.Description)
                 .HasMaxLength(500);
+        });
+
+        modelBuilder.Entity<BoardColumn>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Name)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.Property(e => e.UpdatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasIndex(e => new { e.ProductId, e.StatusValue })
+                .IsUnique();
+
+            entity.HasOne(e => e.Product)
+                .WithMany(p => p.BoardColumns)
+                .HasForeignKey(e => e.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // Role configuration

@@ -22,6 +22,41 @@ namespace PMTool.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("PMTool.Domain.Entities.BoardColumn", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("StatusValue")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId", "StatusValue")
+                        .IsUnique();
+
+                    b.ToTable("BoardColumns");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.Permission", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1090,6 +1125,17 @@ namespace PMTool.Infrastructure.Migrations
                     b.ToTable("WorkTypes");
                 });
 
+            modelBuilder.Entity("PMTool.Domain.Entities.BoardColumn", b =>
+                {
+                    b.HasOne("PMTool.Domain.Entities.Product", "Product")
+                        .WithMany("BoardColumns")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.Product", b =>
                 {
                     b.HasOne("PMTool.Domain.Entities.Project", "Project")
@@ -1451,6 +1497,8 @@ namespace PMTool.Infrastructure.Migrations
             modelBuilder.Entity("PMTool.Domain.Entities.Product", b =>
                 {
                     b.Navigation("Backlogs");
+
+                    b.Navigation("BoardColumns");
 
                     b.Navigation("ReleaseNotes");
 
