@@ -55,4 +55,24 @@ public class BoardColumnRepository : IBoardColumnRepository
             return false;
         }
     }
+
+    public async Task<bool> DeleteAsync(Guid productId, int statusValue)
+    {
+        try
+        {
+            var column = await GetByProductAndStatusAsync(productId, statusValue);
+            if (column == null)
+            {
+                return false;
+            }
+
+            _context.BoardColumns.Remove(column);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
 }

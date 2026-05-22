@@ -228,4 +228,13 @@ public class BoardModel : PageModel
         var success = await _boardColumnService.UpdateColumnAsync(request);
         return new JsonResult(new { success });
     }
+
+    public async Task<IActionResult> OnPostDeleteBoardColumnAsync(int statusValue)
+    {
+        SetPermissions();
+        if (!CanEditBoard) return Forbid();
+
+        var success = await _boardColumnService.DeleteColumnAsync(ProductId, statusValue);
+        return new JsonResult(new { success });
+    }
 }

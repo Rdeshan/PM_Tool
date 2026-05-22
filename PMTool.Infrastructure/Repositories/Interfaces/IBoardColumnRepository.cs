@@ -8,4 +8,5 @@ public interface IBoardColumnRepository
     Task<BoardColumn?> GetByProductAndStatusAsync(Guid productId, int statusValue);
     Task<BoardColumn?> AddAsync(BoardColumn column);
     Task<bool> UpdateAsync(BoardColumn column);
+    Task<bool> DeleteAsync(Guid productId, int statusValue);
 }

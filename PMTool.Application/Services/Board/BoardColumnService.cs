@@ -76,4 +76,14 @@ public class BoardColumnService : IBoardColumnService
             Name = column.Name
         };
     }
+
+    public async Task<bool> DeleteColumnAsync(Guid productId, int statusValue)
+    {
+        if (productId == Guid.Empty || statusValue <= 4)
+        {
+            return false; // Cannot delete standard columns
+        }
+
+        return await _boardColumnRepository.DeleteAsync(productId, statusValue);
+    }
 }

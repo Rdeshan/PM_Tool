@@ -151,6 +151,19 @@
     }
     .col-title-input:focus { outline: none; }
 
+    .delete-col-btn {
+        display: none;
+        background: transparent;
+        border: none;
+        color: var(--text-muted);
+        cursor: pointer;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-left: 8px;
+    }
+    .delete-col-btn:hover { background: #ffebe6; color: #bf2600; }
+    .col-header-custom:hover .delete-col-btn { display: inline-flex; }
+
     .col-count {
         font-size: 11px;
         font-weight: 600;
@@ -534,26 +547,7 @@ else
                                                     @TypeName((int)t)
                                                 </div>
                                             }
-        @foreach (var customColumn in Model.CustomBoardColumns)
-        {
-            <div class="board-col">
-                <div class="col-header col-header-custom">
-                    <div class="d-flex align-items-center">
-                        <input type="text"
-                               class="col-title-input"
-                               value="@customColumn.Name"
-                               onblur="updateCustomColumnName(@customColumn.StatusValue, this.value)"
-                               onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" />
-                        <span class="col-count ms-2">0</span>
-                    </div>
-                </div>
-                <div class="col-body kanban-col"
-                     id="col-custom-@customColumn.StatusValue"
-                     data-status="@customColumn.StatusValue">
-                    <div class="col-empty" data-empty="true">Drop items here</div>
-                </div>
-            </div>
-        }
+
                                         </div>
                                     </div>
                                 </div>
@@ -630,6 +624,47 @@ else
                 </div>
 
                 <button type="button" class="col-create-btn" onclick="showAddForm('@col.Id')">
+                    <i class="bi bi-plus-lg"></i>
+                    <span>create</span>
+                </button>
+            </div>
+        }
+
+        @foreach (var customColumn in Model.CustomBoardColumns)
+        {
+            <div class="board-col">
+                <div class="col-header col-header-custom">
+                    <div class="d-flex align-items-center w-100">
+                        <input type="text"
+                               class="col-title-input flex-grow-1"
+                               value="@customColumn.Name"
+                               onblur="updateCustomColumnName(@customColumn.StatusValue, this.value)"
+                               onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}" />
+                        <span class="col-count ms-2">0</span>
+                        @if (Model.CanEditBoard)
+                        {
+                            <button type="button" class="delete-col-btn" title="Delete container" onclick="deleteCustomColumn(@customColumn.StatusValue)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        }
+                    </div>
+                </div>
+                <div class="col-body kanban-col"
+                     id="col-custom-@customColumn.StatusValue"
+                     data-status="@customColumn.StatusValue">
+                    <div class="col-empty" data-empty="true">Drop items here</div>
+                </div>
+                
+                <div class="add-card-wrap" id="addWrap_col-custom-@customColumn.StatusValue">
+                    <input type="text" class="add-card-input" id="addInput_col-custom-@customColumn.StatusValue" placeholder="What needs to be done?" 
+                           onkeyup="if(event.key==='Enter') saveNewCard('col-custom-@customColumn.StatusValue', @customColumn.StatusValue)">
+                    <div class="add-card-btns">
+                        <button class="btn btn-sm btn-primary" onclick="saveNewCard('col-custom-@customColumn.StatusValue', @customColumn.StatusValue)">Add</button>
+                        <button class="btn btn-sm btn-light" onclick="hideAddForm('col-custom-@customColumn.StatusValue')">Cancel</button>
+                    </div>
+                </div>
+
+                <button type="button" class="col-create-btn" onclick="showAddForm('col-custom-@customColumn.StatusValue')">
                     <i class="bi bi-plus-lg"></i>
                     <span>create</span>
                 </button>
@@ -919,6 +954,24 @@ async function updateCustomColumnName(status, name) {
     });
 }
 
+async function deleteCustomColumn(status) {
+    if (!confirm('Are you sure you want to delete this container?')) return;
+    try {
+        const resp = await fetch(`?handler=DeleteBoardColumn&statusValue=${status}`, {
+            method: 'POST',
+            headers: { 'RequestVerificationToken': getToken() }
+        });
+        const result = await resp.json();
+        if (result.success) {
+            location.reload();
+        } else {
+            showToast('Failed to delete container', true);
+        }
+    } catch (err) {
+        showToast('An error occurred', true);
+    }
+}
+
 function createCustomColumn(custom, focusInput) {
     const wrap = document.getElementById('boardWrap');
     if (!wrap) return null;
@@ -930,14 +983,27 @@ function createCustomColumn(custom, focusInput) {
     col.className = 'board-col';
     col.innerHTML = `
         <div class="col-header col-header-custom">
-            <div class="d-flex align-items-center">
-                <input type="text" class="col-title-input" value="" />
+            <div class="d-flex align-items-center w-100">
+                <input type="text" class="col-title-input flex-grow-1" value="" />
                 <span class="col-count ms-2">0</span>
+                @if(Model.CanEditBoard){<button type="button" class="delete-col-btn" title="Delete container" onclick="deleteCustomColumn(${statusValue})"><i class="bi bi-trash"></i></button>}
             </div>
         </div>
         <div class="col-body kanban-col" id="${colId}" data-status="${statusValue}">
             <div class="col-empty" data-empty="true">Drop items here</div>
         </div>
+        <div class="add-card-wrap" id="addWrap_${colId}">
+            <input type="text" class="add-card-input" id="addInput_${colId}" placeholder="What needs to be done?" 
+                   onkeyup="if(event.key==='Enter') saveNewCard('${colId}', ${statusValue})">
+            <div class="add-card-btns">
+                <button class="btn btn-sm btn-primary" onclick="saveNewCard('${colId}', ${statusValue})">Add</button>
+                <button class="btn btn-sm btn-light" onclick="hideAddForm('${colId}')">Cancel</button>
+            </div>
+        </div>
+        <button type="button" class="col-create-btn" onclick="showAddForm('${colId}')">
+            <i class="bi bi-plus-lg"></i>
+            <span>create</span>
+        </button>
     `;
 
     const input = col.querySelector('.col-title-input');
@@ -1103,10 +1169,7 @@ function initSortable(col) {
                 }
             }
         });
-    });
-
-    refreshCounts();
-});
+}
 
 // ── Complete Sprint modal ─────────────────────────────────────────────────────
 function openCompleteModal()  { document.getElementById('completeSprintModal').style.display = 'flex'; }
