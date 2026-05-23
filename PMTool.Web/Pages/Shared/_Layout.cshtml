@@ -13,21 +13,74 @@
     @await RenderSectionAsync("Styles", required: false)
     
 </head>
-<body class="with-navbar">
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark bg-dark border-bottom box-shadow fixed-top">
-            <div class="container">
+@* <body class="with-navbar"> *@
+<body class="@(User.Identity?.IsAuthenticated == true ? "with-sidebar" : "with-navbar")">
+
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <!-- Global Sidebar -->
+        <div id="pm-global-sidebar" class="pm-global-sidebar">
+            <a asp-area="" asp-page="/Dashboard" class="brand">
+                <i class="bi bi-kanban me-2"></i>
+                <span class="brand-text">PMTool</span>
+            </a>
+            <nav class="d-flex flex-column gap-1">
+                <a asp-page="/Dashboard" class="nav-link"><i class="bi bi-speedometer2"></i> <span class="nav-text">Dashboard</span></a>
+                <a asp-page="/Projects/Index" class="nav-link"><i class="bi bi-folder2"></i> <span class="nav-text">Projects</span></a>
+                <a href="#" class="nav-link"><i class="bi bi-list-task"></i> <span class="nav-text">Tasks</span></a>
+                <a href="#" class="nav-link"><i class="bi bi-people"></i> <span class="nav-text">Team</span></a>
+                @if (User.IsInRole("Project Manager"))
+                {
+                    <a asp-page="/PM/Dashboard" class="nav-link"><i class="bi bi-kanban"></i> <span class="nav-text">PM Dashboard</span></a>
+                }
+                @if (User.IsInRole("Administrator"))
+                {
+                    <a asp-page="/Admin/Dashboard" class="nav-link"><i class="bi bi-shield-lock"></i> <span class="nav-text">Admin</span></a>
+                    <a asp-page="/Admin/Users/Index" class="nav-link"><i class="bi bi-person-badge"></i> <span class="nav-text">Users</span></a>
+                    <a asp-page="/Admin/Teams/Index" class="nav-link"><i class="bi bi-diagram-3"></i> <span class="nav-text">Teams</span></a>
+                }
+            </nav>
+            <div class="mt-auto">
+                <a asp-page="/Account/Settings" class="nav-link"><i class="bi bi-gear"></i> <span class="nav-text">Settings</span></a>
+                <form method="post" asp-page="/Dashboard" asp-page-handler="Logout" class="m-0">
+                    <button type="submit" class="nav-link border-0 bg-transparent w-100 text-start">
+                        <i class="bi bi-box-arrow-left"></i> <span class="nav-text">Logout</span>
+                    </button>
+                </form>
+            </div>
+        </div>
+    }
+    <header class="hover-header">
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-black fixed-top">
+            @* <div class="container">
                 <a class="navbar-brand" asp-area="" asp-page="/Dashboard">
                     <i class="bi bi-kanban"></i> PMTool
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent" *@
+                      
+            <div class="container-fluid px-3">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <button class="btn btn-outline-light border-0 me-3" id="sidebar-toggle" type="button">
+                        <i class="bi bi-list fs-4"></i>
+                    </button>
+                }
+                else
+                {
+                    <a class="navbar-brand" asp-area="" asp-page="/Dashboard">
+                        <i class="bi bi-kanban"></i> PMTool
+                    </a>
+                }
+                
+                <button class="navbar-toggler ms-auto" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
+                aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
+                @* <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between"> *@
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-end">
                     @if (User.Identity?.IsAuthenticated ?? false)
                     {
-                        <ul class="navbar-nav flex-grow-1">
+                        @* <ul class="navbar-nav flex-grow-1">
                             <li class="nav-item">
                                 <a class="nav-link text-light" asp-area="" asp-page="/Dashboard">Dashboard</a>
                             </li>
@@ -58,7 +111,7 @@
                                     <a class="nav-link text-light" asp-page="/PM/Dashboard"><i class="bi bi-speedometer2"></i> PM Dashboard</a>
                                 </li>
                             }
-                        </ul>
+                        </ul> *@
                         <ul class="navbar-nav ms-auto">
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -67,8 +120,8 @@
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
                                     <li><a class="dropdown-item" asp-page="/Account/Profile"><i class="bi bi-person"></i> Profile</a></li>
                                     <li><a class="dropdown-item" asp-page="/Account/Settings"><i class="bi bi-sliders"></i> Settings</a></li>
-                                    <li><a class="dropdown-item" asp-page="/Account/Security"><i class="bi bi-shield-lock"></i> Security</a></li>
-                                    <li><a class="dropdown-item" asp-page="/Account/TwoFactor"><i class="bi bi-lock-fill"></i> Two-Factor Auth</a></li>
+                                    @* <li><a class="dropdown-item" asp-page="/Account/Security"><i class="bi bi-shield-lock"></i> Security</a></li>
+                                    <li><a class="dropdown-item" asp-page="/Account/TwoFactor"><i class="bi bi-lock-fill"></i> Two-Factor Auth</a></li> *@
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
                                         <form method="post" asp-page="/Dashboard" asp-page-handler="Logout" style="display:inline;">
@@ -94,17 +147,28 @@
             </div>
         </nav>
     </header>
-    <div class="container">
+    @* <div class="container">
         <main role="main" class="pb-3">
             @RenderBody()
         </main>
-    </div>
+    </div> *@
 
-    <footer class="border-top footer text-muted mt-5">
+    @* <footer class="border-top footer text-muted mt-5">
         <div class="container">
-            &copy; 2026 - PMTool - <a asp-area="" asp-page="/Privacy">Privacy</a>
+            &copy; 2026 - PMTool - <a asp-area="" asp-page="/Privacy">Privacy</a> *@
+    <div class="@(User.Identity?.IsAuthenticated == true ? "pm-global-main" : "")">
+        <div class="pm-global-content container-fluid pt-4 px-4 pb-3">
+            <main role="main">
+                @RenderBody()
+            </main>
         </div>
-    </footer>
+    @* </footer> *@
+        <footer class="border-top footer text-muted mt-auto">
+            <div class="container-fluid px-4 py-3">
+                &copy; 2026 - PMTool - <a asp-area="" asp-page="/Privacy">Privacy</a>
+            </div>
+        </footer>
+    </div>
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
@@ -120,4 +184,28 @@
         color: #000 !important;
         border-color: #dee2e6 !important;
     }
+
+    .hover-header {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 24px;
+        z-index: 1040;
+    }
+
+    .hover-header .navbar {
+        transform: translateY(-100%);
+        opacity: 0;
+        border-bottom: none;
+        box-shadow: none;
+        transition: transform 0.25s ease, opacity 0.25s ease, left 0.2s ease, width 0.2s ease;
+    }
+
+    .hover-header:hover .navbar,
+    .hover-header:focus-within .navbar {
+        transform: translateY(0);
+        opacity: 1;
+    }
+
 </style>
