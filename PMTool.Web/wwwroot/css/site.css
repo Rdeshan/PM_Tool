@@ -35,19 +35,19 @@ body.with-navbar {
 
 /* ── Global Sidebar variables ── */
 :root {
-    --pm-green: #1a3c2e;
-    --pm-green-mid: #2d6a4f;
-    --pm-green-light: #52b788;
-    --pm-green-pale: #d8f3dc;
+
+    --pm-blue: #0f172a;
+    --pm-blue-mid: #1e40af;
+    --pm-blue-light: #60a5fa;
+    --pm-blue-pale: #eff6ff;
     --sidebar-width: 240px;
     --sidebar-collapsed-width: 70px;
 }
-
 /* ── Global Sidebar ── */
 .pm-global-sidebar {
     width: var(--sidebar-width);
     min-height: 100vh;
-    background: var(--pm-green);
+    background: var(--pm-blue);
     color: #fff;
     display: flex;
     flex-direction: column;
@@ -103,7 +103,7 @@ body.with-navbar {
 
         .pm-global-sidebar .nav-link:hover,
         .pm-global-sidebar .nav-link.active {
-            background: var(--pm-green-mid);
+            background: var(--pm-blue-mid);
             color: #fff;
         }
 
@@ -146,6 +146,96 @@ body.with-sidebar .navbar.fixed-top {
 body.sidebar-collapsed.with-sidebar .navbar.fixed-top {
     left: var(--sidebar-collapsed-width);
     width: calc(100% - var(--sidebar-collapsed-width));
+}
+
+/* Notifications dropdown */
+.notification-menu {
+    width: 320px;
+    padding: 0;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+}
+
+.notification-header {
+    padding: 12px 16px;
+    font-weight: 600;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.08);
+    background: #f8fafc;
+}
+
+.notification-list {
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.notification-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 12px 16px;
+    border-bottom: 1px solid rgba(15, 23, 42, 0.06);
+}
+
+.notification-item:last-child {
+    border-bottom: none;
+}
+
+.notification-text {
+    font-size: 13px;
+    color: #0f172a;
+}
+
+.notification-time {
+    font-size: 11px;
+    color: #64748b;
+    margin-top: 4px;
+}
+
+.notification-delete {
+    margin-left: auto;
+    background: transparent;
+    border: none;
+    color: #94a3b8;
+    padding: 0;
+}
+
+.notification-delete:hover {
+    color: #ef4444;
+}
+
+.notification-empty {
+    padding: 16px;
+    text-align: center;
+    font-size: 13px;
+    color: #94a3b8;
+}
+
+.notification-badge {
+    position: absolute;
+    top: 2px;
+    right: 2px;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 999px;
+    background: #ef4444;
+    color: #fff;
+    font-size: 10px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+}
+
+/* Shift content down when hover header reveals the navbar */
+.pm-global-content {
+    transition: margin-top 0.25s ease;
+    margin-top: 0;
+}
+
+.hover-header:hover ~ .pm-global-main .pm-global-content,
+.hover-header:focus-within ~ .pm-global-main .pm-global-content {
+    margin-top: 70px;
 }
 
 /* Adjust content padding under top navbar */

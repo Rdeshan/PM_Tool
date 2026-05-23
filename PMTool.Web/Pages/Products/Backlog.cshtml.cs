@@ -431,6 +431,8 @@ using PMTool.Application.DTOs.SubProject;
 using PMTool.Application.DTOs.Sprint;
 using PMTool.Application.DTOs.Board;
 using System.Security.Claims;
+using Microsoft.AspNetCore.SignalR;
+using PMTool.Web.Hubs;
 using PMTool.Application.DTOs.User;
 
 namespace PMTool.Web.Pages.Products;
@@ -447,6 +449,8 @@ public class BacklogModel : PageModel
     private readonly ISprintService _sprintService;
     private readonly IWorkTypeService _workTypeService;
     private readonly IBoardColumnService _boardColumnService;
+    private readonly INotificationService _notificationService;
+    private readonly IHubContext<NotificationsHub> _notificationsHub;
 
     public BacklogModel(
         IProjectService projectService,
@@ -456,7 +460,9 @@ public class BacklogModel : PageModel
         ISubProjectService subProjectService,
         ISprintService sprintService,
         IWorkTypeService workTypeService,
-        IBoardColumnService boardColumnService)
+        IBoardColumnService boardColumnService,
+        INotificationService notificationService,
+        IHubContext<NotificationsHub> notificationsHub)
     {
         _projectService = projectService;
         _productService = productService;
@@ -466,6 +472,8 @@ public class BacklogModel : PageModel
         _sprintService = sprintService;
         _workTypeService = workTypeService;
         _boardColumnService = boardColumnService;
+        _notificationService = notificationService;
+        _notificationsHub = notificationsHub;
     }
 
     // ── Page Properties ───────────────────────────────────────────────────────
@@ -676,6 +684,7 @@ public class BacklogModel : PageModel
         SetPermissions();
         if (!CanEditBacklog) return Forbid();
 
+        var existing = await _productBacklogService.GetItemByIdAsync(itemId);
         var request = new UpdateProductBacklogFieldRequest
         {
             ItemId = itemId,
@@ -684,7 +693,29 @@ public class BacklogModel : PageModel
         };
 
         var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
+        if (result != null)
+        {
+            await NotifyAssignmentAsync(existing?.OwnerId, result);
+        }
         return new JsonResult(new { success = result != null });
+    }
+
+    private async Task NotifyAssignmentAsync(Guid? previousOwnerId, ProductBacklogItemDTO updated)
+    {
+        if (!updated.OwnerId.HasValue || updated.OwnerId == previousOwnerId)
+        {
+            return;
+        }
+
+        var message = $"Assigned: {updated.Key} {updated.Title}".Trim();
+        var notification = await _notificationService.CreateAsync(updated.OwnerId.Value, message, updated.Id);
+        if (notification == null)
+        {
+            return;
+        }
+
+        await _notificationsHub.Clients.User(updated.OwnerId.Value.ToString())
+            .SendAsync("notificationReceived", notification);
     }
 
     // ── UPDATE TYPE (AJAX) ────────────────────────────────────────────────────

@@ -22,6 +22,7 @@ using PMTool.Infrastructure.Services.Interfaces;
 using PMTool.Infrastructure.Settings;
 using PMTool.Application.Interfaces;
 using PMTool.Application.Services.Subtask;
+using PMTool.Web.Hubs;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -77,6 +78,7 @@ builder.Services.AddScoped<IProjectBacklogRepository, ProjectBacklogRepository>(
 builder.Services.AddScoped<IProductBacklogRepository, ProductBacklogRepository>();
 builder.Services.AddScoped<IWorkTypeRepository, WorkTypeRepository>();
 builder.Services.AddScoped<IBoardColumnRepository, BoardColumnRepository>();
+builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IUserAdminRepository, UserAdminRepository>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 builder.Services.AddScoped<ISprintRepository, SprintRepository>();
@@ -93,6 +95,9 @@ builder.Services.AddScoped<IBacklogService, BacklogService>();
 builder.Services.AddScoped<IProductBacklogService, ProductBacklogService>();
 builder.Services.AddScoped<IWorkTypeService, WorkTypeService>();
 builder.Services.AddScoped<IBoardColumnService, PMTool.Application.Services.Board.BoardColumnService>();
+builder.Services.AddScoped<INotificationService, PMTool.Application.Services.Notifications.NotificationService>();
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<Microsoft.AspNetCore.SignalR.IUserIdProvider, PMTool.Web.Hubs.NameIdentifierUserIdProvider>();
 builder.Services.AddScoped<IUserAdminService, UserAdminService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<IDashboardService, DashboardService>();
@@ -139,5 +144,6 @@ app.UseAuthorization();
 app.MapStaticAssets();
 app.MapRazorPages()
    .WithStaticAssets();
+app.MapHub<NotificationsHub>("/hubs/notifications");
 
 app.Run();

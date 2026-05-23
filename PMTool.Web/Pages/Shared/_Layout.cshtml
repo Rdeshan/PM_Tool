@@ -112,7 +112,18 @@
                                 </li>
                             }
                         </ul> *@
-                        <ul class="navbar-nav ms-auto">
+                        <ul class="navbar-nav ms-auto align-items-center">
+                            <li class="nav-item dropdown me-2">
+                                <button class="btn nav-link text-light position-relative" id="notificationToggle" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-bell"></i>
+                                    <span class="notification-badge" id="notificationCount"></span>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end notification-menu" aria-labelledby="notificationToggle">
+                                    <div class="notification-header">Notifications</div>
+                                    <div id="notificationList" class="notification-list"></div>
+                                    <div id="notificationEmpty" class="notification-empty">No notifications</div>
+                                </div>
+                            </li>
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     <i class="bi bi-person-circle"></i> @(User.FindFirst(ClaimTypes.Email)?.Value ?? "User")
@@ -170,8 +181,13 @@
         </footer>
     </div>
 
+    <div class="d-none">
+        @Html.AntiForgeryToken()
+    </div>
+
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.5/dist/browser/signalr.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
 
     @await RenderSectionAsync("Scripts", required: false)

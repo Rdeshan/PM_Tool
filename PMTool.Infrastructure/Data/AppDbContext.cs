@@ -30,6 +30,7 @@ public class AppDbContext : DbContext
     public DbSet<SprintScopeChange> SprintScopeChanges { get; set; } = null!;
     public DbSet<WorkType> WorkTypes { get; set; } = null!;
     public DbSet<BoardColumn> BoardColumns { get; set; } = null!;
+    public DbSet<Notification> Notifications { get; set; } = null!;
     //sub task
     public DbSet<WorkItem> WorkItems { get; set; } = null!;
     public DbSet<SubTask> SubTasks { get; set; } = null!;
@@ -110,6 +111,25 @@ public class AppDbContext : DbContext
             entity.HasOne(e => e.Product)
                 .WithMany(p => p.BoardColumns)
                 .HasForeignKey(e => e.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Message)
+                .IsRequired()
+                .HasMaxLength(500);
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasIndex(e => new { e.UserId, e.CreatedAt });
+
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

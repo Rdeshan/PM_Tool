@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
 using PMTool.Application.DTOs.Backlog;
 using PMTool.Application.DTOs.Board;
 using PMTool.Application.DTOs.Sprint;
@@ -9,6 +10,7 @@ using PMTool.Application.Services.SubProject;
 using System.Security.Claims;
 
 using PMTool.Application.DTOs.User;
+using PMTool.Web.Hubs;
 
 namespace PMTool.Web.Pages.Products;
 
@@ -21,6 +23,8 @@ public class BoardModel : PageModel
     private readonly IProjectService _projectService;
     private readonly IUserAdminService _userService;
     private readonly IBoardColumnService _boardColumnService;
+    private readonly INotificationService _notificationService;
+    private readonly IHubContext<NotificationsHub> _notificationsHub;
     private readonly ISubProjectService _subProjectService;
 
     public BoardModel(
@@ -106,6 +110,10 @@ public class BoardModel : PageModel
         SetPermissions();
         if (!CanEditBoard) return Forbid();
 
+        var existing = field.Equals("owner", StringComparison.OrdinalIgnoreCase)
+            ? await _productBacklogService.GetItemByIdAsync(itemId)
+            : null;
+
         var request = new UpdateProductBacklogFieldRequest
         {
             ItemId = itemId,
@@ -114,12 +122,36 @@ public class BoardModel : PageModel
         };
 
         var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
+
+        if (result != null && field.Equals("owner", StringComparison.OrdinalIgnoreCase))
+        {
+            await NotifyAssignmentAsync(existing?.OwnerId, result);
+        }
+
         return new JsonResult(new { success = result != null });
     }
 
     public async Task<IActionResult> OnPostUpdateOwnerAsync(Guid itemId, Guid? ownerId)
     {
         return await OnPostUpdateFieldAsync(itemId, "owner", ownerId?.ToString() ?? "");
+    }
+
+    private async Task NotifyAssignmentAsync(Guid? previousOwnerId, ProductBacklogItemDTO updated)
+    {
+        if (!updated.OwnerId.HasValue || updated.OwnerId == previousOwnerId)
+        {
+            return;
+        }
+
+        var message = $"Assigned: {updated.Key} {updated.Title}".Trim();
+        var notification = await _notificationService.CreateAsync(updated.OwnerId.Value, message, updated.Id);
+        if (notification == null)
+        {
+            return;
+        }
+
+        await _notificationsHub.Clients.User(updated.OwnerId.Value.ToString())
+            .SendAsync("notificationReceived", notification);
     }
 
     // ── Update item status (drag-drop from board) ─────────────────────────────
