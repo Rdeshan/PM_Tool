@@ -246,6 +246,7 @@ public class BacklogService : IBacklogService
             Id = item.Id,
             ProjectId = item.ProjectId,
             ProductId = item.ProductId,
+            SubProjectId = item.SubProjectId,
             ParentBacklogItemId = item.ParentBacklogItemId,
             OwnerId = item.OwnerId,
             OwnerName = item.Owner == null ? null : $"{item.Owner.FirstName} {item.Owner.LastName}".Trim(),

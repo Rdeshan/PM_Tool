@@ -9,6 +9,7 @@ using PMTool.Application.DTOs.SubProject;
 using PMTool.Application.DTOs.Sprint;
 using PMTool.Application.Interfaces;
 using PMTool.Application.Services.SubProject;
+using PMTool.Domain.Enums;
 
 namespace PMTool.Web.Pages.Products;
 
@@ -17,6 +18,7 @@ public class SummaryModel : PageModel
     private readonly IProjectService _projectService;
     private readonly IProductService _productService;
     private readonly IProductBacklogService _productBacklogService;
+    private readonly IBacklogService _backlogService;
     private readonly ISubProjectService _subProjectService;
     private readonly ISprintService _sprintService;
 
@@ -24,12 +26,14 @@ public class SummaryModel : PageModel
         IProjectService projectService,
         IProductService productService,
         IProductBacklogService productBacklogService,
+        IBacklogService backlogService,
         ISubProjectService subProjectService,
         ISprintService sprintService)
     {
         _projectService = projectService;
         _productService = productService;
         _productBacklogService = productBacklogService;
+        _backlogService = backlogService;
         _subProjectService = subProjectService;
         _sprintService = sprintService;
     }
@@ -49,6 +53,12 @@ public class SummaryModel : PageModel
     public string WorkloadUnit { get; set; } = "Story points";
     public List<MilestoneProgress> Milestones { get; set; } = new();
     public TrendData BugTrend { get; set; } = new();
+    public List<SubProjectDTO> SubProjects { get; set; } = new();
+    public List<SprintDTO> Sprints { get; set; } = new();
+    public List<RtmRow> RtmRows { get; set; } = new();
+    public List<DependencyItem> TicketDependencies { get; set; } = new();
+    public List<SubProjectDependencyItem> SubProjectDependencies { get; set; } = new();
+    public List<TeamOption> TeamOptions { get; set; } = new();
 
     public async Task<IActionResult> OnGetAsync(Guid projectId, Guid id)
     {
@@ -63,16 +73,175 @@ public class SummaryModel : PageModel
         ProductName = product.VersionName;
 
         var backlogItems = await _productBacklogService.GetBacklogItemsAsync(ProductId, null);
+        var projectBacklogItems = await _backlogService.GetBacklogItemsAsync(ProjectId, ProductId, null, null);
         var subProjects = await _subProjectService.GetSubProjectsByProductAsync(ProductId);
         var activeSprint = await _sprintService.GetActiveSprintAsync(ProductId);
+        var sprints = await _sprintService.GetSprintsByProductAsync(ProductId);
 
         StatusDistribution = BuildStatusDistribution(backlogItems);
         CategoryBreakdown = BuildCategoryBreakdown(backlogItems);
         BuildTeamWorkload(backlogItems, activeSprint);
         Milestones = BuildMilestoneProgress(backlogItems, subProjects);
         BugTrend = BuildBugTrend(backlogItems);
+        SubProjects = subProjects;
+        Sprints = sprints;
+        RtmRows = BuildRtmRows(projectBacklogItems);
+        TicketDependencies = BuildTicketDependencies(backlogItems, subProjects);
+        SubProjectDependencies = BuildSubProjectDependencies(subProjects);
+        TeamOptions = BuildTeamOptions(subProjects);
 
         return Page();
+    }
+
+    private static List<RtmRow> BuildRtmRows(List<BacklogItemDTO> items)
+    {
+        var requirements = items.Where(i => i.Type == (int)BacklogItemType.BRD).ToList();
+        var useCases = items.Where(i => i.Type == (int)BacklogItemType.UseCase).ToList();
+        var userStories = items.Where(i => i.Type == (int)BacklogItemType.UserStory).ToList();
+        var testCases = items.Where(i => i.Type == (int)BacklogItemType.TestCase).ToList();
+
+        var ticketTypes = new HashSet<int>
+        {
+            (int)BacklogItemType.Bug,
+            (int)BacklogItemType.Feature,
+            (int)BacklogItemType.Improvement,
+            (int)BacklogItemType.ChangeRequest,
+            (int)BacklogItemType.Epic
+        };
+
+        var tickets = items.Where(i => ticketTypes.Contains(i.Type)).ToList();
+        var rows = new List<RtmRow>();
+
+        foreach (var requirement in requirements)
+        {
+            var linkedUseCases = useCases.Where(u => u.ParentBacklogItemId == requirement.Id).DefaultIfEmpty();
+            foreach (var useCase in linkedUseCases)
+            {
+                var useCaseId = useCase?.Id;
+                var linkedStories = userStories.Where(us => us.ParentBacklogItemId == useCaseId || us.ParentBacklogItemId == requirement.Id).DefaultIfEmpty();
+
+                foreach (var story in linkedStories)
+                {
+                    var storyId = story?.Id;
+                    var linkedTickets = tickets.Where(t => t.ParentBacklogItemId == storyId || t.ParentBacklogItemId == useCaseId || t.ParentBacklogItemId == requirement.Id).ToList();
+                    var linkedTests = testCases.Where(tc => tc.ParentBacklogItemId == storyId || tc.ParentBacklogItemId == useCaseId || tc.ParentBacklogItemId == requirement.Id).ToList();
+
+                    if (linkedTickets.Count == 0)
+                    {
+                        rows.Add(BuildRtmRow(requirement, useCase, story, linkedTests, null, true, false));
+                        continue;
+                    }
+
+                    foreach (var ticket in linkedTickets)
+                    {
+                        rows.Add(BuildRtmRow(requirement, useCase, story, linkedTests, ticket, false, false));
+                    }
+                }
+            }
+        }
+
+        var requirementIds = new HashSet<Guid>(requirements.Select(r => r.Id));
+        var linkedTicketIds = new HashSet<Guid>(rows.Where(r => r.TicketId.HasValue).Select(r => r.TicketId!.Value));
+
+        foreach (var ticket in tickets.Where(t => !linkedTicketIds.Contains(t.Id)))
+        {
+            rows.Add(new RtmRow
+            {
+                RequirementId = "Unlinked",
+                RequirementDescription = "No linked requirement",
+                UseCaseNumber = string.Empty,
+                UserStory = string.Empty,
+                LinkedTickets = ShortId(ticket.Id, "TCK"),
+                TicketStatus = ticket.StatusName,
+                TestCaseNumber = string.Empty,
+                TestStatus = string.Empty,
+                MissingRequirement = !requirementIds.Contains(ticket.ParentBacklogItemId ?? Guid.Empty),
+                MissingTicket = false,
+                SubProjectId = ticket.SubProjectId,
+                TicketId = ticket.Id
+            });
+        }
+
+        return rows;
+    }
+
+    private static RtmRow BuildRtmRow(
+        BacklogItemDTO requirement,
+        BacklogItemDTO? useCase,
+        BacklogItemDTO? userStory,
+        List<BacklogItemDTO> tests,
+        BacklogItemDTO? ticket,
+        bool missingTicket,
+        bool missingRequirement)
+    {
+        return new RtmRow
+        {
+            RequirementId = ShortId(requirement.Id, "REQ"),
+            RequirementDescription = string.IsNullOrWhiteSpace(requirement.Description)
+                ? requirement.Title
+                : requirement.Description,
+            UseCaseNumber = useCase == null ? string.Empty : ShortId(useCase.Id, "UC"),
+            UserStory = userStory == null ? string.Empty : userStory.Title,
+            LinkedTickets = ticket == null ? string.Empty : ShortId(ticket.Id, "TCK") + " " + ticket.Title,
+            TicketStatus = ticket?.StatusName ?? string.Empty,
+            TestCaseNumber = tests.Count == 0 ? string.Empty : string.Join(", ", tests.Select(tc => ShortId(tc.Id, "TC"))),
+            TestStatus = tests.Count == 0 ? string.Empty : string.Join(", ", tests.Select(tc => tc.StatusName)),
+            MissingTicket = missingTicket,
+            MissingRequirement = missingRequirement,
+            SubProjectId = ticket?.SubProjectId ?? userStory?.SubProjectId ?? useCase?.SubProjectId ?? requirement.SubProjectId,
+            TicketId = ticket?.Id
+        };
+    }
+
+    private static List<DependencyItem> BuildTicketDependencies(
+        List<ProductBacklogItemDTO> items,
+        List<SubProjectDTO> subProjects)
+    {
+        var teamMap = subProjects
+            .SelectMany(sp => sp.Teams.Select(t => (sp.Id, t.TeamId)))
+            .GroupBy(x => x.Id)
+            .ToDictionary(g => g.Key, g => g.Select(x => x.TeamId).Distinct().ToList());
+
+        return items.Select(item => new DependencyItem
+        {
+            Id = item.Id,
+            ShortId = ShortId(item.Id, "PB"),
+            Title = item.Title,
+            Status = item.Status,
+            StatusName = item.StatusName,
+            SubProjectId = item.SubProjectId,
+            SprintId = item.SprintId,
+            ParentId = item.ParentBacklogItemId,
+            TeamIds = item.SubProjectId.HasValue && teamMap.TryGetValue(item.SubProjectId.Value, out var teams)
+                ? teams
+                : new List<Guid>()
+        }).ToList();
+    }
+
+    private static List<SubProjectDependencyItem> BuildSubProjectDependencies(List<SubProjectDTO> subProjects)
+    {
+        return subProjects.Select(sp => new SubProjectDependencyItem
+        {
+            Id = sp.Id,
+            Name = sp.Name,
+            Status = sp.Status,
+            DependsOnIds = sp.Dependencies.Select(d => d.DependsOnSubProjectId).ToList()
+        }).ToList();
+    }
+
+    private static List<TeamOption> BuildTeamOptions(List<SubProjectDTO> subProjects)
+    {
+        return subProjects
+            .SelectMany(sp => sp.Teams)
+            .GroupBy(t => t.TeamId)
+            .Select(g => new TeamOption { TeamId = g.Key, TeamName = g.First().TeamName })
+            .OrderBy(t => t.TeamName)
+            .ToList();
+    }
+
+    private static string ShortId(Guid id, string prefix)
+    {
+        return $"{prefix}-{id.ToString("N")[..8].ToUpperInvariant()}";
     }
 
     private static ChartData BuildStatusDistribution(IEnumerable<ProductBacklogItemDTO> items)
@@ -218,5 +387,48 @@ public class SummaryModel : PageModel
         public int Completed { get; set; }
         public int Total { get; set; }
         public int Percent { get; set; }
+    }
+
+    public class RtmRow
+    {
+        public string RequirementId { get; set; } = string.Empty;
+        public string RequirementDescription { get; set; } = string.Empty;
+        public string UseCaseNumber { get; set; } = string.Empty;
+        public string UserStory { get; set; } = string.Empty;
+        public string LinkedTickets { get; set; } = string.Empty;
+        public string TicketStatus { get; set; } = string.Empty;
+        public string TestCaseNumber { get; set; } = string.Empty;
+        public string TestStatus { get; set; } = string.Empty;
+        public bool MissingTicket { get; set; }
+        public bool MissingRequirement { get; set; }
+        public Guid? SubProjectId { get; set; }
+        public Guid? TicketId { get; set; }
+    }
+
+    public class DependencyItem
+    {
+        public Guid Id { get; set; }
+        public string ShortId { get; set; } = string.Empty;
+        public string Title { get; set; } = string.Empty;
+        public int Status { get; set; }
+        public string StatusName { get; set; } = string.Empty;
+        public Guid? SubProjectId { get; set; }
+        public Guid? SprintId { get; set; }
+        public Guid? ParentId { get; set; }
+        public List<Guid> TeamIds { get; set; } = new();
+    }
+
+    public class SubProjectDependencyItem
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public int Status { get; set; }
+        public List<Guid> DependsOnIds { get; set; } = new();
+    }
+
+    public class TeamOption
+    {
+        public Guid TeamId { get; set; }
+        public string TeamName { get; set; } = string.Empty;
     }
 }
