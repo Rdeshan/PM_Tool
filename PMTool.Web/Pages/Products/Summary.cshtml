@@ -1,0 +1,255 @@
+﻿@page
+@using System.Text.Json
+@model PMTool.Web.Pages.Products.SummaryModel
+@{
+    Layout = "_Layout";
+    ViewData["Title"] = "Product Summary";
+}
+
+<style>
+    .summary-card { border: 1px solid #e6e8ec; border-radius: 12px; box-shadow: 0 6px 16px rgba(9, 30, 66, 0.06); }
+    .summary-card .card-header { background: #fff; border-bottom: 1px solid #edf0f3; font-weight: 600; color: #172b4d; }
+    .summary-chart { height: 280px; }
+    .milestone-list { display: flex; flex-direction: column; gap: 12px; }
+    .milestone-title { font-size: 13px; font-weight: 600; color: #172b4d; }
+    .milestone-meta { font-size: 11px; color: #6b778c; }
+</style>
+
+<div class="container-fluid mt-3">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <h5 class="mb-0 fw-bold">@Model.ProductName Summary</h5>
+        <ul class="nav nav-pills mb-0">
+            <li class="nav-item">
+                <a class="nav-link active"
+                   asp-page="/Products/Summary"
+                   asp-route-projectId="@Model.ProjectId"
+                   asp-route-id="@Model.ProductId">
+                    Summary
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link"
+                   asp-page="/Products/Backlog"
+                   asp-route-projectId="@Model.ProjectId"
+                   asp-route-id="@Model.ProductId">
+                    Backlog
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link"
+                   asp-page="/Products/Board"
+                   asp-route-projectId="@Model.ProjectId"
+                   asp-route-id="@Model.ProductId">
+                    Board
+                </a>
+            </li>
+        </ul>
+        <a class="btn btn-sm btn-secondary"
+           asp-page="/Products/Details"
+           asp-route-projectId="@Model.ProjectId"
+           asp-route-id="@Model.ProductId">
+            <i class="bi bi-arrow-left"></i> Back
+        </a>
+    </div>
+
+    <div class="row g-4">
+
+        <div class="col-lg-4">
+            <div class="card summary-card h-100">
+                <div class="card-header">Ticket category breakdown</div>
+                <div class="card-body">
+                    <canvas id="categoryChart" class="summary-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card summary-card h-100">
+                <div class="card-header">Team workload (@Model.WorkloadUnit)</div>
+                <div class="card-body">
+                    <canvas id="workloadChart" class="summary-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-12">
+            <div class="card summary-card">
+                <div class="card-header d-flex align-items-center justify-content-between">
+                    <span>Bug trend</span>
+                    <select class="form-select form-select-sm" style="width:140px;" id="bugTrendRange">
+                        <option value="4">Last 4 weeks</option>
+                        <option value="8">Last 8 weeks</option>
+                        <option value="12" selected>Last 12 weeks</option>
+                    </select>
+                </div>
+                <div class="card-body">
+                    <canvas id="bugTrendChart" class="summary-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-12">
+            <div class="card summary-card">
+                <div class="card-header">Milestone progress</div>
+                <div class="card-body">
+                    @if (Model.Milestones.Count == 0)
+                    {
+                        <div class="text-muted">No milestone data yet.</div>
+                    }
+                    else
+                    {
+                        <div class="milestone-list">
+                            @foreach (var milestone in Model.Milestones)
+                            {
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <div class="milestone-title">@milestone.Name</div>
+                                        <div class="milestone-meta">@milestone.Completed / @milestone.Total</div>
+                                    </div>
+                                    <div class="progress" style="height:10px;">
+                                        <div class="progress-bar bg-success" role="progressbar" style="width:@milestone.Percent%"></div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+    const categoryData = @Html.Raw(JsonSerializer.Serialize(Model.CategoryBreakdown, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+    const workloadData = @Html.Raw(JsonSerializer.Serialize(Model.TeamWorkload,      new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+    const bugTrendData = @Html.Raw(JsonSerializer.Serialize(Model.BugTrend,          new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+
+    // ── Category chart (vertical bars) ───────────────────────────────────────
+    // backgroundColor: array = one colour per bar
+    // barPercentage + categoryPercentage control column width
+    const categoryCtx = document.getElementById('categoryChart');
+    if (categoryCtx) {
+        const categoryColors      = ['#F09595', '#85B7EB', '#AFA9EC', '#9FE1CB', '#D3D1C7'];
+        const categoryHoverColors = ['#e07070', '#5a9fd4', '#8f87d4', '#6fcfad', '#b0aea6'];
+
+        new Chart(categoryCtx, {
+            type: 'bar',
+            data: {
+                labels: categoryData.labels,
+                datasets: [{
+                    data: categoryData.values,
+                    backgroundColor:      categoryData.labels.map((_, i) => categoryColors[i % categoryColors.length]),
+                    hoverBackgroundColor: categoryData.labels.map((_, i) => categoryHoverColors[i % categoryHoverColors.length]),
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    barPercentage: 0.4,        // ← bar width within its slot  (0.1 thin → 1.0 full)
+                    categoryPercentage: 0.7    // ← slot width within tick gap (0.1 → 1.0)
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // ── Workload chart (horizontal bars) ─────────────────────────────────────
+    const workloadCtx = document.getElementById('workloadChart');
+    if (workloadCtx) {
+        new Chart(workloadCtx, {
+            type: 'bar',
+            data: {
+                labels: workloadData.labels,
+                datasets: [{
+                    data: workloadData.values,
+                    backgroundColor: '#7F77DD',       // ← single colour for all bars
+                    hoverBackgroundColor: '#534AB7',  // ← darker on hover
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    barPercentage: 0.6,        // ← bar height within its slot
+                    categoryPercentage: 0.8    // ← slot height within tick gap
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: 'y',
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    y: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    // ── Bug trend chart (line) ────────────────────────────────────────────────
+    const bugTrendCtx = document.getElementById('bugTrendChart');
+    let bugTrendChart;
+
+    function updateBugTrend(range) {
+        const rangeInt = parseInt(range, 10);
+        const labels = bugTrendData.labels.slice(-rangeInt);
+        const opened = bugTrendData.opened.slice(-rangeInt);
+        const closed = bugTrendData.closed.slice(-rangeInt);
+
+        if (bugTrendChart) {
+            bugTrendChart.data.labels            = labels;
+            bugTrendChart.data.datasets[0].data  = opened;
+            bugTrendChart.data.datasets[1].data  = closed;
+            bugTrendChart.update();
+            return;
+        }
+
+        bugTrendChart = new Chart(bugTrendCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [
+                    {
+                        label: 'Opened',
+                        data: opened,
+                        borderColor: '#E24B4A',
+                        backgroundColor: 'rgba(226,75,74,0.08)',
+                        tension: 0.35,
+                        pointRadius: 3,
+                        fill: true
+                    },
+                    {
+                        label: 'Closed',
+                        data: closed,
+                        borderColor: '#1D9E75',
+                        backgroundColor: 'rgba(29,158,117,0.08)',
+                        tension: 0.35,
+                        pointRadius: 3,
+                        fill: true,
+                        borderDash: [5, 4]
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } },
+                scales: {
+                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' } },
+                    x: { grid: { display: false } }
+                }
+            }
+        });
+    }
+
+    if (bugTrendCtx) {
+        updateBugTrend(document.getElementById('bugTrendRange').value);
+        document.getElementById('bugTrendRange').addEventListener('change', function () {
+            updateBugTrend(this.value);
+        });
+    }
+</script>

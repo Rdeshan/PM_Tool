@@ -14,6 +14,7 @@
 
     ViewData["Title"] = "Product Backlog";
     var defaultWorkType = Model.WorkTypes.FirstOrDefault();
+    var hasActiveSprint = Model.Sprints.Any(s => s.Status == 2);
 }
 
 @functions {
@@ -56,9 +57,9 @@
     .create-btn-main { background: #0052cc; color: #fff; border: none; border-radius: 3px; padding: 5px 12px; font-size: 12px; cursor: pointer; font-weight: 500; }
     .create-btn-main:hover { background: #0747a6; }
     .backlog-table-wrap { background: #fff; border-radius: 4px; border: 0.5px solid #e0e0e0; overflow: visible; }
-    .backlog-table-wrap table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    .backlog-table-wrap table { width: 100%; border-collapse: collapse; table-layout: auto; }
     .backlog-table-wrap th { font-size: 11px; font-weight: 500; color: #6b778c; padding: 8px 8px; border-bottom: 0.5px solid #e0e0e0; text-align: left; background: #fafbfc; white-space: nowrap; }
-    .backlog-table-wrap td { padding: 0 8px; border-bottom: 0.5px solid #f0f0f0; vertical-align: middle; height: 42px; font-size: 12px; }
+    .backlog-table-wrap td { padding: 0 8px; border-bottom: 0.5px solid #f0f0f0; vertical-align: middle; height: 42px; font-size: 12px; word-break: break-word; }
     .backlog-table-wrap tr:last-child td { border-bottom: none; }
     .backlog-table-wrap tbody tr:hover td { background: #f8f9fa; }
     .pill-status { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 3px; font-size: 11px; font-weight: 600; cursor: pointer; border: none; letter-spacing: 0.02em; white-space: nowrap; }
@@ -294,7 +295,8 @@
                     {
                         <button class="btn btn-sm btn-primary"
                                 onclick="openStartSprintModal('@sprint.Id','@HtmlEncoder.Default.Encode(sprint.Name)','@sprint.StartDate.ToString("yyyy-MM-dd")','@sprint.EndDate.ToString("yyyy-MM-dd")','@HtmlEncoder.Default.Encode(sprint.Goal)')"
-                                id="startSprintBtn_@sprint.Id">
+                                id="startSprintBtn_@sprint.Id"
+                                @(hasActiveSprint ? "disabled" : string.Empty)>
                             Start sprint
                         </button>
                     }
@@ -317,7 +319,7 @@
                         <col style="width:32px;" />
                         <col style="width:28px;" />
                         <col />
-                        <col style="width:900px;" />
+                        <col style="width:35%;" />
                         <col style="width:110px;" />
                         <col style="width:80px;" />
                         <col style="width:64px;" />
@@ -482,7 +484,7 @@
                             <th style="width:32px;"><input type="checkbox" id="selectAll" /></th>
                             <th style="width:28px;"></th>
                             <th>Title</th>
-                            <th style="width:900px; text-align:center;">Subproject</th>
+                            <th style="width:35%; text-align:center;">Subproject</th>
                             <th style="width:110px;">Status</th>
                             <th style="width:80px;">Assignee</th>
                             <th style="width:64px;">Points</th>
@@ -1243,7 +1245,7 @@ function setCreateOwner(id, name, e) {
     closeDds();
 }
 
-// ─── Create bar: Calendar ─────────────────────────────────────────────────────
+// ─── Create bar: Calendar ─────────────────────----──────────────────────────
 function toggleCreateCal(e) {
     if (e) e.stopPropagation();
     const panel = document.getElementById('createCalPanel');
