@@ -845,6 +845,12 @@ public class BacklogModel : PageModel
         SetPermissions();
         if (!CanEditBacklog) return Forbid();
 
+        var activeSprint = await _sprintService.GetActiveSprintAsync(ProductId);
+        if (activeSprint != null && activeSprint.Id != request.SprintId)
+        {
+            return new JsonResult(new { success = false, message = "An active sprint already exists. Complete it before starting another." });
+        }
+
         var sprint = await _sprintService.StartSprintAsync(request.SprintId, request.StartDate, request.EndDate);
         if (sprint == null)
             return new JsonResult(new { success = false, message = "Sprint not found" });
