@@ -22,6 +22,12 @@ public class ProductBacklogService : IProductBacklogService
         _userRepository = userRepository;
     }
 
+    public async Task<ProductBacklogItemDTO?> GetItemByIdAsync(Guid itemId)
+    {
+        var item = await _backlogRepository.GetByIdAsync(itemId);
+        return item == null ? null : MapToDto(item);
+    }
+
     public async Task<List<ProductBacklogItemDTO>> GetBacklogItemsAsync(Guid productId, int? status)
     {
         var items = await _backlogRepository.GetByFilterAsync(productId, status);
@@ -274,6 +280,8 @@ public class ProductBacklogService : IProductBacklogService
         {
             Id = subtask.Id,
             ParentId = subtask.ParentId,
+            ProductBacklogId = subtask.ProductBacklogId,
+            ProjectBacklogId = subtask.ProjectBacklogId,
             Title = subtask.Title,
             Priority = subtask.Priority,
             PriorityName = subtask.Priority switch

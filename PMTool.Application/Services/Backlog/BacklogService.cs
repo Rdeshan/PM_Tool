@@ -196,6 +196,8 @@ public class BacklogService : IBacklogService
         {
             Id = subtask.Id,
             ParentId = subtask.ParentId,
+            ProductBacklogId = subtask.ProductBacklogId,
+            ProjectBacklogId = subtask.ProjectBacklogId,
             Title = subtask.Title,
             Priority = subtask.Priority,
             PriorityName = subtask.Priority switch
@@ -268,6 +270,8 @@ public class BacklogService : IBacklogService
             {
                 Id = s.Id,
                 ParentId = s.ParentId,
+                    ProductBacklogId = s.ProductBacklogId,
+                    ProjectBacklogId = s.ProjectBacklogId,
                 Title = s.Title,
                 Priority = s.Priority,
                 PriorityName = s.Priority switch

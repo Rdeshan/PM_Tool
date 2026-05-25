@@ -201,7 +201,23 @@ public class SubProjectService : ISubProjectService
         }).ToList() ?? new List<SubProjectDependencyDTO>();
 
         var ticketCount = subProject.Backlog?.Count ?? 0;
-        var completedTickets = subProject.Backlog?.Count(pb => pb.Status == 3) ?? 0;
+        var completedTickets = subProject.Backlog?.Count(pb => pb.Status == 4) ?? 0; // 4 = Done
+
+        double totalContribution = 0;
+        if (subProject.Backlog != null)
+        {
+            foreach (var pb in subProject.Backlog)
+            {
+                totalContribution += pb.Status switch
+                {
+                    1 => 0.0,   // To Do: 0% contribution
+                    2 => 0.2,   // In Progress: 20% contribution
+                    3 => 0.5,   // In Review: 50% contribution
+                    4 => 1.0,   // Done: 100% contribution (fills progress bar fully)
+                    _ => 0.0
+                };
+            }
+        }
 
         return new SubProjectDTO
         {
@@ -215,7 +231,7 @@ public class SubProjectService : ISubProjectService
             StartDate = subProject.StartDate,
             DueDate = subProject.DueDate,
             ColorCode = subProject.ColorCode,
-            Progress = subProject.Progress,
+            Progress = ticketCount > 0 ? (int)Math.Round((totalContribution * 100) / ticketCount) : subProject.Progress,
             TicketCount = ticketCount,
             CompletedTicketCount = completedTickets,
             Teams = teams,

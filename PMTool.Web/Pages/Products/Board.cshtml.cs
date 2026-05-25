@@ -1,12 +1,16 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.AspNetCore.SignalR;
 using PMTool.Application.DTOs.Backlog;
+using PMTool.Application.DTOs.Board;
 using PMTool.Application.DTOs.Sprint;
 using PMTool.Application.Interfaces;
+using PMTool.Application.Services.SubProject;
 using System.Security.Claims;
 
 using PMTool.Application.DTOs.User;
+using PMTool.Web.Hubs;
 
 namespace PMTool.Web.Pages.Products;
 
@@ -18,19 +22,27 @@ public class BoardModel : PageModel
     private readonly IProductService _productService;
     private readonly IProjectService _projectService;
     private readonly IUserAdminService _userService;
+    private readonly IBoardColumnService _boardColumnService;
+    private readonly INotificationService _notificationService;
+    private readonly IHubContext<NotificationsHub> _notificationsHub;
+    private readonly ISubProjectService _subProjectService;
 
     public BoardModel(
         ISprintService sprintService,
         IProductBacklogService productBacklogService,
         IProductService productService,
         IProjectService projectService,
-        IUserAdminService userService)
+        IUserAdminService userService,
+        IBoardColumnService boardColumnService,
+        ISubProjectService subProjectService)
     {
         _sprintService         = sprintService;
         _productBacklogService = productBacklogService;
         _productService        = productService;
         _projectService        = projectService;
         _userService           = userService;
+        _boardColumnService    = boardColumnService;
+        _subProjectService     = subProjectService;
     }
 
     // ── Page properties ───────────────────────────────────────────────────────
@@ -50,7 +62,9 @@ public class BoardModel : PageModel
     public List<ProductBacklogItemDTO> InProgressItems{ get; set; } = new();
     public List<ProductBacklogItemDTO> InReviewItems  { get; set; } = new();
     public List<ProductBacklogItemDTO> DoneItems       { get; set; } = new();
+    public List<ProductBacklogItemDTO> OtherItems      { get; set; } = new();
     public List<UserDTO> ActiveUsers { get; set; } = new();
+    public List<BoardColumnDTO> CustomBoardColumns { get; set; } = new();
 
     // ── Permissions ───────────────────────────────────────────────────────────
 
@@ -73,13 +87,16 @@ public class BoardModel : PageModel
         ProductName = product.VersionName;
 
         ActiveSprint = await _sprintService.GetActiveSprintAsync(ProductId);
+        CustomBoardColumns = await _boardColumnService.GetColumnsByProductAsync(ProductId);
 
         if (ActiveSprint?.BacklogItems != null)
         {
-            TodoItems       = ActiveSprint.BacklogItems.Where(x => x.Status == 1 || x.Status == 0).OrderBy(x => x.Priority).ToList();
-            InProgressItems = ActiveSprint.BacklogItems.Where(x => x.Status == 2).OrderBy(x => x.Priority).ToList();
-            InReviewItems   = ActiveSprint.BacklogItems.Where(x => x.Status == 3).OrderBy(x => x.Priority).ToList();
-            DoneItems       = ActiveSprint.BacklogItems.Where(x => x.Status == 4).OrderBy(x => x.Priority).ToList();
+            var allItems = ActiveSprint.BacklogItems.OrderBy(x => x.Priority).ToList();
+            TodoItems       = allItems.Where(x => x.Status == 1 || x.Status == 0).ToList();
+            InProgressItems = allItems.Where(x => x.Status == 2).ToList();
+            InReviewItems   = allItems.Where(x => x.Status == 3).ToList();
+            DoneItems       = allItems.Where(x => x.Status == 4).ToList();
+            OtherItems      = allItems.Where(x => x.Status < 1 || x.Status > 4).ToList();
         }
 
         var users = await _userService.GetActiveUsersAsync() ?? new List<UserDTO>();
@@ -93,6 +110,10 @@ public class BoardModel : PageModel
         SetPermissions();
         if (!CanEditBoard) return Forbid();
 
+        var existing = field.Equals("owner", StringComparison.OrdinalIgnoreCase)
+            ? await _productBacklogService.GetItemByIdAsync(itemId)
+            : null;
+
         var request = new UpdateProductBacklogFieldRequest
         {
             ItemId = itemId,
@@ -101,6 +122,12 @@ public class BoardModel : PageModel
         };
 
         var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
+
+        if (result != null && field.Equals("owner", StringComparison.OrdinalIgnoreCase))
+        {
+            await NotifyAssignmentAsync(existing?.OwnerId, result);
+        }
+
         return new JsonResult(new { success = result != null });
     }
 
@@ -109,11 +136,49 @@ public class BoardModel : PageModel
         return await OnPostUpdateFieldAsync(itemId, "owner", ownerId?.ToString() ?? "");
     }
 
+    private async Task NotifyAssignmentAsync(Guid? previousOwnerId, ProductBacklogItemDTO updated)
+    {
+        if (!updated.OwnerId.HasValue || updated.OwnerId == previousOwnerId)
+        {
+            return;
+        }
+
+        var message = $"Assigned: {updated.Key} {updated.Title}".Trim();
+        var notification = await _notificationService.CreateAsync(updated.OwnerId.Value, message, updated.Id);
+        if (notification == null)
+        {
+            return;
+        }
+
+        await _notificationsHub.Clients.User(updated.OwnerId.Value.ToString())
+            .SendAsync("notificationReceived", notification);
+    }
+
     // ── Update item status (drag-drop from board) ─────────────────────────────
 
     public async Task<IActionResult> OnPostUpdateItemStatusAsync(Guid itemId, int status)
     {
-        return await OnPostUpdateFieldAsync(itemId, "status", status.ToString());
+        SetPermissions();
+        if (!CanEditBoard) return Forbid();
+
+        // Fetch item first so we know its SubProjectId
+        var item = await _productBacklogService.GetItemByIdAsync(itemId);
+
+        var request = new UpdateProductBacklogFieldRequest
+        {
+            ItemId = itemId,
+            Field  = "status",
+            Value  = status.ToString()
+        };
+        var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
+
+        // Recalculate sub-project progress whenever a board item changes status
+        if (result != null && item?.SubProjectId.HasValue == true)
+        {
+            await _subProjectService.UpdateProgressAsync(item.SubProjectId.Value);
+        }
+
+        return new JsonResult(new { success = result != null });
     }
 
     // ── Complete sprint from Board ────────────────────────────────────────────
@@ -140,7 +205,16 @@ public class BoardModel : PageModel
         SetPermissions();
         if (!CanEditBoard) return Forbid();
 
+        var existing = await _productBacklogService.GetItemByIdAsync(itemId);
+        var subProjectId = existing?.SubProjectId;
+
         var success = await _productBacklogService.DeleteItemAsync(itemId);
+
+        if (success && subProjectId.HasValue)
+        {
+            await _subProjectService.UpdateProgressAsync(subProjectId.Value);
+        }
+
         return new JsonResult(new { success });
     }
 
@@ -165,5 +239,34 @@ public class BoardModel : PageModel
 
         var result = await _productBacklogService.CreateBacklogItemAsync(request);
         return new JsonResult(new { success = result != null });
+    }
+
+    public async Task<IActionResult> OnPostCreateBoardColumnAsync([FromBody] CreateBoardColumnRequest request)
+    {
+        SetPermissions();
+        if (!CanEditBoard) return Forbid();
+
+        request.ProductId = request.ProductId == Guid.Empty ? ProductId : request.ProductId;
+        var created = await _boardColumnService.CreateColumnAsync(request);
+        return new JsonResult(new { success = created != null, column = created });
+    }
+
+    public async Task<IActionResult> OnPostUpdateBoardColumnAsync([FromBody] UpdateBoardColumnRequest request)
+    {
+        SetPermissions();
+        if (!CanEditBoard) return Forbid();
+
+        request.ProductId = request.ProductId == Guid.Empty ? ProductId : request.ProductId;
+        var success = await _boardColumnService.UpdateColumnAsync(request);
+        return new JsonResult(new { success });
+    }
+
+    public async Task<IActionResult> OnPostDeleteBoardColumnAsync(int statusValue)
+    {
+        SetPermissions();
+        if (!CanEditBoard) return Forbid();
+
+        var success = await _boardColumnService.DeleteColumnAsync(ProductId, statusValue);
+        return new JsonResult(new { success });
     }
 }

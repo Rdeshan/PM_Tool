@@ -1,5 +1,6 @@
 @page "{projectId:guid}/{id:guid}/backlog"
 @using System.Text.Encodings.Web
+@using System.Text.Json
 @model PMTool.Web.Pages.Products.BacklogModel
 @{
     if (Model.IsEmbedded)
@@ -65,6 +66,7 @@
     .s-inprog  { background: #deebff; color: #0747a6; }
     .s-inreview{ background: #fff0b3; color: #974f0c; }
     .s-done    { background: #e3fcef; color: #006644; }
+    .s-custom  { background: #f1f2f4; color: #42526e; }
     .sprint-card.collapsed .sprint-table-wrap,
 .sprint-card.collapsed .sprint-goal { display: none; }
 .sprint-card.collapsed .chevron-toggle { transform: rotate(-90deg); }
@@ -163,19 +165,30 @@
     .sidebar-field-label { font-size: 10px; font-weight: 600; color: #42526e; margin-bottom: 4px; }
     .sidebar-muted-link { border: none; background: transparent; color: #0052cc; padding: 0; font-size: 10px; }
     .sidebar-details-toggle { border: none; background: transparent; color: #6b778c; padding: 0; }
-    .sidebar-details-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 18px; }
-    .sidebar-detail-value { min-height: 28px; font-size: 11px; color: #172b4d; display: flex; align-items: center; }
+    .sidebar-details-grid { display: grid; grid-template-columns: 140px 1fr; gap: 8px 0; }
+    .sidebar-detail-label { font-size: 11px; font-weight: 600; color: #6b778c; min-height: 24px; display: flex; align-items: center; }
+    .sidebar-detail-value { min-height: 24px; font-size: 12px; color: #172b4d; display: flex; align-items: center; gap: 6px; }
     .sidebar-detail-input { width: 100%; height: 28px; border: 1px solid #dfe1e6; border-radius: 3px; padding: 3px 7px; font-size: 11px; color: #172b4d; }
     .sidebar-tabs { display: flex; gap: 22px; border-bottom: 1px solid #dfe1e6; margin-top: 16px; }
     .sidebar-tab { border: none; background: transparent; color: #0052cc; font-size: 11px; padding: 8px 0; border-bottom: 2px solid transparent; }
     .sidebar-tab.active { color: #172b4d; border-bottom-color: #0052cc; font-weight: 600; }
     .sidebar-tab-panel { padding: 12px 0; font-size: 11px; color: #6b778c; }
     .sidebar-subtask-list { display: flex; flex-direction: column; gap: 7px; }
-    .sidebar-subtask-list .product-subtask { width: 100%; background: #fafbfc; border: 1px solid #ebecf0; border-radius: 4px; padding: 6px 7px; font-size: 12px; display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-subtask-list .product-subtask { width: 100%; background: #fff; border: 0.5px solid #dfe1e6; border-radius: 4px; padding: 6px 8px; font-size: 12px; display: flex; align-items: center; justify-content: space-between; }
     .sidebar-subtask-list .product-subtask > div { display: flex; align-items: center; gap: 8px; flex: 1; }
     .sidebar-subtask-list .product-subtask .subtask-actions { display: flex; align-items: center; gap: 4px; opacity: 0; transition: opacity 0.2s; }
     .sidebar-subtask-list .product-subtask:hover .subtask-actions { opacity: 1; }
     .sidebar-subtask-list .text-muted { border: 1px dashed #dfe1e6; border-radius: 4px; padding: 10px; }
+    .sidebar-comments { display: flex; flex-direction: column; gap: 10px; }
+    .sidebar-comment { display: flex; gap: 8px; position: relative; }
+    .comment-body-wrap { flex: 1; min-width: 0; }
+    .comment-meta { display: flex; align-items: baseline; gap: 6px; }
+    .comment-author { font-size: 12px; font-weight: 700; color: #172b4d; }
+    .comment-time { font-size: 10px; color: #6b778c; }
+    .comment-body { font-size: 12px; color: #172b4d; white-space: pre-wrap; }
+    .comment-actions { margin-left: auto; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; }
+    .sidebar-comment:hover .comment-actions { opacity: 1; }
+    .comment-edit textarea { width: 100%; min-height: 64px; border: 1px solid #4c9aff; border-radius: 3px; padding: 6px; font-size: 12px; }
     @@keyframes slideSidebar { from { transform: translateX(100%); } to { transform: translateX(0); } }
 </style>
 
@@ -233,7 +246,7 @@
             <h5 class="modal-title">Add Work Type</h5>
             <button type="button" class="btn-close" onclick="closeWorkTypeModal()"></button>
         </div>
-        <div class="modal-body
+        <div class="modal-body">
 
             <div class="form-group mb-3">
                 <label class="form-label fw-bold small">Name</label>
@@ -324,7 +337,9 @@
                             {
                                 ["SubProjects"] = Model.ProductSubProjects,
                                 ["WorkTypes"] = Model.WorkTypes,
-                                ["ActiveUsers"] = Model.ActiveUsers
+                                ["ActiveUsers"] = Model.ActiveUsers,
+                                ["CustomStatuses"] = Model.CustomBoardColumns,
+                                ["SubtasksByItem"] = Model.SubtasksByItem
                             })
                         }
                         @if (!sprintItems.Any())
@@ -488,7 +503,9 @@
                             {
                                 ["SubProjects"] = Model.ProductSubProjects,
                                 ["WorkTypes"] = Model.WorkTypes,
-                                ["ActiveUsers"] = Model.ActiveUsers
+                                ["ActiveUsers"] = Model.ActiveUsers,
+                                ["CustomStatuses"] = Model.CustomBoardColumns,
+                                ["SubtasksByItem"] = Model.SubtasksByItem
                             })
                         }
                         @if (!backlogItems.Any())
@@ -538,51 +555,24 @@
             <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="sidebar-section-title">Details</h6>
-                    <button type="button" class="sidebar-details-toggle" onclick="toggleSidebarDetails()" title="Collapse details">
-                        <i class="bi bi-chevron-down" id="sidebarDetailsChevron"></i>
-                    </button>
                 </div>
                 <div class="sidebar-details-grid" id="sidebarDetailsGrid">
-                    <div>
-                        <div class="sidebar-field-label">Assignee</div>
-                        <div class="sidebar-detail-value">
-                            <span id="sidebarAssignee">Unassigned</span>
-                            <button type="button" class="sidebar-muted-link ms-2">Assign to me</button>
-                        </div>
-                    </div>
-                    <div>
-                        <div class="sidebar-field-label">Priority</div>
-                        <select id="sidebarPriority" class="sidebar-detail-input">
-                            <option>Highest</option>
-                            <option>High</option>
-                            <option>Medium</option>
-                            <option>Low</option>
-                        </select>
-                    </div>
-                    <div>
-                        <div class="sidebar-field-label">Parent</div>
-                        <div id="sidebarParentTitle" class="sidebar-detail-value"></div>
-                    </div>
-                    <div>
-                        <div class="sidebar-field-label">Due date</div>
-                        <input id="sidebarDueDate" type="date" class="sidebar-detail-input" onchange="saveSidebarDueDate()" />
-                    </div>
-                    <div>
-                        <div class="sidebar-field-label">Labels</div>
-                        <div class="sidebar-detail-value">-</div>
-                    </div>
-                    <div>
-                        <div class="sidebar-field-label">Start date</div>
-                        <input id="sidebarStartDate" type="date" class="sidebar-detail-input" onchange="saveSidebarStartDate()" />
-                    </div>
-                    <div>
-                        <div class="sidebar-field-label">Sprint</div>
-                        <div id="sidebarSprint" class="sidebar-detail-value">Backlog</div>
-                    </div>
-                    <div>
-                        <div class="sidebar-field-label">Story point estimate</div>
-                        <input id="sidebarStoryPoints" type="number" min="0" class="sidebar-detail-input" onchange="saveSidebarStoryPoints()" />
-                    </div>
+                    <div class="sidebar-detail-label">Assignee</div>
+                    <div id="sidebarAssignee" class="sidebar-detail-value">Unassigned</div>
+                    <div class="sidebar-detail-label">Story points</div>
+                    <div id="sidebarStoryPoints" class="sidebar-detail-value">0</div>
+                    <div class="sidebar-detail-label">Due date</div>
+                    <div id="sidebarDueDate" class="sidebar-detail-value">-</div>
+                    <div class="sidebar-detail-label">Start date</div>
+                    <div id="sidebarStartDate" class="sidebar-detail-value">-</div>
+                    <div class="sidebar-detail-label">Sprint name</div>
+                    <div id="sidebarSprint" class="sidebar-detail-value">Backlog</div>
+                    <div class="sidebar-detail-label">Priority</div>
+                    <div id="sidebarPriority" class="sidebar-detail-value">Medium</div>
+                    <div class="sidebar-detail-label">Work type</div>
+                    <div id="sidebarWorkType" class="sidebar-detail-value">Work Item</div>
+                    <div class="sidebar-detail-label">Created date</div>
+                    <div id="sidebarCreatedAt" class="sidebar-detail-value">-</div>
                 </div>
             </div>
 
@@ -613,7 +603,6 @@
                 <button type="button" class="sidebar-tab active" onclick="setSidebarTab('all', event)">All</button>
                 <button type="button" class="sidebar-tab" onclick="setSidebarTab('comments', event)">Comments</button>
                 <button type="button" class="sidebar-tab" onclick="setSidebarTab('history', event)">History</button>
-                <button type="button" class="sidebar-tab" onclick="setSidebarTab('worklog', event)">Work log</button>
             </div>
             <div id="sidebarActivity" class="sidebar-tab-panel">No activity yet.</div>
         </div>
@@ -836,7 +825,8 @@ async function submitCreateSprint() {
         const result = await resp.json();
         if(result.success) {
             showToast('Sprint created successfully');
-            setTimeout(() => location.reload(), 800);
+            appendSprintCard(result.sprint);
+            closeCreateSprintModal();
         } else {
             showToast(result.message || 'Failed to create sprint', 'danger');
         }
@@ -908,7 +898,9 @@ async function completeSprint(id) {
         const result = await resp.json();
         if (result.success) {
             showToast('Sprint completed!');
-            setTimeout(() => location.reload(), 800);
+            const card = document.getElementById('sprint_' + id);
+            card?.querySelectorAll('.badge.bg-success').forEach(x => x.remove());
+            document.getElementById('completeSprintBtn_' + id)?.remove();
         } else {
             showToast('Failed to complete sprint', 'danger');
         }
@@ -924,7 +916,47 @@ async function deleteSprint(id) {
         method: 'POST',
         headers: { 'RequestVerificationToken': getToken() }
     });
-    if((await resp.json()).success) location.reload();
+    if((await resp.json()).success) {
+        const card = document.getElementById('sprint_' + id);
+        const backlog = document.getElementById('backlogTableBody');
+        card?.querySelectorAll('tbody tr[data-item-id]').forEach(row => backlog?.appendChild(row));
+        card?.remove();
+        updateBacklogStats();
+        updateDropPlaceholders();
+    }
+}
+
+function appendSprintCard(sprint) {
+    const backlogWrap = document.querySelector('.backlog-wrap');
+    if (!backlogWrap || !sprint) return;
+    const id = sprint.id || sprint.Id;
+    const name = sprint.name || sprint.Name || 'Sprint';
+    const card = document.createElement('div');
+    card.className = 'sprint-card';
+    card.id = `sprint_${id}`;
+    card.innerHTML = `
+        <div class="sprint-header" onclick="toggleSprint('${id}')">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-chevron-down chevron-toggle"></i>
+                <div>
+                    <div class="d-flex align-items-center gap-2"><h6 class="mb-0 fw-bold" style="font-size:14px;">${escapeHtml(name)}</h6></div>
+                    <div class="sprint-meta"><span class="capacity-indicator"><i class="bi bi-lightning-charge-fill" style="color:#0052cc"></i><span class="pts-sum">0</span> pts</span></div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2" onclick="event.stopPropagation()">
+                <button class="btn btn-sm btn-link text-muted" onclick="deleteSprint('${id}')" title="Delete sprint"><i class="bi bi-trash"></i></button>
+            </div>
+        </div>
+        <div class="sprint-table-wrap">
+            <table class="table-backlog mb-0"><tbody class="sprint-drop-zone" data-sprint-id="${id}">
+                <tr class="drop-placeholder text-center" data-placeholder="true"><td colspan="9" class="text-muted small py-3">Drop items here</td></tr>
+            </tbody></table>
+        </div>`;
+    backlogWrap.parentNode.insertBefore(card, backlogWrap);
+    const zone = card.querySelector('.sprint-drop-zone');
+    if (window.Sortable && zone) {
+        new Sortable(zone, { group: 'backlog', animation: 150, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', filter: '.drop-placeholder' });
+    }
 }
 
 function updateBacklogStats() {
@@ -1065,6 +1097,34 @@ const STATUS_MAP = {
     3: { cls: 's-inreview', label: 'In review' },
     4: { cls: 's-done',     label: 'Done' }
 };
+
+const CUSTOM_STATUSES = @Html.Raw(JsonSerializer.Serialize(
+    Model.CustomBoardColumns.Select(x => new { status = x.StatusValue, name = x.Name })));
+
+function extendStatusMapWithCustom() {
+    CUSTOM_STATUSES.forEach(status => {
+        if (!status || !status.status || !status.name) return;
+        STATUS_MAP[status.status] = { cls: 's-custom', label: status.name };
+    });
+}
+
+function applyCustomStatusLabels() {
+    document.querySelectorAll('tr[data-item-id]').forEach(row => {
+        const status = Number.parseInt(row.dataset.status, 10);
+        if (Number.isNaN(status)) return;
+        const pill = row.querySelector('.pill-status');
+        const map = STATUS_MAP[status];
+        if (!pill || !map) return;
+        pill.className = `pill-status ${map.cls}`;
+        pill.textContent = map.label;
+        pill.dataset.status = status.toString();
+    });
+}
+
+function initCustomStatuses() {
+    extendStatusMapWithCustom();
+    applyCustomStatusLabels();
+}
 
 // ─── Create bar state ─────────────────────────────────────────────────────────
 let createDate = null;
@@ -1351,9 +1411,14 @@ async function createSubtask(itemId, e) {
     const list = document.getElementById('subtaskList_' + itemId);
     if (list) {
         list.classList.remove('d-none');
-        const label = document.createElement('label');
+        const label = document.createElement('div');
         label.className = 'product-subtask';
-        label.innerHTML = `<input type="checkbox" onchange="updateProductSubtaskStatus('${result.subtask.id}', this.checked ? 3 : 1, event)" /><span></span>`;
+        label.dataset.subtaskId = result.subtask.id;
+        label.dataset.subtaskTitle = result.subtask.title;
+        label.dataset.subtaskStatus = result.subtask.status;
+        label.dataset.subtaskPriority = result.subtask.priority;
+        label.dataset.subtaskAssigneeId = result.subtask.assigneeId || '';
+        label.innerHTML = `<input type="checkbox" data-subtask-id="${result.subtask.id}" onchange="updateProductSubtaskStatus('${result.subtask.id}', this.checked ? 3 : 1, event)" /><span></span>`;
         label.querySelector('input').dataset.subtaskId = result.subtask.id;
         label.querySelector('span').textContent = result.subtask.title;
         list.appendChild(label);
@@ -1391,7 +1456,11 @@ async function updateProductSubtaskStatus(subtaskId, status, e) {
 
     document.querySelectorAll(`input[data-subtask-id="${subtaskId}"]`).forEach(cb => {
         cb.checked = status === 3;
-        cb.closest('.product-subtask, .sidebar-subtask')?.classList.toggle('done', status === 3);
+        const subtask = cb.closest('.product-subtask, .sidebar-subtask');
+        if (subtask) {
+            subtask.classList.toggle('done', status === 3);
+            subtask.dataset.subtaskStatus = status.toString();
+        }
     });
     return true;
 }
@@ -1400,7 +1469,7 @@ let currentBacklogId = null;
 let currentBacklogTitle = '';
 let currentBacklogKey = '';
 let currentSidebarTab = 'all';
-const sidebarComments = {};
+let currentSidebarComments = [];
 
 function openProductSidebar(id, title, key, focusNewSubtask, e) {
     if (e) {
@@ -1418,19 +1487,22 @@ function openProductSidebar(id, title, key, focusNewSubtask, e) {
     const sprintName = sprintCard?.querySelector('.sprint-header h6')?.textContent?.trim() || 'Backlog';
 
     document.getElementById('sidebarTaskTitle').textContent = currentBacklogTitle || 'Subtask';
-    document.getElementById('sidebarTaskKey').textContent = currentBacklogKey ? `SCRUM-${currentBacklogKey}` : 'SCRUM';
+    document.getElementById('sidebarTaskKey').textContent = currentBacklogKey ? `PB-${currentBacklogKey}` : 'PB';
     document.getElementById('sidebarStatus').value = ds.itemStatus || '1';
     document.getElementById('sidebarDescription').value = ds.itemDescription || '';
-    document.getElementById('sidebarParentTitle').textContent = currentBacklogTitle;
-    document.getElementById('sidebarAssignee').textContent = ds.itemAssignee || 'Unassigned';
-    document.getElementById('sidebarDueDate').value = ds.itemDueDate || '';
-    document.getElementById('sidebarStartDate').value = ds.itemStartDate || '';
-    document.getElementById('sidebarStoryPoints').value = ds.itemStoryPoints || '';
+    document.getElementById('sidebarAssignee').innerHTML = renderAssigneeValue(ds.itemAssignee || 'Unassigned', ds.itemAssigneeId || '');
+    document.getElementById('sidebarDueDate').textContent = formatDate(ds.itemDueDate);
+    document.getElementById('sidebarStartDate').textContent = formatDate(ds.itemStartDate);
+    document.getElementById('sidebarStoryPoints').textContent = ds.itemStoryPoints || '0';
     document.getElementById('sidebarSprint').textContent = sprintName;
+    document.getElementById('sidebarPriority').textContent = ds.itemPriorityLabel || priorityLabel(ds.itemPriority);
+    document.getElementById('sidebarWorkType').textContent = ds.itemWorkType || 'Work Item';
+    document.getElementById('sidebarCreatedAt').textContent = formatDate(ds.itemCreatedAt);
     renderSidebarSubtasks(id);
-    renderSidebarActivity();
 
     document.getElementById('productSubtaskSidebar').classList.remove('d-none');
+    setSidebarTab('all');
+    loadSidebarComments(id);
 
     if (focusNewSubtask) {
         showSubtaskInput();
@@ -1444,67 +1516,206 @@ function closeProductSidebar() {
     hideSubtaskInput();
 }
 
-function toggleSidebarDetails() {
-    const grid = document.getElementById('sidebarDetailsGrid');
-    const icon = document.getElementById('sidebarDetailsChevron');
-    grid.classList.toggle('d-none');
-    icon.classList.toggle('bi-chevron-down');
-    icon.classList.toggle('bi-chevron-right');
-}
-
 function setSidebarTab(tab, e) {
     if (e) e.preventDefault();
     currentSidebarTab = tab;
-    document.querySelectorAll('.sidebar-tab').forEach(btn => btn.classList.remove('active'));
-    e?.target?.classList.add('active');
-    renderSidebarActivity();
-}
+    document.querySelectorAll('.sidebar-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.trim().toLowerCase() === tab);
+    });
 
-function renderSidebarActivity() {
     const panel = document.getElementById('sidebarActivity');
-    const comments = currentBacklogId ? (sidebarComments[currentBacklogId] || []) : [];
-
-    if (currentSidebarTab === 'comments') {
-        panel.innerHTML = comments.length
-            ? comments.map(c => `<div class="mb-2"><strong>Admin User</strong><div>${escapeHtml(c)}</div></div>`).join('')
-            : 'No comments yet.';
+    if (tab === 'comments') {
+        loadSidebarComments(currentBacklogId);
         return;
     }
 
-    if (currentSidebarTab === 'history') {
+    if (tab === 'history') {
         panel.textContent = 'No history yet.';
         return;
     }
 
-    if (currentSidebarTab === 'worklog') {
-        panel.textContent = 'No work logged yet.';
+    renderComments(currentSidebarComments);
+}
+
+async function loadSidebarComments(itemId) {
+    const panel = document.getElementById('sidebarActivity');
+    if (!itemId) {
+        panel.textContent = 'No comments yet.';
         return;
     }
 
-    panel.innerHTML = comments.length
-        ? comments.map(c => `<div class="mb-2"><strong>Admin User</strong><div>${escapeHtml(c)}</div></div>`).join('')
-        : 'No activity yet.';
+    panel.textContent = 'Loading comments...';
+    const resp = await fetch(`?handler=GetComments&itemId=${itemId}`, {
+        headers: { 'Accept': 'application/json' }
+    });
+    const result = await resp.json().catch(() => ({ success: false, comments: [] }));
+    currentSidebarComments = result.success ? result.comments : [];
+    renderComments(currentSidebarComments);
 }
 
-function addSidebarComment() {
+function renderComments(comments) {
+    const panel = document.getElementById('sidebarActivity');
+    if (!comments || comments.length === 0) {
+        panel.textContent = currentSidebarTab === 'history' ? 'No history yet.' : 'No comments yet.';
+        return;
+    }
+
+    panel.innerHTML = `<div class="sidebar-comments">${comments.map(comment => `
+        <div class="sidebar-comment" id="comment_${comment.id}">
+            <div class="avatar-circle" style="${avatarStyle(comment.authorName)}">${escapeHtml(comment.authorInitials || getInitials(comment.authorName))}</div>
+            <div class="comment-body-wrap">
+                <div class="comment-meta">
+                    <span class="comment-author">${escapeHtml(comment.authorName)}</span>
+                    <span class="comment-time">${timeAgo(comment.createdAt)}</span>
+                    ${comment.isOwn ? `
+                        <span class="comment-actions">
+                            <button type="button" class="ib" onclick="startEditComment('${comment.id}', '${escapeJs(comment.body)}')" title="Edit comment"><i class="bi bi-pencil"></i></button>
+                            <button type="button" class="ib text-danger" onclick="deleteComment('${comment.id}')" title="Delete comment"><i class="bi bi-trash"></i></button>
+                        </span>` : ''}
+                </div>
+                <div class="comment-body" id="commentBody_${comment.id}">${escapeHtml(comment.body)}</div>
+            </div>
+        </div>`).join('')}</div>`;
+}
+
+async function addSidebarComment() {
     if (!currentBacklogId) return;
 
     const input = document.getElementById('sidebarCommentInput');
-    const comment = input.value.trim();
-    if (!comment) return;
+    const body = input.value.trim();
+    if (!body) return;
 
-    sidebarComments[currentBacklogId] = sidebarComments[currentBacklogId] || [];
-    sidebarComments[currentBacklogId].push(comment);
+    const resp = await fetch('?handler=AddComment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getToken()
+        },
+        body: JSON.stringify({ itemId: currentBacklogId, body })
+    });
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        showToast(result.message || 'Failed to add comment', 'danger');
+        return;
+    }
+
+    currentSidebarComments.push(result.comment);
     input.value = '';
-    currentSidebarTab = 'comments';
-    document.querySelectorAll('.sidebar-tab').forEach(btn => btn.classList.toggle('active', btn.textContent.trim() === 'Comments'));
-    renderSidebarActivity();
+    setSidebarTab('comments');
+}
+
+function startEditComment(commentId, currentBody) {
+    const bodyEl = document.getElementById('commentBody_' + commentId);
+    if (!bodyEl) return;
+    bodyEl.className = 'comment-edit';
+    bodyEl.innerHTML = `
+        <textarea id="commentEdit_${commentId}">${escapeHtml(currentBody)}</textarea>
+        <div class="d-flex gap-2 mt-2">
+            <button type="button" class="btn btn-sm btn-primary" onclick="saveEditComment('${commentId}')">Save</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="renderComments(currentSidebarComments)">Cancel</button>
+        </div>`;
+    document.getElementById('commentEdit_' + commentId)?.focus();
+}
+
+async function saveEditComment(commentId) {
+    const textarea = document.getElementById('commentEdit_' + commentId);
+    const body = textarea?.value.trim();
+    if (!body) return;
+
+    const resp = await fetch('?handler=UpdateComment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getToken()
+        },
+        body: JSON.stringify({ commentId, body })
+    });
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        showToast(result.message || 'Failed to update comment', 'danger');
+        return;
+    }
+
+    const comment = currentSidebarComments.find(c => c.id === commentId);
+    if (comment) comment.body = body;
+    renderComments(currentSidebarComments);
+}
+
+async function deleteComment(commentId) {
+    if (!confirm('Delete this comment?')) return;
+
+    const resp = await fetch(`?handler=DeleteComment&commentId=${commentId}`, {
+        method: 'POST',
+        headers: { 'RequestVerificationToken': getToken() }
+    });
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        showToast(result.message || 'Failed to delete comment', 'danger');
+        return;
+    }
+
+    currentSidebarComments = currentSidebarComments.filter(c => c.id !== commentId);
+    document.getElementById('comment_' + commentId)?.remove();
+    if (currentSidebarComments.length === 0) renderComments(currentSidebarComments);
 }
 
 function escapeHtml(value) {
     const div = document.createElement('div');
-    div.textContent = value;
+    div.textContent = value ?? '';
     return div.innerHTML;
+}
+
+function escapeJs(str) {
+    return (str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\r?\n/g, '\\n');
+}
+
+function formatDate(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function timeAgo(dateStr) {
+    const date = new Date(dateStr);
+    const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+    if (seconds < 60) return 'now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+}
+
+function getInitials(name) {
+    const parts = (name || '?').trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return (parts[0] || '?').substring(0, 2).toUpperCase();
+}
+
+function avatarStyle(seed) {
+    const palettes = [
+        ['#deebff', '#0747a6'],
+        ['#e3fcef', '#006644'],
+        ['#fff0b3', '#974f0c'],
+        ['#ffebe6', '#bf2600'],
+        ['#e6fcff', '#006c8a'],
+        ['#f3f0ff', '#403294'],
+        ['#fce4ec', '#880e4f']
+    ];
+    let hash = 0;
+    for (const ch of (seed || '')) hash = ((hash << 5) - hash) + ch.charCodeAt(0);
+    const [bg, fg] = palettes[Math.abs(hash) % palettes.length];
+    return `background:${bg};color:${fg}`;
+}
+
+function renderAssigneeValue(name, id) {
+    if (!name || name === 'Unassigned') return 'Unassigned';
+    return `<span class="avatar-circle" style="${avatarStyle(id || name)}">${getInitials(name)}</span><span>${escapeHtml(name)}</span>`;
+}
+
+function priorityLabel(priority) {
+    return ({ 1: 'Highest', 2: 'High', 3: 'Medium', 4: 'Low' })[Number(priority)] || 'Medium';
 }
 
 function updateSidebarStatus(status) {
@@ -1514,6 +1725,7 @@ function updateSidebarStatus(status) {
     if (row) {
         row.dataset.itemStatus = status;
         row.dataset.itemStatusLabel = STATUS_MAP[status]?.label || 'To do';
+        row.dataset.status = status;
     }
 }
 
@@ -1531,38 +1743,6 @@ function saveSidebarDescription() {
         },
         body: `itemId=${currentBacklogId}&description=${encodeURIComponent(description)}`
     }).catch(() => {});
-}
-
-function saveSidebarDueDate() {
-    if (!currentBacklogId) return;
-    const dueDate = document.getElementById('sidebarDueDate').value;
-    const row = document.getElementById('row-' + currentBacklogId);
-    if (row) row.dataset.itemDueDate = dueDate;
-    if (dueDate) pickItemDateFromIso(currentBacklogId, dueDate);
-}
-
-function saveSidebarStartDate() {
-    if (!currentBacklogId) return;
-    const startDate = document.getElementById('sidebarStartDate').value;
-    const row = document.getElementById('row-' + currentBacklogId);
-    if (row) row.dataset.itemStartDate = startDate;
-
-    fetch('?handler=UpdateStartDate', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'RequestVerificationToken': getToken()
-        },
-        body: `itemId=${currentBacklogId}&startDate=${startDate}`
-    }).catch(() => {});
-}
-
-function saveSidebarStoryPoints() {
-    if (!currentBacklogId) return;
-    const points = Math.max(0, parseInt(document.getElementById('sidebarStoryPoints').value) || 0);
-    const row = document.getElementById('row-' + currentBacklogId);
-    if (row) row.dataset.itemStoryPoints = points.toString();
-    savePoints(currentBacklogId, points.toString());
 }
 
 function showSubtaskInput() {
@@ -1592,7 +1772,7 @@ function renderSidebarSubtasks(itemId) {
 
     subtasks.forEach(subtask => {
         const subtaskId = subtask.dataset.subtaskId;
-        const title = subtask.dataset.subtaskTitle;
+        const title = subtask.dataset.subtaskTitle || subtask.querySelector('span')?.textContent || '';
         const status = parseInt(subtask.dataset.subtaskStatus);
         const priority = parseInt(subtask.dataset.subtaskPriority);
         const assigneeId = subtask.dataset.subtaskAssigneeId;
@@ -1617,10 +1797,6 @@ function renderSidebarSubtasks(itemId) {
         `;
         sidebarList.appendChild(item);
     });
-}
-
-function escapeJs(str) {
-    return str.replace(/'/g, "\\'").replace(/"/g, '\\"');
 }
 
 function openEditSubtaskModal(id, title, priority, assigneeId, status, e) {
@@ -1783,7 +1959,7 @@ function updateSubtaskCount(itemId) {
     if (!badge) {
         badge = document.createElement('span');
         badge.className = 'subtask-count';
-        badge.innerHTML = '<i class="bi bi-diagram-2"></i> <span class="subtask-count-value"></span>';
+        badge.innerHTML = '<i class="bi bi-diagram-2"></i> <span class="subtask-count-value"></span> subtasks';
         const addButton = cell.querySelector('.subtask-add-btn');
         cell.insertBefore(badge, addButton);
     }
@@ -1815,12 +1991,13 @@ function savePoints(itemId, val) {
         body: `itemId=${itemId}&storyPoints=${pts}`
     }).then(r => {
         if (r.ok) {
+            signalChange();
             const cell = document.getElementById('ptsCell_' + itemId);
             if (pts > 0) {
                 cell.innerHTML = `<span class="pts-val" onclick="editPoints('${itemId}', ${pts})" title="Click to edit">${pts}</span>`;
             } else {
                 cell.innerHTML = `<button type="button" class="ib" onclick="editPoints('${itemId}', 0)" title="Add story points">
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+                     <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
                 </button>`;
             }
         }
@@ -1831,14 +2008,21 @@ function savePoints(itemId, val) {
 function updateStatus(itemId, status, e) {
     if (e) e.stopPropagation();
     closeDds();
-    const sm = STATUS_MAP[status];
+    const sm = STATUS_MAP[status] ?? { cls: 's-custom', label: 'Custom' };
     const btn = document.querySelector(`#statusDd_${itemId}`);
     if (btn) {
         const pill = btn.previousElementSibling;
         if (pill) {
             pill.className = `pill-status ${sm.cls}`;
             pill.textContent = sm.label;
+            pill.dataset.status = status.toString();
         }
+    }
+    const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
+    if (row) {
+        row.dataset.status = status.toString();
+        row.dataset.itemStatus = status.toString();
+        row.dataset.itemStatusLabel = sm.label;
     }
     fetch('?handler=UpdateStatus', {
         method: 'POST',
@@ -1847,6 +2031,8 @@ function updateStatus(itemId, status, e) {
             'RequestVerificationToken': getToken()
         },
         body: `itemId=${itemId}&status=${status}`
+    }).then(() => {
+        signalChange();
     }).catch(() => {});
 }
 
@@ -1861,7 +2047,16 @@ function updateOwner(itemId, ownerId, e) {
             'RequestVerificationToken': getToken()
         },
         body: `itemId=${itemId}&ownerId=${ownerId}`
-    }).then(() => location.reload()).catch(() => {});
+    }).then(() => {
+        signalChange();
+        const row = document.getElementById('row-' + itemId);
+        const selected = e?.currentTarget || e?.target?.closest('.dd-item');
+        const name = selected?.textContent?.trim() || 'Unassigned';
+        if (row) {
+            row.dataset.itemAssignee = ownerId ? name : 'Unassigned';
+            row.dataset.itemAssigneeId = ownerId || '';
+        }
+    }).catch(() => {});
 }
 
 // ─── Row: Type update ─────────────────────────────────────────────────────────
@@ -1875,7 +2070,12 @@ function updateType(itemId, type, e) {
             'RequestVerificationToken': getToken()
         },
         body: `itemId=${itemId}&type=${type}`
-    }).then(() => location.reload()).catch(() => {});
+    }).then(() => {
+        signalChange();
+        const row = document.getElementById('row-' + itemId);
+        const selected = e?.currentTarget || e?.target?.closest('.dd-item');
+        if (row && selected) row.dataset.itemWorkType = selected.textContent.trim();
+    }).catch(() => {});
 }
 
 // ─── Row: Subproject update ──────────────────────────────────────────────────
@@ -1889,7 +2089,16 @@ function updateSubProject(itemId, subProjectId, e) {
             'RequestVerificationToken': getToken()
         },
         body: `itemId=${itemId}&subProjectId=${subProjectId}`
-    }).then(() => location.reload()).catch(() => {});
+    }).then(() => {
+        signalChange();
+        const selected = e?.currentTarget || e?.target?.closest('.dd-item');
+        const button = document.querySelector(`#subProjDd_${itemId}`)?.previousElementSibling;
+        if (button && selected && subProjectId) {
+            button.innerHTML = `<i class="bi bi-diagram-3"></i> ${selected.textContent.trim()}`;
+            button.className = 'subproj-badge';
+            button.style.marginLeft = '0';
+        }
+    }).catch(() => {});
 }
 
 // ─── Row: Due date calendar ───────────────────────────────────────────────────
@@ -1965,6 +2174,10 @@ function pickItemDate(itemId, y, m, d) {
             'RequestVerificationToken': getToken()
         },
         body: `itemId=${itemId}&dueDate=${iso}`
+    }).then(r => {
+        if (r.ok) {
+            signalChange();
+        }
     }).catch(() => {});
 }
 
@@ -2011,13 +2224,13 @@ document.getElementById('createBacklogForm').addEventListener('submit', async fu
         if (result.success) {
             showToast('Item created!', 'success');
             signalChange();
+            appendCreatedBacklogItem(result.item);
             document.getElementById('newItemTitle').value = '';
             document.getElementById('hiddenOwner').value = '';
             document.getElementById('hiddenDueDate').value = '';
             createDate = null;
             document.getElementById('createDateLabel').textContent = '';
             document.getElementById('createAssignIcon').innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>`;
-            setTimeout(() => location.reload(), 600);
         } else {
             showToast(result.message || 'Failed to create item', 'danger');
         }
@@ -2028,6 +2241,59 @@ document.getElementById('createBacklogForm').addEventListener('submit', async fu
         btn.innerHTML = orig;
     }
 });
+
+function appendCreatedBacklogItem(item) {
+    const body = document.getElementById('backlogTableBody');
+    if (!body || !item) return;
+
+    body.querySelector('.drop-placeholder')?.remove();
+    const id = item.id;
+    const shortId = String(id).replace(/-/g, '').substring(0, 4).toUpperCase();
+    const title = item.title || 'Untitled';
+    const status = Number(item.status || 1);
+    const statusInfo = STATUS_MAP[status] || STATUS_MAP[1];
+    const row = document.createElement('tr');
+    row.id = `row-${id}`;
+    row.dataset.itemId = id;
+    row.dataset.status = status.toString();
+    row.dataset.itemStatus = status.toString();
+    row.dataset.itemTitle = title;
+    row.dataset.itemKey = shortId;
+    row.dataset.itemDescription = '';
+    row.dataset.itemAssignee = item.ownerName || 'Unassigned';
+    row.dataset.itemAssigneeId = '';
+    row.dataset.itemDueDate = '';
+    row.dataset.itemStartDate = '';
+    row.dataset.itemStoryPoints = String(item.storyPoints || 0);
+    row.dataset.itemPriority = String(item.priority || 3);
+    row.dataset.itemPriorityLabel = priorityLabel(item.priority || 3);
+    row.dataset.itemWorkType = item.typeName || 'Work Item';
+    row.dataset.itemCreatedAt = new Date().toISOString();
+    const titleArg = JSON.stringify(title);
+
+    row.innerHTML = `
+        <td><input type="checkbox" value="${id}" /></td>
+        <td><button type="button" class="ib" title="${escapeHtml(item.typeName || 'Work Item')}"><i class="bi bi-tag"></i></button></td>
+        <td>
+            <div class="item-title-stack">
+                <div class="d-flex align-items-center gap-2" id="titleCell_${id}">
+                    <span class="badge-id">${shortId}</span>
+                    <a href="#" class="title-link" onclick='openProductSidebar("${id}", ${titleArg}, "${shortId}", false, event)'>${escapeHtml(title)}</a>
+                    <button type="button" class="subtask-add-btn" onclick='openProductSidebar("${id}", ${titleArg}, "${shortId}", true, event)' title="Add subtask"><i class="bi bi-plus-lg"></i></button>
+                    <span class="edit-title-btn" onclick='editTitle("${id}", ${titleArg})' title="Edit title"><i class="bi bi-pencil" style="font-size:10px;"></i></span>
+                </div>
+                <div class="product-subtasks d-none" id="subtaskList_${id}"></div>
+            </div>
+        </td>
+        <td style="text-align:center;"><span class="text-muted small">-</span></td>
+        <td><button type="button" class="pill-status ${statusInfo.cls}" data-status="${status}">${statusInfo.label}</button></td>
+        <td><button type="button" class="ib" title="Unassigned"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></button></td>
+        <td><div id="ptsCell_${id}"><button type="button" class="ib" onclick="editPoints('${id}', 0)" title="Add story points"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg></button></div></td>
+        <td><span class="text-muted small">-</span></td>
+        <td></td>`;
+    body.appendChild(row);
+    updateBacklogStats();
+}
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function showToast(message, type = 'success') {
@@ -2044,7 +2310,7 @@ function getToken() {
 }
 
 function signalChange() {
-    localStorage.setItem('backlog_updated', Date.now());
+    window.dispatchEvent(new CustomEvent('backlog:updated', { detail: { at: Date.now() } }));
 }
 
 // ─── Select all checkbox ──────────────────────────────────────────────────────

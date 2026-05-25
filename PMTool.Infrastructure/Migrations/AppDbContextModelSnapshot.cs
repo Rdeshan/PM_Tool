@@ -22,6 +22,40 @@ namespace PMTool.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("PMTool.Domain.Entities.BacklogItemComment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("BacklogItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("BacklogItemId", "CreatedAt");
+
+                    b.ToTable("BacklogItemComments");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.BacklogSubtask", b =>
                 {
                     b.Property<Guid>("Id")
@@ -51,7 +85,8 @@ namespace PMTool.Infrastructure.Migrations
 
                     b.Property<string>("Title")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(300)
+                        .HasColumnType("nvarchar(300)");
 
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("datetime2");
@@ -65,6 +100,70 @@ namespace PMTool.Infrastructure.Migrations
                     b.HasIndex("ProjectBacklogId");
 
                     b.ToTable("BacklogSubtasks");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.BoardColumn", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<Guid>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("StatusValue")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductId", "StatusValue")
+                        .IsUnique();
+
+                    b.ToTable("BoardColumns");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.Notification", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
+
+                    b.Property<Guid?>("ItemId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Message")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CreatedAt");
+
+                    b.ToTable("Notifications");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.Permission", b =>
@@ -1138,11 +1237,31 @@ namespace PMTool.Infrastructure.Migrations
                     b.ToTable("WorkTypes");
                 });
 
+            modelBuilder.Entity("PMTool.Domain.Entities.BacklogItemComment", b =>
+                {
+                    b.HasOne("PMTool.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PMTool.Domain.Entities.ProductBacklog", "BacklogItem")
+                        .WithMany("Comments")
+                        .HasForeignKey("BacklogItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("BacklogItem");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.BacklogSubtask", b =>
                 {
                     b.HasOne("PMTool.Domain.Entities.User", "Assignee")
                         .WithMany()
-                        .HasForeignKey("AssigneeId");
+                        .HasForeignKey("AssigneeId")
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.HasOne("PMTool.Domain.Entities.ProductBacklog", "ProductBacklog")
                         .WithMany("Subtasks")
@@ -1159,6 +1278,28 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("ProductBacklog");
 
                     b.Navigation("ProjectBacklog");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.BoardColumn", b =>
+                {
+                    b.HasOne("PMTool.Domain.Entities.Product", "Product")
+                        .WithMany("BoardColumns")
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Product");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.Notification", b =>
+                {
+                    b.HasOne("PMTool.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.Product", b =>
@@ -1523,6 +1664,8 @@ namespace PMTool.Infrastructure.Migrations
                 {
                     b.Navigation("Backlogs");
 
+                    b.Navigation("BoardColumns");
+
                     b.Navigation("ReleaseNotes");
 
                     b.Navigation("Sprints");
@@ -1533,6 +1676,8 @@ namespace PMTool.Infrastructure.Migrations
             modelBuilder.Entity("PMTool.Domain.Entities.ProductBacklog", b =>
                 {
                     b.Navigation("ChildBacklogItems");
+
+                    b.Navigation("Comments");
 
                     b.Navigation("Subtasks");
                 });

@@ -23,8 +23,8 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
             .Build();
 
         var builder = new DbContextOptionsBuilder<AppDbContext>();
-        var connectionString = configuration.GetConnectionString("DefaultConnection") 
-            ?? "Server=(localdb)\\mssqllocaldb;Database=OUSL_PMDB;Trusted_Connection=True;MultipleActiveResultSets=true";
+            var connectionString = configuration.GetConnectionString("DefaultConnection") 
+                ?? "Server=(localdb)\\MSSQLLocalDB;Database=OUSL_PMDB;Trusted_Connection=True;MultipleActiveResultSets=true";
 
         builder.UseSqlServer(connectionString);
 

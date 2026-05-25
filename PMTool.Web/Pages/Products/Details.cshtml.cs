@@ -183,6 +183,23 @@ public class DetailsModel : PageModel
         return new JsonResult(items);
     }
 
+    /// <summary>
+    /// Returns live progress for all sub-projects of a product.
+    /// Called via AJAX from the Details page to update progress bars without a full reload.
+    /// </summary>
+    public async Task<JsonResult> OnGetSubProjectsProgressAsync(Guid projectId, Guid id)
+    {
+        var subProjects = await _subProjectService.GetSubProjectsByProductAsync(id);
+        var result = subProjects.Select(sp => new
+        {
+            id = sp.Id,
+            progress = sp.Progress,
+            ticketCount = sp.TicketCount,
+            completedTicketCount = sp.CompletedTicketCount
+        });
+        return new JsonResult(result);
+    }
+
     public string GetStatusLabel(int status)
     {
         return status switch
