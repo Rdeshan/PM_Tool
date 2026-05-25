@@ -19,4 +19,7 @@ public class BacklogItemDTO
     public DateTime? DueDate { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public int? StoryPoints { get; set; }
+    public string? ParentBacklogItemTitle { get; set; }
+    public List<BacklogSubtaskDto> Subtasks { get; set; } = new();
 }

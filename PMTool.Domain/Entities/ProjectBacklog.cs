@@ -18,6 +18,7 @@ public class ProjectBacklog
 
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public int? StoryPoints { get; set; }
 
     // Navigation properties
     public Project? Project { get; set; }
@@ -25,5 +26,6 @@ public class ProjectBacklog
     public SubProject? SubProject { get; set; }
     public ProjectBacklog? ParentBacklogItem { get; set; }
     public ICollection<ProjectBacklog> ChildBacklogItems { get; set; } = new List<ProjectBacklog>();
+    public ICollection<BacklogSubtask> Subtasks { get; set; } = new List<BacklogSubtask>();
     public User? Owner { get; set; }
 }

@@ -434,6 +434,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.SignalR;
 using PMTool.Web.Hubs;
 using PMTool.Application.DTOs.User;
+using Microsoft.EntityFrameworkCore;
+using PMTool.Domain.Entities;
+using PMTool.Infrastructure.Data;
 
 namespace PMTool.Web.Pages.Products;
 
@@ -451,6 +454,7 @@ public class BacklogModel : PageModel
     private readonly IBoardColumnService _boardColumnService;
     private readonly INotificationService _notificationService;
     private readonly IHubContext<NotificationsHub> _notificationsHub;
+    private readonly AppDbContext _db;
 
     public BacklogModel(
         IProjectService projectService,
@@ -462,7 +466,8 @@ public class BacklogModel : PageModel
         IWorkTypeService workTypeService,
         IBoardColumnService boardColumnService,
         INotificationService notificationService,
-        IHubContext<NotificationsHub> notificationsHub)
+        IHubContext<NotificationsHub> notificationsHub,
+        AppDbContext db)
     {
         _projectService = projectService;
         _productService = productService;
@@ -474,6 +479,7 @@ public class BacklogModel : PageModel
         _boardColumnService = boardColumnService;
         _notificationService = notificationService;
         _notificationsHub = notificationsHub;
+        _db = db;
     }
 
     // ── Page Properties ───────────────────────────────────────────────────────
@@ -495,6 +501,7 @@ public class BacklogModel : PageModel
     public List<SubProjectDTO> ProductSubProjects { get; set; } = new();
     public List<SprintDTO> Sprints { get; set; } = new();
     public List<BoardColumnDTO> CustomBoardColumns { get; set; } = new();
+    public Dictionary<Guid, List<BacklogSubtaskDto>> SubtasksByItem { get; set; } = new();
 
     // Status counts — 1=To do, 2=In progress, 3=In review, 4=Done
     public int TodoCount      => BacklogItems.Count(x => x.Status == 1);
@@ -531,6 +538,7 @@ public class BacklogModel : PageModel
         ProductName = product.VersionName;
 
         BacklogItems = await _productBacklogService.GetBacklogItemsAsync(ProductId, null);
+        SubtasksByItem = BacklogItems.ToDictionary(x => x.Id, x => x.Subtasks);
         ItemTypes = _productBacklogService.GetBacklogItemTypes();
         var customWorkTypes = await _workTypeService.GetCustomWorkTypesAsync();
         WorkTypes = BuildWorkTypes(customWorkTypes);
@@ -752,6 +760,38 @@ public class BacklogModel : PageModel
         return new JsonResult(new { success = result != null });
     }
 
+    public async Task<IActionResult> OnPostUpdateDescriptionAsync(Guid itemId, string description)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var request = new UpdateProductBacklogFieldRequest
+        {
+            ItemId = itemId,
+            Field = "description",
+            Value = description ?? string.Empty
+        };
+
+        var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
+        return new JsonResult(new { success = result != null });
+    }
+
+    public async Task<IActionResult> OnPostUpdateStartDateAsync(Guid itemId, string startDate)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var request = new UpdateProductBacklogFieldRequest
+        {
+            ItemId = itemId,
+            Field = "startdate",
+            Value = startDate ?? string.Empty
+        };
+
+        var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
+        return new JsonResult(new { success = result != null });
+    }
+
     // ── UPDATE SUBPROJECT (AJAX) ──────────────────────────────────────────────
     public async Task<IActionResult> OnPostUpdateSubProjectAsync(Guid itemId, string subProjectId)
     {
@@ -784,6 +824,224 @@ public class BacklogModel : PageModel
         }
 
         return new JsonResult(new { success = result != null });
+    }
+
+    public async Task<IActionResult> OnPostSubtaskAsync([FromBody] CreateBacklogSubtaskDto request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        if (request.ParentId == Guid.Empty || string.IsNullOrWhiteSpace(request.Title))
+        {
+            return BadJson("Subtask title is required.");
+        }
+
+        if (!await BacklogItemBelongsToRouteAsync(request.ParentId))
+        {
+            return BadJson("Invalid backlog item.");
+        }
+
+        var subtask = await _productBacklogService.CreateSubtaskAsync(request.ParentId, request);
+        if (subtask == null)
+        {
+            return BadJson("Failed to create subtask.");
+        }
+
+        return new JsonResult(new
+        {
+            success = true,
+            subtask = new
+            {
+                id = subtask.Id,
+                title = subtask.Title,
+                status = subtask.Status,
+                priority = subtask.Priority,
+                assigneeId = subtask.AssigneeId
+            }
+        });
+    }
+
+    public async Task<IActionResult> OnPostUpdateSubtaskStatusAsync([FromBody] UpdateSubtaskStatusRequest request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        if (request.SubtaskId == Guid.Empty)
+        {
+            return BadJson("Invalid subtask.");
+        }
+
+        if (request.Status is < 1 or > 3)
+        {
+            return BadJson("Invalid status.");
+        }
+
+        if (!await SubtaskBelongsToRouteAsync(request.SubtaskId))
+        {
+            return BadJson("Invalid subtask.");
+        }
+
+        var success = await _productBacklogService.UpdateSubtaskStatusAsync(request.SubtaskId, request.Status);
+        return new JsonResult(new { success });
+    }
+
+    public async Task<IActionResult> OnPostUpdateSubtaskAsync([FromBody] UpdateSubtaskRequest request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        if (request.SubtaskId == Guid.Empty || string.IsNullOrWhiteSpace(request.Title))
+        {
+            return BadJson("Subtask title is required.");
+        }
+
+        if (request.Priority is < 1 or > 4 || request.Status is < 1 or > 3)
+        {
+            return BadJson("Invalid subtask values.");
+        }
+
+        if (!await SubtaskBelongsToRouteAsync(request.SubtaskId))
+        {
+            return BadJson("Invalid subtask.");
+        }
+
+        var dto = new CreateBacklogSubtaskDto
+        {
+            Title = request.Title,
+            Priority = request.Priority,
+            AssigneeId = request.AssigneeId,
+            Status = request.Status
+        };
+
+        var success = await _productBacklogService.UpdateSubtaskAsync(request.SubtaskId, dto);
+        return new JsonResult(new { success });
+    }
+
+    public async Task<IActionResult> OnPostDeleteSubtaskAsync(Guid subtaskId)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        if (subtaskId == Guid.Empty || !await SubtaskBelongsToRouteAsync(subtaskId))
+        {
+            return BadJson("Invalid subtask.");
+        }
+
+        var success = await _productBacklogService.DeleteSubtaskAsync(subtaskId);
+        return new JsonResult(new { success });
+    }
+
+    public async Task<IActionResult> OnPostAddCommentAsync([FromBody] AddCommentRequest request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Forbid();
+
+        if (request.ItemId == Guid.Empty || string.IsNullOrWhiteSpace(request.Body))
+        {
+            return BadJson("Comment body is required.");
+        }
+
+        if (!await BacklogItemBelongsToRouteAsync(request.ItemId))
+        {
+            return BadJson("Invalid backlog item.");
+        }
+
+        var comment = new BacklogItemComment
+        {
+            Id = Guid.NewGuid(),
+            BacklogItemId = request.ItemId,
+            AuthorId = userId.Value,
+            Body = request.Body.Trim(),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.BacklogItemComments.Add(comment);
+        await _db.SaveChangesAsync();
+        comment.Author = await _db.Users.FindAsync(comment.AuthorId);
+
+        return new JsonResult(new
+        {
+            success = true,
+            comment = MapComment(comment, userId.Value)
+        });
+    }
+
+    public async Task<IActionResult> OnPostUpdateCommentAsync([FromBody] UpdateCommentRequest request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Forbid();
+
+        if (request.CommentId == Guid.Empty || string.IsNullOrWhiteSpace(request.Body))
+        {
+            return BadJson("Comment body is required.");
+        }
+
+        var comment = await _db.BacklogItemComments
+            .Include(c => c.BacklogItem)
+            .FirstOrDefaultAsync(c => c.Id == request.CommentId);
+
+        if (comment == null || comment.AuthorId != userId.Value || !BacklogItemMatchesRoute(comment.BacklogItem))
+        {
+            return BadJson("Invalid comment.");
+        }
+
+        comment.Body = request.Body.Trim();
+        comment.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return new JsonResult(new { success = true });
+    }
+
+    public async Task<IActionResult> OnPostDeleteCommentAsync(Guid commentId)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Forbid();
+
+        var comment = await _db.BacklogItemComments
+            .Include(c => c.BacklogItem)
+            .FirstOrDefaultAsync(c => c.Id == commentId);
+
+        if (comment == null || comment.AuthorId != userId.Value || !BacklogItemMatchesRoute(comment.BacklogItem))
+        {
+            return BadJson("Invalid comment.");
+        }
+
+        _db.BacklogItemComments.Remove(comment);
+        await _db.SaveChangesAsync();
+
+        return new JsonResult(new { success = true });
+    }
+
+    public async Task<IActionResult> OnGetCommentsAsync(Guid itemId)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Forbid();
+
+        if (itemId == Guid.Empty || !await BacklogItemBelongsToRouteAsync(itemId))
+        {
+            return BadJson("Invalid backlog item.");
+        }
+
+        var comments = await _db.BacklogItemComments
+            .Include(c => c.Author)
+            .Where(c => c.BacklogItemId == itemId)
+            .OrderBy(c => c.CreatedAt)
+            .ToListAsync();
+
+        return new JsonResult(new
+        {
+            success = true,
+            comments = comments.Select(c => MapComment(c, userId.Value))
+        });
     }
 
     // ── DELETE ────────────────────────────────────────────────────────────────
@@ -884,6 +1142,82 @@ public class BacklogModel : PageModel
         _ => "To do"
     };
 
+    private JsonResult BadJson(string message) =>
+        new(new { success = false, message }) { StatusCode = 400 };
+
+    private Guid? GetCurrentUserId()
+    {
+        var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(id, out var userId) ? userId : null;
+    }
+
+    private async Task<bool> BacklogItemBelongsToRouteAsync(Guid itemId)
+    {
+        var item = await _db.ProductBacklogs
+            .Include(x => x.Product)
+            .FirstOrDefaultAsync(x => x.Id == itemId);
+
+        return BacklogItemMatchesRoute(item);
+    }
+
+    private bool BacklogItemMatchesRoute(ProductBacklog? item)
+    {
+        if (item == null)
+        {
+            return false;
+        }
+
+        return item.ProductId == ProductId
+            && (ProjectId == Guid.Empty || item.Product?.ProjectId == ProjectId);
+    }
+
+    private async Task<bool> SubtaskBelongsToRouteAsync(Guid subtaskId)
+    {
+        return await _db.BacklogSubtasks
+            .Include(s => s.ProductBacklog)
+            .ThenInclude(p => p!.Product)
+            .AnyAsync(s => s.Id == subtaskId
+                && s.ProductBacklog != null
+                && s.ProductBacklog.ProductId == ProductId
+                && (ProjectId == Guid.Empty || s.ProductBacklog.Product!.ProjectId == ProjectId));
+    }
+
+    private static object MapComment(BacklogItemComment comment, Guid currentUserId)
+    {
+        var authorName = GetUserName(comment.Author);
+        return new
+        {
+            id = comment.Id,
+            authorName,
+            authorInitials = GetInitials(authorName),
+            body = comment.Body,
+            createdAt = comment.CreatedAt,
+            isOwn = comment.AuthorId == currentUserId
+        };
+    }
+
+    private static string GetUserName(User? user)
+    {
+        if (user == null)
+        {
+            return "Unknown user";
+        }
+
+        var fullName = $"{user.FirstName} {user.LastName}".Trim();
+        return !string.IsNullOrWhiteSpace(user.DisplayName)
+            ? user.DisplayName
+            : string.IsNullOrWhiteSpace(fullName) ? user.Email : fullName;
+    }
+
+    private static string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant()
+            : name[..Math.Min(2, name.Length)].ToUpperInvariant();
+    }
+
     private static List<WorkTypeOptionDTO> BuildWorkTypes(IEnumerable<WorkTypeDTO> customTypes)
     {
         var workTypes = new List<WorkTypeOptionDTO>
@@ -904,5 +1238,32 @@ public class BacklogModel : PageModel
         }));
 
         return workTypes;
+    }
+
+    public class UpdateSubtaskStatusRequest
+    {
+        public Guid SubtaskId { get; set; }
+        public int Status { get; set; }
+    }
+
+    public class UpdateSubtaskRequest
+    {
+        public Guid SubtaskId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public int Priority { get; set; }
+        public Guid? AssigneeId { get; set; }
+        public int Status { get; set; }
+    }
+
+    public class AddCommentRequest
+    {
+        public Guid ItemId { get; set; }
+        public string Body { get; set; } = string.Empty;
+    }
+
+    public class UpdateCommentRequest
+    {
+        public Guid CommentId { get; set; }
+        public string Body { get; set; } = string.Empty;
     }
 }

@@ -110,6 +110,19 @@
     tr:hover .edit-title-btn { visibility: visible; }
     .edit-title-btn:hover { background: #ebecf0; color: #172b4d; }
     .title-input { width: 100%; font-size: 13px; color: #172b4d; border: 2px solid #0052cc; border-radius: 3px; padding: 2px 6px; outline: none; background: #fff; }
+    .item-title-stack { display: flex; flex-direction: column; gap: 5px; padding: 6px 0; min-width: 0; }
+    .subtask-add-btn { visibility: hidden; border: 1px solid #dfe1e6; background: #fff; color: #42526e; width: 20px; height: 20px; border-radius: 3px; display: inline-flex; align-items: center; justify-content: center; padding: 0; font-size: 10px; }
+    tr:hover .subtask-add-btn { visibility: visible; }
+    .subtask-add-btn:hover { background: #0052cc; border-color: #0052cc; color: #fff; }
+    .subtask-count { display: inline-flex; align-items: center; gap: 3px; color: #42526e; background: #f4f5f7; border-radius: 10px; padding: 1px 6px; font-size: 10px; font-weight: 600; }
+    .subtask-create { display: flex; align-items: center; gap: 6px; max-width: 360px; color: #6b778c; }
+    .subtask-create input { flex: 1; min-width: 120px; border: 1px solid #dfe1e6; border-radius: 3px; padding: 3px 6px; font-size: 12px; outline: none; }
+    .subtask-create input:focus { border-color: #0052cc; }
+    .subtask-create button { border: none; background: #0052cc; color: #fff; border-radius: 3px; padding: 3px 8px; font-size: 11px; font-weight: 600; }
+    .product-subtasks { display: flex; flex-direction: column; gap: 3px; margin-left: 28px; }
+    .product-subtask { display: flex; align-items: center; gap: 6px; width: fit-content; max-width: 100%; margin: 0; color: #42526e; font-size: 11px; line-height: 1.3; }
+    .product-subtask input { width: 12px; height: 12px; margin: 0; }
+    .product-subtask.done span { color: #6b778c; text-decoration: line-through; }
     
     /* Make content full width */
     .container { max-width: 100% !important; padding-left: 30px !important; padding-right: 30px !important; }
@@ -137,6 +150,47 @@
     .form-group label { display: block; font-size: 12px; font-weight: 600; color: #6b778c; margin-bottom: 4px; }
     .form-control { width: 100%; padding: 8px; border: 1.5px solid #dfe1e6; border-radius: 3px; font-size: 14px; }
     .form-control:focus { border-color: #4c9aff; outline: none; }
+    .sidebar-overlay { position: fixed; inset: 0; z-index: 99999; background: rgba(9, 30, 66, 0.55); display: flex; justify-content: flex-end; }
+    .sidebar-overlay.d-none { display: none !important; }
+    .sidebar-panel { width: 485px; max-width: 100%; height: 100%; background: #fff; display: flex; flex-direction: column; box-shadow: -4px 0 16px rgba(9, 30, 66, 0.25); animation: slideSidebar .18s ease-out; }
+    .sidebar-header { padding: 14px 16px 10px; border-bottom: 1px solid #dfe1e6; }
+    .sidebar-title { font-size: 15px; font-weight: 700; color: #172b4d; margin: 0; }
+    .sidebar-key { display: block; margin-top: 2px; font-size: 10px; color: #6b778c; }
+    .sidebar-status { width: 100%; height: 28px; border: 1px solid #dfe1e6; border-radius: 3px; color: #172b4d; font-size: 12px; padding: 3px 8px; background: #fff; }
+    .sidebar-body { flex: 1; overflow-y: auto; padding: 14px 16px; }
+    .sidebar-footer { border-top: 1px solid #dfe1e6; padding: 8px 12px; display: flex; gap: 8px; background: #fafbfc; }
+    .sidebar-footer input { flex: 1; border: 1px solid #dfe1e6; border-radius: 2px; padding: 5px 7px; font-size: 11px; outline: none; }
+    .sidebar-footer input:focus { border-color: #4c9aff; }
+    .sidebar-footer button { border: none; border-radius: 2px; background: #0052cc; color: #fff; padding: 5px 12px; font-size: 10px; font-weight: 600; }
+    .sidebar-section-title { font-size: 11px; font-weight: 700; color: #172b4d; margin: 0; }
+    .sidebar-field-label { font-size: 10px; font-weight: 600; color: #42526e; margin-bottom: 4px; }
+    .sidebar-muted-link { border: none; background: transparent; color: #0052cc; padding: 0; font-size: 10px; }
+    .sidebar-details-toggle { border: none; background: transparent; color: #6b778c; padding: 0; }
+    .sidebar-details-grid { display: grid; grid-template-columns: 140px 1fr; gap: 8px 0; }
+    .sidebar-detail-label { font-size: 11px; font-weight: 600; color: #6b778c; min-height: 24px; display: flex; align-items: center; }
+    .sidebar-detail-value { min-height: 24px; font-size: 12px; color: #172b4d; display: flex; align-items: center; gap: 6px; }
+    .sidebar-detail-input { width: 100%; height: 28px; border: 1px solid #dfe1e6; border-radius: 3px; padding: 3px 7px; font-size: 11px; color: #172b4d; }
+    .sidebar-tabs { display: flex; gap: 22px; border-bottom: 1px solid #dfe1e6; margin-top: 16px; }
+    .sidebar-tab { border: none; background: transparent; color: #0052cc; font-size: 11px; padding: 8px 0; border-bottom: 2px solid transparent; }
+    .sidebar-tab.active { color: #172b4d; border-bottom-color: #0052cc; font-weight: 600; }
+    .sidebar-tab-panel { padding: 12px 0; font-size: 11px; color: #6b778c; }
+    .sidebar-subtask-list { display: flex; flex-direction: column; gap: 7px; }
+    .sidebar-subtask-list .product-subtask { width: 100%; background: #fff; border: 0.5px solid #dfe1e6; border-radius: 4px; padding: 6px 8px; font-size: 12px; display: flex; align-items: center; justify-content: space-between; }
+    .sidebar-subtask-list .product-subtask > div { display: flex; align-items: center; gap: 8px; flex: 1; }
+    .sidebar-subtask-list .product-subtask .subtask-actions { display: flex; align-items: center; gap: 4px; opacity: 0; transition: opacity 0.2s; }
+    .sidebar-subtask-list .product-subtask:hover .subtask-actions { opacity: 1; }
+    .sidebar-subtask-list .text-muted { border: 1px dashed #dfe1e6; border-radius: 4px; padding: 10px; }
+    .sidebar-comments { display: flex; flex-direction: column; gap: 10px; }
+    .sidebar-comment { display: flex; gap: 8px; position: relative; }
+    .comment-body-wrap { flex: 1; min-width: 0; }
+    .comment-meta { display: flex; align-items: baseline; gap: 6px; }
+    .comment-author { font-size: 12px; font-weight: 700; color: #172b4d; }
+    .comment-time { font-size: 10px; color: #6b778c; }
+    .comment-body { font-size: 12px; color: #172b4d; white-space: pre-wrap; }
+    .comment-actions { margin-left: auto; display: flex; gap: 4px; opacity: 0; transition: opacity 0.2s; }
+    .sidebar-comment:hover .comment-actions { opacity: 1; }
+    .comment-edit textarea { width: 100%; min-height: 64px; border: 1px solid #4c9aff; border-radius: 3px; padding: 6px; font-size: 12px; }
+    @@keyframes slideSidebar { from { transform: translateX(100%); } to { transform: translateX(0); } }
 </style>
 
 <div class="mt-2">
@@ -194,6 +248,7 @@
             <button type="button" class="btn-close" onclick="closeWorkTypeModal()"></button>
         </div>
         <div class="modal-body">
+
             <div class="form-group mb-3">
                 <label class="form-label fw-bold small">Name</label>
                 <input type="text" id="workTypeName" class="form-control" placeholder="e.g. Research" />
@@ -285,7 +340,8 @@
                                 ["SubProjects"] = Model.ProductSubProjects,
                                 ["WorkTypes"] = Model.WorkTypes,
                                 ["ActiveUsers"] = Model.ActiveUsers,
-                                ["CustomStatuses"] = Model.CustomBoardColumns
+                                ["CustomStatuses"] = Model.CustomBoardColumns,
+                                ["SubtasksByItem"] = Model.SubtasksByItem
                             })
                         }
                         @if (!sprintItems.Any())
@@ -450,7 +506,8 @@
                                 ["SubProjects"] = Model.ProductSubProjects,
                                 ["WorkTypes"] = Model.WorkTypes,
                                 ["ActiveUsers"] = Model.ActiveUsers,
-                                ["CustomStatuses"] = Model.CustomBoardColumns
+                                ["CustomStatuses"] = Model.CustomBoardColumns,
+                                ["SubtasksByItem"] = Model.SubtasksByItem
                             })
                         }
                         @if (!backlogItems.Any())
@@ -462,6 +519,99 @@
                     </tbody>
                 </table>
             }
+        </div>
+    </div>
+</div>
+
+<!-- Product Backlog Subtask Sidebar -->
+<div id="productSubtaskSidebar" class="sidebar-overlay d-none">
+    <div class="sidebar-panel">
+        <div class="sidebar-header">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 id="sidebarTaskTitle" class="sidebar-title">Subtask</h5>
+                    <span id="sidebarTaskKey" class="sidebar-key">PB-0000</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeProductSidebar()">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <select id="sidebarStatus" class="sidebar-status mt-2" onchange="updateSidebarStatus(this.value)">
+                <option value="1">To do</option>
+                <option value="2">In progress</option>
+                <option value="3">In review</option>
+                <option value="4">Done</option>
+            </select>
+        </div>
+
+        <div class="sidebar-body">
+            <div class="mb-4">
+                <label class="form-label fw-bold small">Description</label>
+                <textarea id="sidebarDescription"
+                          class="form-control"
+                          rows="4"
+                          placeholder="Add a description..."
+                          onblur="saveSidebarDescription()"></textarea>
+            </div>
+
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="sidebar-section-title">Details</h6>
+                </div>
+                <div class="sidebar-details-grid" id="sidebarDetailsGrid">
+                    <div class="sidebar-detail-label">Assignee</div>
+                    <div id="sidebarAssignee" class="sidebar-detail-value">Unassigned</div>
+                    <div class="sidebar-detail-label">Story points</div>
+                    <div id="sidebarStoryPoints" class="sidebar-detail-value">0</div>
+                    <div class="sidebar-detail-label">Due date</div>
+                    <div id="sidebarDueDate" class="sidebar-detail-value">-</div>
+                    <div class="sidebar-detail-label">Start date</div>
+                    <div id="sidebarStartDate" class="sidebar-detail-value">-</div>
+                    <div class="sidebar-detail-label">Sprint name</div>
+                    <div id="sidebarSprint" class="sidebar-detail-value">Backlog</div>
+                    <div class="sidebar-detail-label">Priority</div>
+                    <div id="sidebarPriority" class="sidebar-detail-value">Medium</div>
+                    <div class="sidebar-detail-label">Work type</div>
+                    <div id="sidebarWorkType" class="sidebar-detail-value">Work Item</div>
+                    <div class="sidebar-detail-label">Created date</div>
+                    <div id="sidebarCreatedAt" class="sidebar-detail-value">-</div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0">Subtasks</h6>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="showSubtaskInput()">
+                        <i class="bi bi-plus"></i>
+                    </button>
+                </div>
+
+                <div id="sidebarSubtaskList" class="sidebar-subtask-list"></div>
+
+                <div id="newSubtaskWrap" class="d-none mt-2">
+                    <div class="input-group">
+                        <input type="text"
+                               id="newSubtaskInput"
+                               class="form-control"
+                               placeholder="Subtask title..."
+                               onkeydown="if(event.key==='Enter')createSidebarSubtask(event);if(event.key==='Escape')hideSubtaskInput();" />
+                        <button type="button" class="btn btn-primary" onclick="createSidebarSubtask(event)">Add</button>
+                        <button type="button" class="btn btn-outline-secondary" onclick="hideSubtaskInput()">Cancel</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-tabs">
+                <button type="button" class="sidebar-tab active" onclick="setSidebarTab('all', event)">All</button>
+                <button type="button" class="sidebar-tab" onclick="setSidebarTab('comments', event)">Comments</button>
+                <button type="button" class="sidebar-tab" onclick="setSidebarTab('history', event)">History</button>
+            </div>
+            <div id="sidebarActivity" class="sidebar-tab-panel">No activity yet.</div>
+        </div>
+
+        <div class="sidebar-footer">
+            <input id="sidebarCommentInput" type="text" placeholder="Add a comment..." onkeydown="if(event.key==='Enter')addSidebarComment();" />
+            <button type="button" onclick="addSidebarComment()">Comment</button>
         </div>
     </div>
 </div>
@@ -562,6 +712,60 @@
     </div>
 </div>
 
+<!-- Edit Subtask Modal -->
+<div class="modal-overlay" id="editSubtaskModal">
+    <div class="modal-card" style="width:400px;">
+        <div class="modal-header">
+            <h5 class="modal-title">Edit Subtask</h5>
+            <button type="button" class="btn-close" onclick="closeEditSubtaskModal()"></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editSubtaskId" />
+            <div class="form-group mb-3">
+                <label class="form-label fw-bold small">Title</label>
+                <input type="text" id="editSubtaskTitle" class="form-control" placeholder="Subtask title" />
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-bold small">Priority</label>
+                        <select id="editSubtaskPriority" class="form-select form-select-sm">
+                            <option value="1">Highest</option>
+                            <option value="2">High</option>
+                            <option value="3">Medium</option>
+                            <option value="4">Low</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-bold small">Status</label>
+                        <select id="editSubtaskStatus" class="form-select form-select-sm">
+                            <option value="1">To Do</option>
+                            <option value="2">In Progress</option>
+                            <option value="3">Done</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group mb-3">
+                <label class="form-label fw-bold small">Assignee</label>
+                <select id="editSubtaskAssignee" class="form-select form-select-sm">
+                    <option value="">Unassigned</option>
+                    @foreach (var user in Model.ActiveUsers)
+                    {
+                        <option value="@user.Id">@(user.DisplayName ?? $"{user.FirstName} {user.LastName}")</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer d-flex justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-sm btn-link text-muted text-decoration-none" onclick="closeEditSubtaskModal()">Cancel</button>
+            <button type="button" class="btn btn-sm btn-primary px-4" onclick="submitEditSubtask()">Save Changes</button>
+        </div>
+    </div>
+</div>
+
 @Html.AntiForgeryToken()
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
@@ -623,7 +827,8 @@ async function submitCreateSprint() {
         const result = await resp.json();
         if(result.success) {
             showToast('Sprint created successfully');
-            setTimeout(() => location.reload(), 800);
+            appendSprintCard(result.sprint);
+            closeCreateSprintModal();
         } else {
             showToast(result.message || 'Failed to create sprint', 'danger');
         }
@@ -695,7 +900,9 @@ async function completeSprint(id) {
         const result = await resp.json();
         if (result.success) {
             showToast('Sprint completed!');
-            setTimeout(() => location.reload(), 800);
+            const card = document.getElementById('sprint_' + id);
+            card?.querySelectorAll('.badge.bg-success').forEach(x => x.remove());
+            document.getElementById('completeSprintBtn_' + id)?.remove();
         } else {
             showToast('Failed to complete sprint', 'danger');
         }
@@ -711,7 +918,47 @@ async function deleteSprint(id) {
         method: 'POST',
         headers: { 'RequestVerificationToken': getToken() }
     });
-    if((await resp.json()).success) location.reload();
+    if((await resp.json()).success) {
+        const card = document.getElementById('sprint_' + id);
+        const backlog = document.getElementById('backlogTableBody');
+        card?.querySelectorAll('tbody tr[data-item-id]').forEach(row => backlog?.appendChild(row));
+        card?.remove();
+        updateBacklogStats();
+        updateDropPlaceholders();
+    }
+}
+
+function appendSprintCard(sprint) {
+    const backlogWrap = document.querySelector('.backlog-wrap');
+    if (!backlogWrap || !sprint) return;
+    const id = sprint.id || sprint.Id;
+    const name = sprint.name || sprint.Name || 'Sprint';
+    const card = document.createElement('div');
+    card.className = 'sprint-card';
+    card.id = `sprint_${id}`;
+    card.innerHTML = `
+        <div class="sprint-header" onclick="toggleSprint('${id}')">
+            <div class="d-flex align-items-center gap-3">
+                <i class="bi bi-chevron-down chevron-toggle"></i>
+                <div>
+                    <div class="d-flex align-items-center gap-2"><h6 class="mb-0 fw-bold" style="font-size:14px;">${escapeHtml(name)}</h6></div>
+                    <div class="sprint-meta"><span class="capacity-indicator"><i class="bi bi-lightning-charge-fill" style="color:#0052cc"></i><span class="pts-sum">0</span> pts</span></div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-2" onclick="event.stopPropagation()">
+                <button class="btn btn-sm btn-link text-muted" onclick="deleteSprint('${id}')" title="Delete sprint"><i class="bi bi-trash"></i></button>
+            </div>
+        </div>
+        <div class="sprint-table-wrap">
+            <table class="table-backlog mb-0"><tbody class="sprint-drop-zone" data-sprint-id="${id}">
+                <tr class="drop-placeholder text-center" data-placeholder="true"><td colspan="9" class="text-muted small py-3">Drop items here</td></tr>
+            </tbody></table>
+        </div>`;
+    backlogWrap.parentNode.insertBefore(card, backlogWrap);
+    const zone = card.querySelector('.sprint-drop-zone');
+    if (window.Sortable && zone) {
+        new Sortable(zone, { group: 'backlog', animation: 150, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', filter: '.drop-placeholder' });
+    }
 }
 
 function updateBacklogStats() {
@@ -1099,14 +1346,631 @@ function renderTitleCell(itemId, title) {
     const badge = cell.querySelector('.badge-id');
     const shortIdHtml = badge ? badge.outerHTML : ''; 
 
+    const shortIdText = cell.querySelector('.badge-id')?.textContent || '';
+    const titleArg = JSON.stringify(title);
+
     cell.innerHTML = `${shortIdHtml}
-        <a href="#" class="title-link">${title}</a>
+        <a href="#" class="title-link" onclick="openProductSidebar('${itemId}', ${titleArg}, '${shortIdText}', false, event)">${title}</a>
+        <button type="button" class="subtask-add-btn" onclick="openProductSidebar('${itemId}', ${titleArg}, '${shortIdText}', true, event)" title="Add subtask">
+            <i class="bi bi-plus-lg"></i>
+        </button>
         <span class="edit-title-btn" onclick="editTitle('${itemId}', '${title.replace(/'/g, "\\'")}')" title="Edit title">
             <i class="bi bi-pencil" style="font-size:10px;"></i>
         </span>`;
 }
 
 // ─── Row: Points inline edit ──────────────────────────────────────────────────
+function toggleSubtaskForm(itemId, e, forceClose) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    const form = document.getElementById('subtaskForm_' + itemId);
+    const input = document.getElementById('subtaskInput_' + itemId);
+    if (!form) return;
+
+    if (forceClose || !form.classList.contains('d-none')) {
+        form.classList.add('d-none');
+        if (input) input.value = '';
+        return;
+    }
+
+    form.classList.remove('d-none');
+    if (input) input.focus();
+}
+
+async function createSubtask(itemId, e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    const input = document.getElementById('subtaskInput_' + itemId);
+    const title = input?.value.trim();
+    if (!title) return;
+
+    const resp = await fetch('?handler=Subtask', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getToken()
+        },
+        body: JSON.stringify({
+            parentId: itemId,
+            title,
+            priority: 3,
+            status: 1
+        })
+    });
+
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        showToast(result.message || 'Failed to add subtask', 'danger');
+        return;
+    }
+
+    const list = document.getElementById('subtaskList_' + itemId);
+    if (list) {
+        list.classList.remove('d-none');
+        const label = document.createElement('div');
+        label.className = 'product-subtask';
+        label.dataset.subtaskId = result.subtask.id;
+        label.dataset.subtaskTitle = result.subtask.title;
+        label.dataset.subtaskStatus = result.subtask.status;
+        label.dataset.subtaskPriority = result.subtask.priority;
+        label.dataset.subtaskAssigneeId = result.subtask.assigneeId || '';
+        label.innerHTML = `<input type="checkbox" data-subtask-id="${result.subtask.id}" onchange="updateProductSubtaskStatus('${result.subtask.id}', this.checked ? 3 : 1, event)" /><span></span>`;
+        label.querySelector('input').dataset.subtaskId = result.subtask.id;
+        label.querySelector('span').textContent = result.subtask.title;
+        list.appendChild(label);
+    }
+
+    updateSubtaskCount(itemId);
+    if (currentBacklogId === itemId) renderSidebarSubtasks(itemId);
+    toggleSubtaskForm(itemId, e, true);
+    showToast('Subtask added', 'success');
+}
+
+async function updateProductSubtaskStatus(subtaskId, status, e) {
+    if (e) e.stopPropagation();
+
+    const checkbox = e?.target;
+    const label = checkbox?.closest('.product-subtask');
+    if (label) label.classList.toggle('done', status === 3);
+
+    const resp = await fetch('?handler=UpdateSubtaskStatus', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getToken()
+        },
+        body: JSON.stringify({ subtaskId, status })
+    });
+
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        if (checkbox) checkbox.checked = status !== 3;
+        if (label) label.classList.toggle('done', status !== 3);
+        showToast('Failed to update subtask', 'danger');
+        return false;
+    }
+
+    document.querySelectorAll(`input[data-subtask-id="${subtaskId}"]`).forEach(cb => {
+        cb.checked = status === 3;
+        const subtask = cb.closest('.product-subtask, .sidebar-subtask');
+        if (subtask) {
+            subtask.classList.toggle('done', status === 3);
+            subtask.dataset.subtaskStatus = status.toString();
+        }
+    });
+    return true;
+}
+
+let currentBacklogId = null;
+let currentBacklogTitle = '';
+let currentBacklogKey = '';
+let currentSidebarTab = 'all';
+let currentSidebarComments = [];
+
+function openProductSidebar(id, title, key, focusNewSubtask, e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    currentBacklogId = id;
+    currentBacklogTitle = title || '';
+    currentBacklogKey = key || '';
+
+    const row = document.getElementById('row-' + id);
+    const ds = row?.dataset || {};
+    const sprintCard = row?.closest('.sprint-card');
+    const sprintName = sprintCard?.querySelector('.sprint-header h6')?.textContent?.trim() || 'Backlog';
+
+    document.getElementById('sidebarTaskTitle').textContent = currentBacklogTitle || 'Subtask';
+    document.getElementById('sidebarTaskKey').textContent = currentBacklogKey ? `PB-${currentBacklogKey}` : 'PB';
+    document.getElementById('sidebarStatus').value = ds.itemStatus || '1';
+    document.getElementById('sidebarDescription').value = ds.itemDescription || '';
+    document.getElementById('sidebarAssignee').innerHTML = renderAssigneeValue(ds.itemAssignee || 'Unassigned', ds.itemAssigneeId || '');
+    document.getElementById('sidebarDueDate').textContent = formatDate(ds.itemDueDate);
+    document.getElementById('sidebarStartDate').textContent = formatDate(ds.itemStartDate);
+    document.getElementById('sidebarStoryPoints').textContent = ds.itemStoryPoints || '0';
+    document.getElementById('sidebarSprint').textContent = sprintName;
+    document.getElementById('sidebarPriority').textContent = ds.itemPriorityLabel || priorityLabel(ds.itemPriority);
+    document.getElementById('sidebarWorkType').textContent = ds.itemWorkType || 'Work Item';
+    document.getElementById('sidebarCreatedAt').textContent = formatDate(ds.itemCreatedAt);
+    renderSidebarSubtasks(id);
+
+    document.getElementById('productSubtaskSidebar').classList.remove('d-none');
+    setSidebarTab('all');
+    loadSidebarComments(id);
+
+    if (focusNewSubtask) {
+        showSubtaskInput();
+    } else {
+        hideSubtaskInput();
+    }
+}
+
+function closeProductSidebar() {
+    document.getElementById('productSubtaskSidebar').classList.add('d-none');
+    hideSubtaskInput();
+}
+
+function setSidebarTab(tab, e) {
+    if (e) e.preventDefault();
+    currentSidebarTab = tab;
+    document.querySelectorAll('.sidebar-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.trim().toLowerCase() === tab);
+    });
+
+    const panel = document.getElementById('sidebarActivity');
+    if (tab === 'comments') {
+        loadSidebarComments(currentBacklogId);
+        return;
+    }
+
+    if (tab === 'history') {
+        panel.textContent = 'No history yet.';
+        return;
+    }
+
+    renderComments(currentSidebarComments);
+}
+
+async function loadSidebarComments(itemId) {
+    const panel = document.getElementById('sidebarActivity');
+    if (!itemId) {
+        panel.textContent = 'No comments yet.';
+        return;
+    }
+
+    panel.textContent = 'Loading comments...';
+    const resp = await fetch(`?handler=GetComments&itemId=${itemId}`, {
+        headers: { 'Accept': 'application/json' }
+    });
+    const result = await resp.json().catch(() => ({ success: false, comments: [] }));
+    currentSidebarComments = result.success ? result.comments : [];
+    renderComments(currentSidebarComments);
+}
+
+function renderComments(comments) {
+    const panel = document.getElementById('sidebarActivity');
+    if (!comments || comments.length === 0) {
+        panel.textContent = currentSidebarTab === 'history' ? 'No history yet.' : 'No comments yet.';
+        return;
+    }
+
+    panel.innerHTML = `<div class="sidebar-comments">${comments.map(comment => `
+        <div class="sidebar-comment" id="comment_${comment.id}">
+            <div class="avatar-circle" style="${avatarStyle(comment.authorName)}">${escapeHtml(comment.authorInitials || getInitials(comment.authorName))}</div>
+            <div class="comment-body-wrap">
+                <div class="comment-meta">
+                    <span class="comment-author">${escapeHtml(comment.authorName)}</span>
+                    <span class="comment-time">${timeAgo(comment.createdAt)}</span>
+                    ${comment.isOwn ? `
+                        <span class="comment-actions">
+                            <button type="button" class="ib" onclick="startEditComment('${comment.id}', '${escapeJs(comment.body)}')" title="Edit comment"><i class="bi bi-pencil"></i></button>
+                            <button type="button" class="ib text-danger" onclick="deleteComment('${comment.id}')" title="Delete comment"><i class="bi bi-trash"></i></button>
+                        </span>` : ''}
+                </div>
+                <div class="comment-body" id="commentBody_${comment.id}">${escapeHtml(comment.body)}</div>
+            </div>
+        </div>`).join('')}</div>`;
+}
+
+async function addSidebarComment() {
+    if (!currentBacklogId) return;
+
+    const input = document.getElementById('sidebarCommentInput');
+    const body = input.value.trim();
+    if (!body) return;
+
+    const resp = await fetch('?handler=AddComment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getToken()
+        },
+        body: JSON.stringify({ itemId: currentBacklogId, body })
+    });
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        showToast(result.message || 'Failed to add comment', 'danger');
+        return;
+    }
+
+    currentSidebarComments.push(result.comment);
+    input.value = '';
+    setSidebarTab('comments');
+}
+
+function startEditComment(commentId, currentBody) {
+    const bodyEl = document.getElementById('commentBody_' + commentId);
+    if (!bodyEl) return;
+    bodyEl.className = 'comment-edit';
+    bodyEl.innerHTML = `
+        <textarea id="commentEdit_${commentId}">${escapeHtml(currentBody)}</textarea>
+        <div class="d-flex gap-2 mt-2">
+            <button type="button" class="btn btn-sm btn-primary" onclick="saveEditComment('${commentId}')">Save</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="renderComments(currentSidebarComments)">Cancel</button>
+        </div>`;
+    document.getElementById('commentEdit_' + commentId)?.focus();
+}
+
+async function saveEditComment(commentId) {
+    const textarea = document.getElementById('commentEdit_' + commentId);
+    const body = textarea?.value.trim();
+    if (!body) return;
+
+    const resp = await fetch('?handler=UpdateComment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getToken()
+        },
+        body: JSON.stringify({ commentId, body })
+    });
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        showToast(result.message || 'Failed to update comment', 'danger');
+        return;
+    }
+
+    const comment = currentSidebarComments.find(c => c.id === commentId);
+    if (comment) comment.body = body;
+    renderComments(currentSidebarComments);
+}
+
+async function deleteComment(commentId) {
+    if (!confirm('Delete this comment?')) return;
+
+    const resp = await fetch(`?handler=DeleteComment&commentId=${commentId}`, {
+        method: 'POST',
+        headers: { 'RequestVerificationToken': getToken() }
+    });
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        showToast(result.message || 'Failed to delete comment', 'danger');
+        return;
+    }
+
+    currentSidebarComments = currentSidebarComments.filter(c => c.id !== commentId);
+    document.getElementById('comment_' + commentId)?.remove();
+    if (currentSidebarComments.length === 0) renderComments(currentSidebarComments);
+}
+
+function escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = value ?? '';
+    return div.innerHTML;
+}
+
+function escapeJs(str) {
+    return (str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\r?\n/g, '\\n');
+}
+
+function formatDate(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function timeAgo(dateStr) {
+    const date = new Date(dateStr);
+    const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+    if (seconds < 60) return 'now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+}
+
+function getInitials(name) {
+    const parts = (name || '?').trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return (parts[0] || '?').substring(0, 2).toUpperCase();
+}
+
+function avatarStyle(seed) {
+    const palettes = [
+        ['#deebff', '#0747a6'],
+        ['#e3fcef', '#006644'],
+        ['#fff0b3', '#974f0c'],
+        ['#ffebe6', '#bf2600'],
+        ['#e6fcff', '#006c8a'],
+        ['#f3f0ff', '#403294'],
+        ['#fce4ec', '#880e4f']
+    ];
+    let hash = 0;
+    for (const ch of (seed || '')) hash = ((hash << 5) - hash) + ch.charCodeAt(0);
+    const [bg, fg] = palettes[Math.abs(hash) % palettes.length];
+    return `background:${bg};color:${fg}`;
+}
+
+function renderAssigneeValue(name, id) {
+    if (!name || name === 'Unassigned') return 'Unassigned';
+    return `<span class="avatar-circle" style="${avatarStyle(id || name)}">${getInitials(name)}</span><span>${escapeHtml(name)}</span>`;
+}
+
+function priorityLabel(priority) {
+    return ({ 1: 'Highest', 2: 'High', 3: 'Medium', 4: 'Low' })[Number(priority)] || 'Medium';
+}
+
+function updateSidebarStatus(status) {
+    if (!currentBacklogId) return;
+    updateStatus(currentBacklogId, Number(status));
+    const row = document.getElementById('row-' + currentBacklogId);
+    if (row) {
+        row.dataset.itemStatus = status;
+        row.dataset.itemStatusLabel = STATUS_MAP[status]?.label || 'To do';
+        row.dataset.status = status;
+    }
+}
+
+function saveSidebarDescription() {
+    if (!currentBacklogId) return;
+    const description = document.getElementById('sidebarDescription').value;
+    const row = document.getElementById('row-' + currentBacklogId);
+    if (row) row.dataset.itemDescription = description;
+
+    fetch('?handler=UpdateDescription', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': getToken()
+        },
+        body: `itemId=${currentBacklogId}&description=${encodeURIComponent(description)}`
+    }).catch(() => {});
+}
+
+function showSubtaskInput() {
+    const wrap = document.getElementById('newSubtaskWrap');
+    const input = document.getElementById('newSubtaskInput');
+    wrap.classList.remove('d-none');
+    input.focus();
+}
+
+function hideSubtaskInput() {
+    const wrap = document.getElementById('newSubtaskWrap');
+    const input = document.getElementById('newSubtaskInput');
+    wrap.classList.add('d-none');
+    input.value = '';
+}
+
+function renderSidebarSubtasks(itemId) {
+    const sidebarList = document.getElementById('sidebarSubtaskList');
+    const rowList = document.getElementById('subtaskList_' + itemId);
+    sidebarList.innerHTML = '';
+
+    const subtasks = rowList ? [...rowList.querySelectorAll('.product-subtask')] : [];
+    if (subtasks.length === 0) {
+        sidebarList.innerHTML = '<div class="text-muted small py-2">No subtasks yet.</div>';
+        return;
+    }
+
+    subtasks.forEach(subtask => {
+        const subtaskId = subtask.dataset.subtaskId;
+        const title = subtask.dataset.subtaskTitle || subtask.querySelector('span')?.textContent || '';
+        const status = parseInt(subtask.dataset.subtaskStatus);
+        const priority = parseInt(subtask.dataset.subtaskPriority);
+        const assigneeId = subtask.dataset.subtaskAssigneeId;
+        const checked = status === 3 ? 'checked' : '';
+        const doneClass = status === 3 ? ' done' : '';
+
+        const item = document.createElement('div');
+        item.className = `sidebar-subtask product-subtask${doneClass}`;
+        item.innerHTML = `
+            <div>
+                <input type="checkbox" data-subtask-id="${subtaskId}" ${checked} onchange="updateProductSubtaskStatus('${subtaskId}', this.checked ? 3 : 1, event)" />
+                <span>${escapeHtml(title)}</span>
+            </div>
+            <div class="subtask-actions">
+                <button type="button" class="ib" onclick="openEditSubtaskModal('${subtaskId}', '${escapeJs(title)}', ${priority}, '${assigneeId}', ${status}, event)" title="Edit">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="ib text-danger" onclick="deleteSubtaskInSidebar('${subtaskId}', event)" title="Delete">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+        sidebarList.appendChild(item);
+    });
+}
+
+function openEditSubtaskModal(id, title, priority, assigneeId, status, e) {
+    if (e) e.stopPropagation();
+    document.getElementById('editSubtaskId').value = id;
+    document.getElementById('editSubtaskTitle').value = title;
+    document.getElementById('editSubtaskPriority').value = priority;
+    document.getElementById('editSubtaskAssignee').value = assigneeId || '';
+    document.getElementById('editSubtaskStatus').value = status;
+    document.getElementById('editSubtaskModal').style.display = 'flex';
+}
+
+function closeEditSubtaskModal() {
+    document.getElementById('editSubtaskModal').style.display = 'none';
+}
+
+async function submitEditSubtask() {
+    const id = document.getElementById('editSubtaskId').value;
+    const title = document.getElementById('editSubtaskTitle').value.trim();
+    const priority = parseInt(document.getElementById('editSubtaskPriority').value);
+    const assigneeId = document.getElementById('editSubtaskAssignee').value || null;
+    const status = parseInt(document.getElementById('editSubtaskStatus').value);
+
+    if (!title) { showToast('Title is required', 'danger'); return; }
+
+    try {
+        const resp = await fetch('?handler=UpdateSubtask', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getToken()
+            },
+            body: JSON.stringify({ subtaskId: id, title, priority, assigneeId, status })
+        });
+
+        const result = await resp.json();
+        if (result.success) {
+            updateSubtaskInRow(id, { title, priority, assigneeId, status });
+            renderSidebarSubtasks(currentBacklogId);
+            closeEditSubtaskModal();
+            showToast('Subtask updated', 'success');
+        } else {
+            showToast('Failed to update subtask', 'danger');
+        }
+    } catch (err) {
+        showToast('An error occurred', 'danger');
+    }
+}
+
+function updateSubtaskInRow(id, data) {
+    const subtaskEl = document.querySelector(`.product-subtask[data-subtask-id="${id}"]`);
+    if (subtaskEl) {
+        subtaskEl.dataset.subtaskTitle = data.title;
+        subtaskEl.dataset.subtaskPriority = data.priority;
+        subtaskEl.dataset.subtaskAssigneeId = data.assigneeId || '';
+        subtaskEl.dataset.subtaskStatus = data.status;
+        subtaskEl.querySelector('span').textContent = data.title;
+        subtaskEl.querySelector('input').checked = data.status === 3;
+        subtaskEl.classList.toggle('done', data.status === 3);
+    }
+}
+
+async function deleteSubtaskInSidebar(id, e) {
+    if (e) e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this subtask?')) return;
+
+    try {
+        const resp = await fetch(`?handler=DeleteSubtask&subtaskId=${id}`, {
+            method: 'POST',
+            headers: {
+                'RequestVerificationToken': getToken()
+            }
+        });
+
+        const result = await resp.json();
+        if (result.success) {
+            const subtaskEl = document.querySelector(`.product-subtask[data-subtask-id="${id}"]`);
+            if (subtaskEl) subtaskEl.remove();
+            renderSidebarSubtasks(currentBacklogId);
+            updateSubtaskCount(currentBacklogId);
+            showToast('Subtask deleted', 'success');
+        } else {
+            showToast('Failed to delete subtask', 'danger');
+        }
+    } catch (err) {
+        showToast('An error occurred', 'danger');
+    }
+}
+
+async function createSidebarSubtask(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    if (!currentBacklogId) return;
+
+    const input = document.getElementById('newSubtaskInput');
+    const title = input.value.trim();
+    if (!title) return;
+
+    const resp = await fetch('?handler=Subtask', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getToken()
+        },
+        body: JSON.stringify({
+            parentId: currentBacklogId,
+            title,
+            priority: 3,
+            status: 1
+        })
+    });
+
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        showToast(result.message || 'Failed to add subtask', 'danger');
+        return;
+    }
+
+    appendSubtaskToRow(currentBacklogId, result.subtask);
+    renderSidebarSubtasks(currentBacklogId);
+    updateSubtaskCount(currentBacklogId);
+    hideSubtaskInput();
+    showToast('Subtask added', 'success');
+}
+
+function appendSubtaskToRow(itemId, subtask) {
+    const list = document.getElementById('subtaskList_' + itemId);
+    if (!list) return;
+
+    list.classList.remove('d-none');
+
+    const label = document.createElement('div');
+    label.className = 'product-subtask';
+    label.dataset.subtaskId = subtask.id;
+    label.dataset.subtaskTitle = subtask.title;
+    label.dataset.subtaskStatus = subtask.status;
+    label.dataset.subtaskPriority = subtask.priority;
+    label.dataset.subtaskAssigneeId = subtask.assigneeId || '';
+    label.innerHTML = `<input type="checkbox" data-subtask-id="${subtask.id}" onchange="updateProductSubtaskStatus('${subtask.id}', this.checked ? 3 : 1, event)" /><span></span>`;
+    label.querySelector('span').textContent = subtask.title;
+    list.appendChild(label);
+}
+
+function updateSubtaskCount(itemId) {
+    const list = document.getElementById('subtaskList_' + itemId);
+    const cell = document.getElementById('titleCell_' + itemId);
+    if (!list || !cell) return;
+
+    const count = list.querySelectorAll('.product-subtask').length;
+    let badge = cell.querySelector('.subtask-count');
+
+    if (count === 0) {
+        badge?.remove();
+        return;
+    }
+
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'subtask-count';
+        badge.innerHTML = '<i class="bi bi-diagram-2"></i> <span class="subtask-count-value"></span> subtasks';
+        const addButton = cell.querySelector('.subtask-add-btn');
+        cell.insertBefore(badge, addButton);
+    }
+
+    badge.title = `${count} subtask(s)`;
+    const value = badge.querySelector('.subtask-count-value');
+    if (value) value.textContent = count;
+}
+
 function editPoints(itemId, current) {
     const cell = document.getElementById('ptsCell_' + itemId);
     if (!cell) return;
@@ -1159,6 +2023,8 @@ function updateStatus(itemId, status, e) {
     const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
     if (row) {
         row.dataset.status = status.toString();
+        row.dataset.itemStatus = status.toString();
+        row.dataset.itemStatusLabel = sm.label;
     }
     fetch('?handler=UpdateStatus', {
         method: 'POST',
@@ -1185,7 +2051,13 @@ function updateOwner(itemId, ownerId, e) {
         body: `itemId=${itemId}&ownerId=${ownerId}`
     }).then(() => {
         signalChange();
-        location.reload();
+        const row = document.getElementById('row-' + itemId);
+        const selected = e?.currentTarget || e?.target?.closest('.dd-item');
+        const name = selected?.textContent?.trim() || 'Unassigned';
+        if (row) {
+            row.dataset.itemAssignee = ownerId ? name : 'Unassigned';
+            row.dataset.itemAssigneeId = ownerId || '';
+        }
     }).catch(() => {});
 }
 
@@ -1202,7 +2074,9 @@ function updateType(itemId, type, e) {
         body: `itemId=${itemId}&type=${type}`
     }).then(() => {
         signalChange();
-        location.reload();
+        const row = document.getElementById('row-' + itemId);
+        const selected = e?.currentTarget || e?.target?.closest('.dd-item');
+        if (row && selected) row.dataset.itemWorkType = selected.textContent.trim();
     }).catch(() => {});
 }
 
@@ -1219,7 +2093,13 @@ function updateSubProject(itemId, subProjectId, e) {
         body: `itemId=${itemId}&subProjectId=${subProjectId}`
     }).then(() => {
         signalChange();
-        location.reload();
+        const selected = e?.currentTarget || e?.target?.closest('.dd-item');
+        const button = document.querySelector(`#subProjDd_${itemId}`)?.previousElementSibling;
+        if (button && selected && subProjectId) {
+            button.innerHTML = `<i class="bi bi-diagram-3"></i> ${selected.textContent.trim()}`;
+            button.className = 'subproj-badge';
+            button.style.marginLeft = '0';
+        }
     }).catch(() => {});
 }
 
@@ -1303,6 +2183,26 @@ function pickItemDate(itemId, y, m, d) {
     }).catch(() => {});
 }
 
+function pickItemDateFromIso(itemId, iso) {
+    const [y, m, d] = iso.split('-').map(Number);
+    if (!y || !m || !d) return;
+
+    const lbl = document.getElementById('dateLbl_' + itemId);
+    if (lbl) lbl.textContent = `${SMON[m - 1]} ${d}`;
+
+    const panel = document.getElementById('itemCal_' + itemId);
+    if (panel) panel.dataset.currentDate = iso;
+
+    fetch('?handler=UpdateDueDate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': getToken()
+        },
+        body: `itemId=${itemId}&dueDate=${iso}`
+    }).catch(() => {});
+}
+
 // ─── Create form submit ───────────────────────────────────────────────────────
 document.getElementById('createBacklogForm').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -1326,13 +2226,13 @@ document.getElementById('createBacklogForm').addEventListener('submit', async fu
         if (result.success) {
             showToast('Item created!', 'success');
             signalChange();
+            appendCreatedBacklogItem(result.item);
             document.getElementById('newItemTitle').value = '';
             document.getElementById('hiddenOwner').value = '';
             document.getElementById('hiddenDueDate').value = '';
             createDate = null;
             document.getElementById('createDateLabel').textContent = '';
             document.getElementById('createAssignIcon').innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>`;
-            setTimeout(() => location.reload(), 600);
         } else {
             showToast(result.message || 'Failed to create item', 'danger');
         }
@@ -1343,6 +2243,59 @@ document.getElementById('createBacklogForm').addEventListener('submit', async fu
         btn.innerHTML = orig;
     }
 });
+
+function appendCreatedBacklogItem(item) {
+    const body = document.getElementById('backlogTableBody');
+    if (!body || !item) return;
+
+    body.querySelector('.drop-placeholder')?.remove();
+    const id = item.id;
+    const shortId = String(id).replace(/-/g, '').substring(0, 4).toUpperCase();
+    const title = item.title || 'Untitled';
+    const status = Number(item.status || 1);
+    const statusInfo = STATUS_MAP[status] || STATUS_MAP[1];
+    const row = document.createElement('tr');
+    row.id = `row-${id}`;
+    row.dataset.itemId = id;
+    row.dataset.status = status.toString();
+    row.dataset.itemStatus = status.toString();
+    row.dataset.itemTitle = title;
+    row.dataset.itemKey = shortId;
+    row.dataset.itemDescription = '';
+    row.dataset.itemAssignee = item.ownerName || 'Unassigned';
+    row.dataset.itemAssigneeId = '';
+    row.dataset.itemDueDate = '';
+    row.dataset.itemStartDate = '';
+    row.dataset.itemStoryPoints = String(item.storyPoints || 0);
+    row.dataset.itemPriority = String(item.priority || 3);
+    row.dataset.itemPriorityLabel = priorityLabel(item.priority || 3);
+    row.dataset.itemWorkType = item.typeName || 'Work Item';
+    row.dataset.itemCreatedAt = new Date().toISOString();
+    const titleArg = JSON.stringify(title);
+
+    row.innerHTML = `
+        <td><input type="checkbox" value="${id}" /></td>
+        <td><button type="button" class="ib" title="${escapeHtml(item.typeName || 'Work Item')}"><i class="bi bi-tag"></i></button></td>
+        <td>
+            <div class="item-title-stack">
+                <div class="d-flex align-items-center gap-2" id="titleCell_${id}">
+                    <span class="badge-id">${shortId}</span>
+                    <a href="#" class="title-link" onclick='openProductSidebar("${id}", ${titleArg}, "${shortId}", false, event)'>${escapeHtml(title)}</a>
+                    <button type="button" class="subtask-add-btn" onclick='openProductSidebar("${id}", ${titleArg}, "${shortId}", true, event)' title="Add subtask"><i class="bi bi-plus-lg"></i></button>
+                    <span class="edit-title-btn" onclick='editTitle("${id}", ${titleArg})' title="Edit title"><i class="bi bi-pencil" style="font-size:10px;"></i></span>
+                </div>
+                <div class="product-subtasks d-none" id="subtaskList_${id}"></div>
+            </div>
+        </td>
+        <td style="text-align:center;"><span class="text-muted small">-</span></td>
+        <td><button type="button" class="pill-status ${statusInfo.cls}" data-status="${status}">${statusInfo.label}</button></td>
+        <td><button type="button" class="ib" title="Unassigned"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></button></td>
+        <td><div id="ptsCell_${id}"><button type="button" class="ib" onclick="editPoints('${id}', 0)" title="Add story points"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg></button></div></td>
+        <td><span class="text-muted small">-</span></td>
+        <td></td>`;
+    body.appendChild(row);
+    updateBacklogStats();
+}
 
 // ─── Toast ────────────────────────────────────────────────────────────────────
 function showToast(message, type = 'success') {
@@ -1359,7 +2312,7 @@ function getToken() {
 }
 
 function signalChange() {
-    localStorage.setItem('backlog_updated', Date.now());
+    window.dispatchEvent(new CustomEvent('backlog:updated', { detail: { at: Date.now() } }));
 }
 
 // ─── Select all checkbox ──────────────────────────────────────────────────────

@@ -9,11 +9,16 @@ namespace PMTool.Application.Services.Backlog;
 public class BacklogService : IBacklogService
 {
     private readonly IProjectBacklogRepository _backlogRepository;
+    private readonly IBacklogSubtaskRepository _subtaskRepository;
     private readonly IUserRepository _userRepository;
 
-    public BacklogService(IProjectBacklogRepository backlogRepository, IUserRepository userRepository)
+    public BacklogService(
+        IProjectBacklogRepository backlogRepository,
+        IBacklogSubtaskRepository subtaskRepository,
+        IUserRepository userRepository)
     {
         _backlogRepository = backlogRepository;
+        _subtaskRepository = subtaskRepository;
         _userRepository = userRepository;
     }
 
@@ -109,6 +114,9 @@ public class BacklogService : IBacklogService
             case "duedate":
                 item.DueDate = DateTime.TryParse(request.Value, out var dueDate) ? dueDate : null;
                 break;
+            case "storypoints":
+                item.StoryPoints = int.TryParse(request.Value, out var sp) ? sp : null;
+                break;
         }
 
         item.UpdatedAt = DateTime.UtcNow;
@@ -144,6 +152,88 @@ public class BacklogService : IBacklogService
         return await _backlogRepository.UpdateRangeAsync(backlogItems);
     }
 
+    public async Task<BacklogItemDTO?> GetBacklogItemAsync(Guid itemId)
+    {
+        var item = await _backlogRepository.GetByIdAsync(itemId);
+        return item == null ? null : MapToDto(item);
+    }
+
+    public async Task<BacklogSubtaskDto?> CreateSubtaskAsync(Guid parentId, CreateBacklogSubtaskDto request)
+    {
+        if (parentId == Guid.Empty || string.IsNullOrWhiteSpace(request.Title))
+        {
+            return null;
+        }
+
+        var parent = await _backlogRepository.GetByIdAsync(parentId);
+        if (parent == null)
+        {
+            return null;
+        }
+
+        var subtask = new BacklogSubtask
+        {
+            Id = Guid.NewGuid(),
+            ParentId = parentId,
+            ProjectBacklogId = parentId,
+            Title = request.Title.Trim(),
+            Priority = request.Priority == 0 ? 3 : request.Priority,
+            AssigneeId = request.AssigneeId,
+            Status = request.Status == 0 ? 1 : request.Status,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        var created = await _subtaskRepository.CreateAsync(subtask);
+        if (!created) return null;
+
+        if (subtask.AssigneeId.HasValue)
+        {
+            subtask.Assignee = await _userRepository.GetByIdAsync(subtask.AssigneeId.Value);
+        }
+
+        return new BacklogSubtaskDto
+        {
+            Id = subtask.Id,
+            ParentId = subtask.ParentId,
+            ProductBacklogId = subtask.ProductBacklogId,
+            ProjectBacklogId = subtask.ProjectBacklogId,
+            Title = subtask.Title,
+            Priority = subtask.Priority,
+            PriorityName = subtask.Priority switch
+            {
+                1 => "Highest",
+                2 => "High",
+                3 => "Medium",
+                4 => "Low",
+                _ => "Unknown"
+            },
+            AssigneeId = subtask.AssigneeId,
+            AssigneeName = subtask.Assignee == null ? null : $"{subtask.Assignee.FirstName} {subtask.Assignee.LastName}".Trim(),
+            Status = subtask.Status,
+            StatusName = subtask.Status switch
+            {
+                1 => "To Do",
+                2 => "In Progress",
+                3 => "Done",
+                _ => "Unknown"
+            },
+            CreatedAt = subtask.CreatedAt,
+            UpdatedAt = subtask.UpdatedAt
+        };
+    }
+
+    public async Task<bool> UpdateSubtaskStatusAsync(Guid subtaskId, int status)
+    {
+        var subtask = await _subtaskRepository.GetByIdAsync(subtaskId);
+        if (subtask == null) return false;
+
+        subtask.Status = status;
+        subtask.UpdatedAt = DateTime.UtcNow;
+
+        return await _subtaskRepository.UpdateAsync(subtask);
+    }
+
     public Task<bool> DeleteItemAsync(Guid itemId)
     {
         return _backlogRepository.DeleteAsync(itemId);
@@ -173,7 +263,38 @@ public class BacklogService : IBacklogService
             StartDate = item.StartDate,
             DueDate = item.DueDate,
             CreatedAt = item.CreatedAt,
-            UpdatedAt = item.UpdatedAt
+            UpdatedAt = item.UpdatedAt,
+            StoryPoints = item.StoryPoints,
+            ParentBacklogItemTitle = item.ParentBacklogItem?.Title,
+            Subtasks = item.Subtasks.Select(s => new BacklogSubtaskDto
+            {
+                Id = s.Id,
+                ParentId = s.ParentId,
+                    ProductBacklogId = s.ProductBacklogId,
+                    ProjectBacklogId = s.ProjectBacklogId,
+                Title = s.Title,
+                Priority = s.Priority,
+                PriorityName = s.Priority switch
+                {
+                    1 => "Highest",
+                    2 => "High",
+                    3 => "Medium",
+                    4 => "Low",
+                    _ => "Unknown"
+                },
+                AssigneeId = s.AssigneeId,
+                AssigneeName = s.Assignee == null ? null : $"{s.Assignee.FirstName} {s.Assignee.LastName}".Trim(),
+                Status = s.Status,
+                StatusName = s.Status switch
+                {
+                    1 => "To Do",
+                    2 => "In Progress",
+                    3 => "Done",
+                    _ => "Unknown"
+                },
+                CreatedAt = s.CreatedAt,
+                UpdatedAt = s.UpdatedAt
+            }).ToList()
         };
     }
 }
