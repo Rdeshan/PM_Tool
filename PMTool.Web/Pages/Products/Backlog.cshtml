@@ -413,55 +413,170 @@
 
         <!-- Backlog Table -->
         <div class="backlog-table-wrap">
-            @if (Model.BacklogItems.Count == 0)
-            {
-                <div class="text-center text-muted py-5">
-                    <i class="bi bi-inbox" style="font-size:2rem;opacity:0.3;"></i>
-                    <p class="mt-2 mb-0" style="font-size:13px;">Your backlog is empty.</p>
-                </div>
-            }
-            else
-            {
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width:32px;"><input type="checkbox" id="selectAll" /></th>
-                            <th style="width:28px;"></th>
-                            <th>Title</th>
-                            <th style="width:35%; text-align:center;">Subproject</th>
-                            <th style="width:110px;">Status</th>
-                            <th style="width:80px;">Assignee</th>
-                            <th style="width:64px;">Points</th>
-                            <th style="width:95px;">Due date</th>
-                            <th style="width:36px;"></th>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:32px;"><input type="checkbox" id="selectAll" /></th>
+                        <th style="width:28px;"></th>
+                        <th>Title</th>
+                        <th style="width:35%; text-align:center;">Subproject</th>
+                        <th style="width:110px;">Status</th>
+                        <th style="width:80px;">Assignee</th>
+                        <th style="width:64px;">Points</th>
+                        <th style="width:95px;">Due date</th>
+                        <th style="width:36px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="backlogTableBody" class="sprint-drop-zone" data-sprint-id="">
+                    @{
+                        var backlogItems = Model.BacklogItems
+                            .Where(x => x.SprintId == null)
+                            .OrderBy(x => x.Priority)
+                            .ToList();
+                    }
+                    @foreach (var item in backlogItems)
+                    {
+                        @await Html.PartialAsync("_BacklogItemRow", item, new ViewDataDictionary(ViewData)
+                        {
+                            ["SubProjects"] = Model.ProductSubProjects,
+                            ["WorkTypes"] = Model.WorkTypes,
+                            ["ActiveUsers"] = Model.ActiveUsers,
+                            ["CustomStatuses"] = Model.CustomBoardColumns,
+                            ["SubtasksByItem"] = Model.SubtasksByItem
+                        })
+                    }
+                    @if (!backlogItems.Any())
+                    {
+                        <tr class="drop-placeholder text-center" data-placeholder="true">
+                            <td colspan="9" class="text-muted py-5">
+                                <i class="bi bi-inbox" style="font-size:2rem;opacity:0.3;display:block;margin-bottom:8px;"></i>
+                                Your backlog is empty. Create your first item above.
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody id="backlogTableBody" class="sprint-drop-zone" data-sprint-id="">
-                        @{
-                            var backlogItems = Model.BacklogItems
-                                .Where(x => x.SprintId == null)
-                                .OrderBy(x => x.Priority)
-                                .ToList();
-                        }
-                        @foreach (var item in backlogItems)
-                        {
-                            @await Html.PartialAsync("_BacklogItemRow", item, new ViewDataDictionary(ViewData)
-                            {
-                                ["SubProjects"] = Model.ProductSubProjects,
-                                ["WorkTypes"] = Model.WorkTypes,
-                                ["ActiveUsers"] = Model.ActiveUsers,
-                                ["CustomStatuses"] = Model.CustomBoardColumns
-                            })
-                        }
-                        @if (!backlogItems.Any())
-                        {
-                            <tr class="drop-placeholder text-center" data-placeholder="true">
-                                <td colspan="9" class="text-muted small py-3">Drop items here</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Product Backlog Subtask Sidebar -->
+<div id="productSubtaskSidebar" class="sidebar-overlay d-none">
+    <div class="sidebar-panel">
+        <div class="sidebar-header">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 id="sidebarTaskTitle" class="sidebar-title">Subtask</h5>
+                    <span id="sidebarTaskKey" class="sidebar-key">PB-0000</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeProductSidebar()">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <select id="sidebarStatus" class="sidebar-status mt-2" onchange="updateSidebarStatus(this.value)">
+                <option value="1">To do</option>
+                <option value="2">In progress</option>
+                <option value="3">In review</option>
+                <option value="4">Done</option>
+            </select>
+        </div>
+
+        <div class="sidebar-body">
+            <div class="mb-4">
+                <label class="form-label fw-bold small">Description</label>
+                <textarea id="sidebarDescription"
+                          class="form-control"
+                          rows="4"
+                          placeholder="Add a description..."
+                          onblur="saveSidebarDescription()"></textarea>
+            </div>
+
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="sidebar-section-title">Details</h6>
+                </div>
+                <div class="sidebar-details-grid" id="sidebarDetailsGrid">
+                    <div class="sidebar-detail-label">Assignee</div>
+                    <div id="sidebarAssignee" class="sidebar-detail-value">Unassigned</div>
+                    <div class="sidebar-detail-label">Story points</div>
+                    <div id="sidebarStoryPoints" class="sidebar-detail-value">0</div>
+                    <div class="sidebar-detail-label">Due date</div>
+                    <div id="sidebarDueDate" class="sidebar-detail-value">-</div>
+                    <div class="sidebar-detail-label">Start date</div>
+                    <div id="sidebarStartDate" class="sidebar-detail-value">-</div>
+                    <div class="sidebar-detail-label">Sprint name</div>
+                    <div id="sidebarSprint" class="sidebar-detail-value">Backlog</div>
+                    <div class="sidebar-detail-label">Priority</div>
+                    <div id="sidebarPriority" class="sidebar-detail-value">Medium</div>
+                    <div class="sidebar-detail-label">Work type</div>
+                    <div id="sidebarWorkType" class="sidebar-detail-value">Work Item</div>
+                    <div class="sidebar-detail-label">Created date</div>
+                    <div id="sidebarCreatedAt" class="sidebar-detail-value">-</div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0">Subtasks</h6>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="showSubtaskInput()">
+                        <i class="bi bi-plus"></i>
+                    </button>
+                </div>
+
+                <div id="sidebarSubtaskList" class="sidebar-subtask-list"></div>
+
+                <div id="newSubtaskWrap" class="d-none mt-2">
+                    <div class="d-flex flex-column gap-2">
+                        <input type="text"
+                               id="newSubtaskInput"
+                               class="form-control form-control-sm"
+                               placeholder="Subtask title..."
+                               onkeydown="if(event.key==='Enter')createSidebarSubtask(event);if(event.key==='Escape')hideSubtaskInput();" />
+                        <div class="d-flex align-items-center gap-2">
+                            <div style="position:relative;">
+                                <button type="button" class="ib" id="subtaskAssignBtn" onclick="toggleDd('subtaskAssignDd',event)" title="Assign user" style="gap:4px;">
+                                    <span id="subtaskAssignIcon">
+                                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+                                    </span>
+                                    <span id="subtaskAssignLabel" style="font-size:11px;color:#6b778c;">Assignee</span>
+                                </button>
+                                <div class="dd-panel" id="subtaskAssignDd" style="max-height:220px;overflow-y:auto;">
+                                    <div class="dd-item" onclick="setSubtaskAssignee('','',event)">
+                                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+                                        Unassigned
+                                    </div>
+                                    @foreach (var user in Model.ActiveUsers)
+                                    {
+                                        var uName = user.DisplayName ?? $"{user.FirstName} {user.LastName}";
+                                        var initials = GetInitials(uName);
+                                        var bg = GetAvatarBg(user.Id.ToString());
+                                        <div class="dd-item" onclick="setSubtaskAssignee('@user.Id','@uName',event)">
+                                            <div class="avatar-circle" style="background:@bg.bg;color:@bg.fg">@initials</div>
+                                            @uName
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="ms-auto d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-primary" onclick="createSidebarSubtask(event)">Add</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideSubtaskInput()">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-tabs">
+                <button type="button" class="sidebar-tab active" onclick="setSidebarTab('all', event)">All</button>
+                <button type="button" class="sidebar-tab" onclick="setSidebarTab('comments', event)">Comments</button>
+                <button type="button" class="sidebar-tab" onclick="setSidebarTab('history', event)">History</button>
+            </div>
+            <div id="sidebarActivity" class="sidebar-tab-panel">No activity yet.</div>
+        </div>
+
+        <div class="sidebar-footer">
+            <input id="sidebarCommentInput" type="text" placeholder="Add a comment..." onkeydown="if(event.key==='Enter')addSidebarComment();" />
+            <button type="button" onclick="addSidebarComment()">Comment</button>
         </div>
     </div>
 </div>
@@ -558,6 +673,60 @@
             <button type="button" class="btn btn-sm btn-primary px-4" id="submitStartSprintBtn" onclick="submitStartSprint()">
                 <i class="bi bi-play-fill me-1"></i>Start
             </button>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Subtask Modal -->
+<div class="modal-overlay" id="editSubtaskModal" style="z-index: 100001;">
+    <div class="modal-card" style="width:400px;">
+        <div class="modal-header">
+            <h5 class="modal-title">Edit Subtask</h5>
+            <button type="button" class="btn-close" onclick="closeEditSubtaskModal()"></button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="editSubtaskId" />
+            <div class="form-group mb-3">
+                <label class="form-label fw-bold small">Title</label>
+                <input type="text" id="editSubtaskTitle" class="form-control" placeholder="Subtask title" />
+            </div>
+            <div class="row">
+                <div class="col-6">
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-bold small">Priority</label>
+                        <select id="editSubtaskPriority" class="form-select form-select-sm">
+                            <option value="1">Highest</option>
+                            <option value="2">High</option>
+                            <option value="3">Medium</option>
+                            <option value="4">Low</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="form-group mb-3">
+                        <label class="form-label fw-bold small">Status</label>
+                        <select id="editSubtaskStatus" class="form-select form-select-sm">
+                            <option value="1">To Do</option>
+                            <option value="2">In Progress</option>
+                            <option value="3">Done</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group mb-3">
+                <label class="form-label fw-bold small">Assignee</label>
+                <select id="editSubtaskAssignee" class="form-select form-select-sm">
+                    <option value="">Unassigned</option>
+                    @foreach (var user in Model.ActiveUsers)
+                    {
+                        <option value="@user.Id">@(user.DisplayName ?? $"{user.FirstName} {user.LastName}")</option>
+                    }
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer d-flex justify-content-end gap-2 mt-4">
+            <button type="button" class="btn btn-sm btn-link text-muted text-decoration-none" onclick="closeEditSubtaskModal()">Cancel</button>
+            <button type="button" class="btn btn-sm btn-primary px-4" onclick="submitEditSubtask()">Save Changes</button>
         </div>
     </div>
 </div>
@@ -724,8 +893,8 @@ function updateBacklogStats() {
     const inProgressCountEl = document.getElementById('backlogInProgressCount');
     const inReviewCountEl = document.getElementById('backlogInReviewCount');
 
-    const backlogRows = [...backlogZone.querySelectorAll('tr')];
-    const totalRows = document.querySelectorAll('.sprint-drop-zone tr').length;
+    const backlogRows = [...backlogZone.querySelectorAll('tr[data-item-id]')];
+    const totalRows = document.querySelectorAll('.sprint-drop-zone tr[data-item-id]').length;
 
     if (totalCountEl) totalCountEl.textContent = totalRows.toString();
     if (availableCountEl) availableCountEl.textContent = backlogRows.length.toString();
@@ -1107,6 +1276,627 @@ function renderTitleCell(itemId, title) {
 }
 
 // ─── Row: Points inline edit ──────────────────────────────────────────────────
+function toggleSubtaskForm(itemId, e, forceClose) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    const form = document.getElementById('subtaskForm_' + itemId);
+    const input = document.getElementById('subtaskInput_' + itemId);
+    if (!form) return;
+
+    if (forceClose || !form.classList.contains('d-none')) {
+        form.classList.add('d-none');
+        if (input) input.value = '';
+        return;
+    }
+
+    form.classList.remove('d-none');
+    if (input) input.focus();
+}
+
+async function createSubtask(itemId, e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    const input = document.getElementById('subtaskInput_' + itemId);
+    const title = input?.value.trim();
+    if (!title) return;
+
+    const resp = await fetch('?handler=Subtask', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getToken()
+        },
+        body: JSON.stringify({
+            parentId: itemId,
+            title,
+            priority: 3,
+            status: 1
+        })
+    });
+
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        showToast(result.message || 'Failed to add subtask', 'danger');
+        return;
+    }
+
+    appendSubtaskToRow(itemId, result.subtask);
+
+    updateSubtaskCount(itemId);
+    if (currentBacklogId === itemId) renderSidebarSubtasks(itemId);
+    toggleSubtaskForm(itemId, e, true);
+    showToast('Subtask added', 'success');
+}
+
+async function updateProductSubtaskStatus(subtaskId, status, e) {
+    if (e) e.stopPropagation();
+
+    const checkbox = e?.target;
+    const label = checkbox?.closest('.product-subtask');
+    if (label) label.classList.toggle('done', status === 3);
+
+    const resp = await fetch('?handler=UpdateSubtaskStatus', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getToken()
+        },
+        body: JSON.stringify({ subtaskId, status })
+    });
+
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        if (checkbox) checkbox.checked = status !== 3;
+        if (label) label.classList.toggle('done', status !== 3);
+        showToast('Failed to update subtask', 'danger');
+        return false;
+    }
+
+    document.querySelectorAll(`input[data-subtask-id="${subtaskId}"]`).forEach(cb => {
+        cb.checked = status === 3;
+        const subtask = cb.closest('.product-subtask, .sidebar-subtask');
+        if (subtask) {
+            subtask.classList.toggle('done', status === 3);
+            subtask.dataset.subtaskStatus = status.toString();
+        }
+    });
+    return true;
+}
+
+let currentBacklogId = null;
+let currentBacklogTitle = '';
+let currentBacklogKey = '';
+let currentSidebarTab = 'all';
+let currentSidebarComments = [];
+
+function openProductSidebar(id, title, key, focusNewSubtask, e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    currentBacklogId = id;
+    currentBacklogTitle = title || '';
+    currentBacklogKey = key || '';
+
+    const row = document.getElementById('row-' + id);
+    const ds = row?.dataset || {};
+    const sprintCard = row?.closest('.sprint-card');
+    const sprintName = sprintCard?.querySelector('.sprint-header h6')?.textContent?.trim() || 'Backlog';
+
+    document.getElementById('sidebarTaskTitle').textContent = currentBacklogTitle || 'Subtask';
+    document.getElementById('sidebarTaskKey').textContent = currentBacklogKey ? `PB-${currentBacklogKey}` : 'PB';
+    document.getElementById('sidebarStatus').value = ds.itemStatus || '1';
+    document.getElementById('sidebarDescription').value = ds.itemDescription || '';
+    document.getElementById('sidebarAssignee').innerHTML = renderAssigneeValue(ds.itemAssignee || 'Unassigned', ds.itemAssigneeId || '');
+    document.getElementById('sidebarDueDate').textContent = formatDate(ds.itemDueDate);
+    document.getElementById('sidebarStartDate').textContent = formatDate(ds.itemStartDate);
+    document.getElementById('sidebarStoryPoints').textContent = ds.itemStoryPoints || '0';
+    document.getElementById('sidebarSprint').textContent = sprintName;
+    document.getElementById('sidebarPriority').textContent = ds.itemPriorityLabel || priorityLabel(ds.itemPriority);
+    document.getElementById('sidebarWorkType').textContent = ds.itemWorkType || 'Work Item';
+    document.getElementById('sidebarCreatedAt').textContent = formatDate(ds.itemCreatedAt);
+    renderSidebarSubtasks(id);
+
+    document.getElementById('productSubtaskSidebar').classList.remove('d-none');
+    setSidebarTab('all');
+    loadSidebarComments(id);
+
+    if (focusNewSubtask) {
+        showSubtaskInput();
+    } else {
+        hideSubtaskInput();
+    }
+}
+
+function closeProductSidebar() {
+    document.getElementById('productSubtaskSidebar').classList.add('d-none');
+    hideSubtaskInput();
+}
+
+function setSidebarTab(tab, e) {
+    if (e) e.preventDefault();
+    currentSidebarTab = tab;
+    document.querySelectorAll('.sidebar-tab').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.trim().toLowerCase() === tab);
+    });
+
+    const panel = document.getElementById('sidebarActivity');
+    if (tab === 'comments') {
+        loadSidebarComments(currentBacklogId);
+        return;
+    }
+
+    if (tab === 'history') {
+        panel.textContent = 'No history yet.';
+        return;
+    }
+
+    renderComments(currentSidebarComments);
+}
+
+async function loadSidebarComments(itemId) {
+    const panel = document.getElementById('sidebarActivity');
+    if (!itemId) {
+        panel.textContent = 'No comments yet.';
+        return;
+    }
+
+    panel.textContent = 'Loading comments...';
+    const resp = await fetch(`?handler=GetComments&itemId=${itemId}`, {
+        headers: { 'Accept': 'application/json' }
+    });
+    const result = await resp.json().catch(() => ({ success: false, comments: [] }));
+    currentSidebarComments = result.success ? result.comments : [];
+    renderComments(currentSidebarComments);
+}
+
+function renderComments(comments) {
+    const panel = document.getElementById('sidebarActivity');
+    if (!comments || comments.length === 0) {
+        panel.textContent = currentSidebarTab === 'history' ? 'No history yet.' : 'No comments yet.';
+        return;
+    }
+
+    panel.innerHTML = `<div class="sidebar-comments">${comments.map(comment => `
+        <div class="sidebar-comment" id="comment_${comment.id}">
+            <div class="avatar-circle" style="${avatarStyle(comment.authorName)}">${escapeHtml(comment.authorInitials || getInitials(comment.authorName))}</div>
+            <div class="comment-body-wrap">
+                <div class="comment-meta">
+                    <span class="comment-author">${escapeHtml(comment.authorName)}</span>
+                    <span class="comment-time">${timeAgo(comment.createdAt)}</span>
+                    ${comment.isOwn ? `
+                        <span class="comment-actions">
+                            <button type="button" class="ib" onclick="startEditComment('${comment.id}', '${escapeJs(comment.body)}')" title="Edit comment"><i class="bi bi-pencil"></i></button>
+                            <button type="button" class="ib text-danger" onclick="deleteComment('${comment.id}')" title="Delete comment"><i class="bi bi-trash"></i></button>
+                        </span>` : ''}
+                </div>
+                <div class="comment-body" id="commentBody_${comment.id}">${escapeHtml(comment.body)}</div>
+            </div>
+        </div>`).join('')}</div>`;
+}
+
+async function addSidebarComment() {
+    if (!currentBacklogId) return;
+
+    const input = document.getElementById('sidebarCommentInput');
+    const body = input.value.trim();
+    if (!body) return;
+
+    const resp = await fetch('?handler=AddComment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getToken()
+        },
+        body: JSON.stringify({ itemId: currentBacklogId, body })
+    });
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        showToast(result.message || 'Failed to add comment', 'danger');
+        return;
+    }
+
+    currentSidebarComments.push(result.comment);
+    input.value = '';
+    setSidebarTab('comments');
+}
+
+function startEditComment(commentId, currentBody) {
+    const bodyEl = document.getElementById('commentBody_' + commentId);
+    if (!bodyEl) return;
+    bodyEl.className = 'comment-edit';
+    bodyEl.innerHTML = `
+        <textarea id="commentEdit_${commentId}">${escapeHtml(currentBody)}</textarea>
+        <div class="d-flex gap-2 mt-2">
+            <button type="button" class="btn btn-sm btn-primary" onclick="saveEditComment('${commentId}')">Save</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="renderComments(currentSidebarComments)">Cancel</button>
+        </div>`;
+    document.getElementById('commentEdit_' + commentId)?.focus();
+}
+
+async function saveEditComment(commentId) {
+    const textarea = document.getElementById('commentEdit_' + commentId);
+    const body = textarea?.value.trim();
+    if (!body) return;
+
+    const resp = await fetch('?handler=UpdateComment', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getToken()
+        },
+        body: JSON.stringify({ commentId, body })
+    });
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        showToast(result.message || 'Failed to update comment', 'danger');
+        return;
+    }
+
+    const comment = currentSidebarComments.find(c => c.id === commentId);
+    if (comment) comment.body = body;
+    renderComments(currentSidebarComments);
+}
+
+async function deleteComment(commentId) {
+    if (!confirm('Delete this comment?')) return;
+
+    const resp = await fetch(`?handler=DeleteComment&commentId=${commentId}`, {
+        method: 'POST',
+        headers: { 'RequestVerificationToken': getToken() }
+    });
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        showToast(result.message || 'Failed to delete comment', 'danger');
+        return;
+    }
+
+    currentSidebarComments = currentSidebarComments.filter(c => c.id !== commentId);
+    document.getElementById('comment_' + commentId)?.remove();
+    if (currentSidebarComments.length === 0) renderComments(currentSidebarComments);
+}
+
+function escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = value ?? '';
+    return div.innerHTML;
+}
+
+function escapeJs(str) {
+    return (str || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"').replace(/\r?\n/g, '\\n');
+}
+
+function formatDate(value) {
+    if (!value) return '-';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function timeAgo(dateStr) {
+    const date = new Date(dateStr);
+    const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+    if (seconds < 60) return 'now';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `${minutes}m ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    return `${Math.floor(hours / 24)}d ago`;
+}
+
+function getInitials(name) {
+    const parts = (name || '?').trim().split(/\s+/).filter(Boolean);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return (parts[0] || '?').substring(0, 2).toUpperCase();
+}
+
+function avatarStyle(seed) {
+    const palettes = [
+        ['#deebff', '#0747a6'],
+        ['#e3fcef', '#006644'],
+        ['#fff0b3', '#974f0c'],
+        ['#ffebe6', '#bf2600'],
+        ['#e6fcff', '#006c8a'],
+        ['#f3f0ff', '#403294'],
+        ['#fce4ec', '#880e4f']
+    ];
+    let hash = 0;
+    for (const ch of (seed || '')) hash = ((hash << 5) - hash) + ch.charCodeAt(0);
+    const [bg, fg] = palettes[Math.abs(hash) % palettes.length];
+    return `background:${bg};color:${fg}`;
+}
+
+function renderAssigneeValue(name, id) {
+    if (!name || name === 'Unassigned') return 'Unassigned';
+    return `<span class="avatar-circle" style="${avatarStyle(id || name)}">${getInitials(name)}</span><span>${escapeHtml(name)}</span>`;
+}
+
+function priorityLabel(priority) {
+    return ({ 1: 'Highest', 2: 'High', 3: 'Medium', 4: 'Low' })[Number(priority)] || 'Medium';
+}
+
+function updateSidebarStatus(status) {
+    if (!currentBacklogId) return;
+    updateStatus(currentBacklogId, Number(status));
+    const row = document.getElementById('row-' + currentBacklogId);
+    if (row) {
+        row.dataset.itemStatus = status;
+        row.dataset.itemStatusLabel = STATUS_MAP[status]?.label || 'To do';
+        row.dataset.status = status;
+    }
+}
+
+function saveSidebarDescription() {
+    if (!currentBacklogId) return;
+    const description = document.getElementById('sidebarDescription').value;
+    const row = document.getElementById('row-' + currentBacklogId);
+    if (row) row.dataset.itemDescription = description;
+
+    fetch('?handler=UpdateDescription', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'RequestVerificationToken': getToken()
+        },
+        body: `itemId=${currentBacklogId}&description=${encodeURIComponent(description)}`
+    }).catch(() => {});
+}
+
+let newSubtaskAssigneeId = '';
+
+function showSubtaskInput() {
+    const wrap = document.getElementById('newSubtaskWrap');
+    const input = document.getElementById('newSubtaskInput');
+    wrap.classList.remove('d-none');
+    input.focus();
+}
+
+function hideSubtaskInput() {
+    const wrap = document.getElementById('newSubtaskWrap');
+    const input = document.getElementById('newSubtaskInput');
+    wrap.classList.add('d-none');
+    input.value = '';
+    setSubtaskAssignee('', '', null);
+}
+
+function setSubtaskAssignee(id, name, e) {
+    if (e) e.stopPropagation();
+    newSubtaskAssigneeId = id || '';
+    const icon = document.getElementById('subtaskAssignIcon');
+    const label = document.getElementById('subtaskAssignLabel');
+    if (name) {
+        const initials = name.trim().split(/\s+/).map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        if (icon) icon.innerHTML = `<div style="width:18px;height:18px;border-radius:50%;background:#deebff;color:#0747a6;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:600;">${initials}</div>`;
+        if (label) { label.textContent = name; label.style.color = '#172b4d'; }
+    } else {
+        if (icon) icon.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>`;
+        if (label) { label.textContent = 'Assignee'; label.style.color = '#6b778c'; }
+    }
+    closeDds();
+}
+
+function renderSidebarSubtasks(itemId) {
+    const sidebarList = document.getElementById('sidebarSubtaskList');
+    const rowList = document.getElementById('subtaskList_' + itemId);
+    sidebarList.innerHTML = '';
+
+    const subtasks = rowList ? [...rowList.querySelectorAll('.product-subtask')] : [];
+    if (subtasks.length === 0) {
+        sidebarList.innerHTML = '<div class="text-muted small py-2">No subtasks yet.</div>';
+        return;
+    }
+
+    subtasks.forEach(subtask => {
+        const subtaskId = subtask.dataset.subtaskId;
+        const title = subtask.dataset.subtaskTitle || subtask.querySelector('span')?.textContent || '';
+        const status = parseInt(subtask.dataset.subtaskStatus);
+        const priority = parseInt(subtask.dataset.subtaskPriority);
+        const assigneeId = subtask.dataset.subtaskAssigneeId || '';
+        const assigneeName = subtask.dataset.subtaskAssigneeName || '';
+        const checked = status === 3 ? 'checked' : '';
+        const doneClass = status === 3 ? ' done' : '';
+
+        const assigneeHtml = assigneeName
+            ? `<div class="avatar-circle" style="${avatarStyle(assigneeId || assigneeName)};width:20px;height:20px;font-size:8px;flex-shrink:0;" title="${escapeHtml(assigneeName)}">${getInitials(assigneeName)}</div><span style="font-size:11px;color:#172b4d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;">${escapeHtml(assigneeName)}</span>`
+            : `<span style="font-size:11px;color:#aaa;">—</span>`;
+
+        const item = document.createElement('div');
+        item.className = `sidebar-subtask product-subtask${doneClass}`;
+        item.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;';
+        item.innerHTML = `
+            <input type="checkbox" data-subtask-id="${subtaskId}" ${checked} style="flex-shrink:0;"
+                onchange="updateProductSubtaskStatus('${subtaskId}', this.checked ? 3 : 1, event)" />
+            <span style="flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${status===3?'text-decoration:line-through;color:#6b778c;':''}">${escapeHtml(title)}</span>
+            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">${assigneeHtml}</div>
+            <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;margin-left:4px;">
+                <button type="button" class="ib" onclick="openEditSubtaskModal('${subtaskId}', '${escapeJs(title)}', ${priority}, '${assigneeId}', ${status}, event)" title="Edit">
+                    <i class="bi bi-pencil"></i>
+                </button>
+                <button type="button" class="ib text-danger" onclick="deleteSubtaskInSidebar('${subtaskId}', event)" title="Delete">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </div>
+        `;
+        sidebarList.appendChild(item);
+    });
+}
+
+function openEditSubtaskModal(id, title, priority, assigneeId, status, e) {
+    if (e) e.stopPropagation();
+    document.getElementById('editSubtaskId').value = id;
+    document.getElementById('editSubtaskTitle').value = title;
+    document.getElementById('editSubtaskPriority').value = priority;
+    document.getElementById('editSubtaskAssignee').value = assigneeId || '';
+    document.getElementById('editSubtaskStatus').value = status;
+    document.getElementById('editSubtaskModal').style.display = 'flex';
+}
+
+function closeEditSubtaskModal() {
+    document.getElementById('editSubtaskModal').style.display = 'none';
+}
+
+async function submitEditSubtask() {
+    const id = document.getElementById('editSubtaskId').value;
+    const title = document.getElementById('editSubtaskTitle').value.trim();
+    const priority = parseInt(document.getElementById('editSubtaskPriority').value);
+    const assigneeSelect = document.getElementById('editSubtaskAssignee');
+    const assigneeId = assigneeSelect.value || null;
+    const assigneeName = assigneeId ? (assigneeSelect.options[assigneeSelect.selectedIndex]?.text || '') : '';
+    const status = parseInt(document.getElementById('editSubtaskStatus').value);
+
+    if (!title) { showToast('Title is required', 'danger'); return; }
+
+    try {
+        const resp = await fetch('?handler=UpdateSubtask', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': getToken()
+            },
+            body: JSON.stringify({ subtaskId: id, title, priority, assigneeId, status })
+        });
+
+        const result = await resp.json();
+        if (result.success) {
+            updateSubtaskInRow(id, { title, priority, assigneeId, assigneeName, status });
+            renderSidebarSubtasks(currentBacklogId);
+            closeEditSubtaskModal();
+            showToast('Subtask updated', 'success');
+        } else {
+            showToast('Failed to update subtask', 'danger');
+        }
+    } catch (err) {
+        showToast('An error occurred', 'danger');
+    }
+}
+
+function updateSubtaskInRow(id, data) {
+    const subtaskEl = document.querySelector(`#subtaskList_${data.parentId || currentBacklogId} .product-subtask[data-subtask-id="${id}"]`);
+    if (subtaskEl) {
+        subtaskEl.dataset.subtaskTitle = data.title;
+        subtaskEl.dataset.subtaskPriority = data.priority;
+        subtaskEl.dataset.subtaskAssigneeId = data.assigneeId || '';
+        subtaskEl.dataset.subtaskAssigneeName = data.assigneeName || '';
+        subtaskEl.dataset.subtaskStatus = data.status;
+    }
+}
+
+async function deleteSubtaskInSidebar(id, e) {
+    if (e) e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this subtask?')) return;
+
+    try {
+        const resp = await fetch(`?handler=DeleteSubtask&subtaskId=${id}`, {
+            method: 'POST',
+            headers: {
+                'RequestVerificationToken': getToken()
+            }
+        });
+
+        const result = await resp.json();
+        if (result.success) {
+            const subtaskEl = document.querySelector(`.product-subtask[data-subtask-id="${id}"]`);
+            if (subtaskEl) subtaskEl.remove();
+            renderSidebarSubtasks(currentBacklogId);
+            updateSubtaskCount(currentBacklogId);
+            showToast('Subtask deleted', 'success');
+        } else {
+            showToast('Failed to delete subtask', 'danger');
+        }
+    } catch (err) {
+        showToast('An error occurred', 'danger');
+    }
+}
+
+async function createSidebarSubtask(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+
+    if (!currentBacklogId) return;
+
+    const input = document.getElementById('newSubtaskInput');
+    const title = input.value.trim();
+    if (!title) return;
+
+    const resp = await fetch('?handler=Subtask', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'RequestVerificationToken': getToken()
+        },
+        body: JSON.stringify({
+            parentId: currentBacklogId,
+            title,
+            priority: 3,
+            status: 1,
+            assigneeId: newSubtaskAssigneeId || null
+        })
+    });
+
+    const result = await resp.json().catch(() => ({ success: false }));
+    if (!result.success) {
+        showToast(result.message || 'Failed to add subtask', 'danger');
+        return;
+    }
+
+    appendSubtaskToRow(currentBacklogId, result.subtask);
+    renderSidebarSubtasks(currentBacklogId);
+    updateSubtaskCount(currentBacklogId);
+    hideSubtaskInput();
+    showToast('Subtask added', 'success');
+}
+
+function appendSubtaskToRow(itemId, subtask) {
+    const list = document.getElementById('subtaskList_' + itemId);
+    if (!list) return;
+
+    const label = document.createElement('div');
+    label.className = 'product-subtask';
+    label.dataset.subtaskId = subtask.id;
+    label.dataset.subtaskTitle = subtask.title;
+    label.dataset.subtaskStatus = subtask.status;
+    label.dataset.subtaskPriority = subtask.priority;
+    label.dataset.subtaskAssigneeId = subtask.assigneeId || '';
+    label.dataset.subtaskAssigneeName = subtask.assigneeName || '';
+    label.innerHTML = `<span>${escapeHtml(subtask.title)}</span>`;
+    list.appendChild(label);
+}
+
+function updateSubtaskCount(itemId) {
+    const list = document.getElementById('subtaskList_' + itemId);
+    const cell = document.getElementById('titleCell_' + itemId);
+    if (!list || !cell) return;
+
+    const count = list.querySelectorAll('.product-subtask').length;
+    let badge = cell.querySelector('.subtask-count');
+
+    if (count === 0) {
+        badge?.remove();
+        return;
+    }
+
+    if (!badge) {
+        badge = document.createElement('span');
+        badge.className = 'subtask-count';
+        badge.innerHTML = '<i class="bi bi-diagram-2"></i> <span class="subtask-count-value"></span> subtasks';
+        const addButton = cell.querySelector('.subtask-add-btn');
+        cell.insertBefore(badge, addButton);
+    }
+
+    badge.title = `${count} subtask(s)`;
+    const value = badge.querySelector('.subtask-count-value');
+    if (value) value.textContent = count;
+}
+
 function editPoints(itemId, current) {
     const cell = document.getElementById('ptsCell_' + itemId);
     if (!cell) return;

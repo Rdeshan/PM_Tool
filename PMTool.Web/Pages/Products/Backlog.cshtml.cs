@@ -786,6 +786,225 @@ public class BacklogModel : PageModel
         return new JsonResult(new { success = result != null });
     }
 
+    public async Task<IActionResult> OnPostSubtaskAsync([FromBody] CreateBacklogSubtaskDto request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        if (request.ParentId == Guid.Empty || string.IsNullOrWhiteSpace(request.Title))
+        {
+            return BadJson("Subtask title is required.");
+        }
+
+        if (!await BacklogItemBelongsToRouteAsync(request.ParentId))
+        {
+            return BadJson("Invalid backlog item.");
+        }
+
+        var subtask = await _productBacklogService.CreateSubtaskAsync(request.ParentId, request);
+        if (subtask == null)
+        {
+            return BadJson("Failed to create subtask.");
+        }
+
+        return new JsonResult(new
+        {
+            success = true,
+            subtask = new
+            {
+                id = subtask.Id,
+                title = subtask.Title,
+                status = subtask.Status,
+                priority = subtask.Priority,
+                assigneeId = subtask.AssigneeId,
+                assigneeName = subtask.AssigneeName ?? ""
+            }
+        });
+    }
+
+    public async Task<IActionResult> OnPostUpdateSubtaskStatusAsync([FromBody] UpdateSubtaskStatusRequest request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        if (request.SubtaskId == Guid.Empty)
+        {
+            return BadJson("Invalid subtask.");
+        }
+
+        if (request.Status is < 1 or > 3)
+        {
+            return BadJson("Invalid status.");
+        }
+
+        if (!await SubtaskBelongsToRouteAsync(request.SubtaskId))
+        {
+            return BadJson("Invalid subtask.");
+        }
+
+        var success = await _productBacklogService.UpdateSubtaskStatusAsync(request.SubtaskId, request.Status);
+        return new JsonResult(new { success });
+    }
+
+    public async Task<IActionResult> OnPostUpdateSubtaskAsync([FromBody] UpdateSubtaskRequest request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        if (request.SubtaskId == Guid.Empty || string.IsNullOrWhiteSpace(request.Title))
+        {
+            return BadJson("Subtask title is required.");
+        }
+
+        if (request.Priority is < 1 or > 4 || request.Status is < 1 or > 3)
+        {
+            return BadJson("Invalid subtask values.");
+        }
+
+        if (!await SubtaskBelongsToRouteAsync(request.SubtaskId))
+        {
+            return BadJson("Invalid subtask.");
+        }
+
+        var dto = new CreateBacklogSubtaskDto
+        {
+            Title = request.Title,
+            Priority = request.Priority,
+            AssigneeId = request.AssigneeId,
+            Status = request.Status
+        };
+
+        var success = await _productBacklogService.UpdateSubtaskAsync(request.SubtaskId, dto);
+        return new JsonResult(new { success });
+    }
+
+    public async Task<IActionResult> OnPostDeleteSubtaskAsync(Guid subtaskId)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        if (subtaskId == Guid.Empty || !await SubtaskBelongsToRouteAsync(subtaskId))
+        {
+            return BadJson("Invalid subtask.");
+        }
+
+        var success = await _productBacklogService.DeleteSubtaskAsync(subtaskId);
+        return new JsonResult(new { success });
+    }
+
+    public async Task<IActionResult> OnPostAddCommentAsync([FromBody] AddCommentRequest request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Forbid();
+
+        if (request.ItemId == Guid.Empty || string.IsNullOrWhiteSpace(request.Body))
+        {
+            return BadJson("Comment body is required.");
+        }
+
+        if (!await BacklogItemBelongsToRouteAsync(request.ItemId))
+        {
+            return BadJson("Invalid backlog item.");
+        }
+
+        var comment = new BacklogItemComment
+        {
+            Id = Guid.NewGuid(),
+            BacklogItemId = request.ItemId,
+            AuthorId = userId.Value,
+            Body = request.Body.Trim(),
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _db.BacklogItemComments.Add(comment);
+        await _db.SaveChangesAsync();
+        comment.Author = await _db.Users.FindAsync(comment.AuthorId);
+
+        return new JsonResult(new
+        {
+            success = true,
+            comment = MapComment(comment, userId.Value)
+        });
+    }
+
+    public async Task<IActionResult> OnPostUpdateCommentAsync([FromBody] UpdateCommentRequest request)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Forbid();
+
+        if (request.CommentId == Guid.Empty || string.IsNullOrWhiteSpace(request.Body))
+        {
+            return BadJson("Comment body is required.");
+        }
+
+        var comment = await _db.BacklogItemComments
+            .Include(c => c.BacklogItem)
+            .FirstOrDefaultAsync(c => c.Id == request.CommentId);
+
+        if (comment == null || comment.AuthorId != userId.Value || !BacklogItemMatchesRoute(comment.BacklogItem))
+        {
+            return BadJson("Invalid comment.");
+        }
+
+        comment.Body = request.Body.Trim();
+        comment.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+
+        return new JsonResult(new { success = true });
+    }
+
+    public async Task<IActionResult> OnPostDeleteCommentAsync(Guid commentId)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Forbid();
+
+        var comment = await _db.BacklogItemComments
+            .Include(c => c.BacklogItem)
+            .FirstOrDefaultAsync(c => c.Id == commentId);
+
+        if (comment == null || comment.AuthorId != userId.Value || !BacklogItemMatchesRoute(comment.BacklogItem))
+        {
+            return BadJson("Invalid comment.");
+        }
+
+        _db.BacklogItemComments.Remove(comment);
+        await _db.SaveChangesAsync();
+
+        return new JsonResult(new { success = true });
+    }
+
+    public async Task<IActionResult> OnGetCommentsAsync(Guid itemId)
+    {
+        var userId = GetCurrentUserId();
+        if (!userId.HasValue) return Forbid();
+
+        if (itemId == Guid.Empty || !await BacklogItemBelongsToRouteAsync(itemId))
+        {
+            return BadJson("Invalid backlog item.");
+        }
+
+        var comments = await _db.BacklogItemComments
+            .Include(c => c.Author)
+            .Where(c => c.BacklogItemId == itemId)
+            .OrderBy(c => c.CreatedAt)
+            .ToListAsync();
+
+        return new JsonResult(new
+        {
+            success = true,
+            comments = comments.Select(c => MapComment(c, userId.Value))
+        });
+    }
+
     // ── DELETE ────────────────────────────────────────────────────────────────
     public async Task<IActionResult> OnPostDeleteAsync(Guid itemId)
     {

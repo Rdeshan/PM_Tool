@@ -79,12 +79,48 @@
         </div>
     </td>
     <td>
-        <div class="d-flex align-items-center gap-2" id="titleCell_@itemId">
-            <span class="badge-id">@shortId</span>
-            <a href="#" class="title-link">@item.Title</a>
-            <span class="edit-title-btn" onclick="editTitle('@itemId', '@System.Web.HttpUtility.JavaScriptStringEncode(item.Title)')" title="Edit title">
-                <i class="bi bi-pencil" style="font-size:10px;"></i>
-            </span>
+        <div class="item-title-stack">
+            <div class="d-flex align-items-center gap-2" id="titleCell_@itemId">
+                <span class="badge-id">@shortId</span>
+                <a href="#"
+                   class="title-link"
+                   onclick="openProductSidebar('@itemId', '@System.Web.HttpUtility.JavaScriptStringEncode(item.Title)', '@shortId', false, event)">@item.Title</a>
+                @if (itemSubtasks.Any())
+                {
+                    <span class="subtask-count" 
+                          style="cursor:pointer;"
+                          onclick="openProductSidebar('@itemId', '@System.Web.HttpUtility.JavaScriptStringEncode(item.Title)', '@shortId', false, event)"
+                          title="@itemSubtasks.Count subtask(s)">
+                        <i class="bi bi-diagram-2"></i> <span class="subtask-count-value">@itemSubtasks.Count</span> subtasks
+                    </span>
+                }
+                <button type="button"
+                        class="subtask-add-btn"
+                        onclick="openProductSidebar('@itemId', '@System.Web.HttpUtility.JavaScriptStringEncode(item.Title)', '@shortId', true, event)"
+                        title="Add subtask">
+                    <i class="bi bi-plus-lg"></i>
+                </button>
+                <span class="edit-title-btn" onclick="editTitle('@itemId', '@System.Web.HttpUtility.JavaScriptStringEncode(item.Title)')" title="Edit title">
+                    <i class="bi bi-pencil" style="font-size:10px;"></i>
+                </span>
+            </div>
+            <div class="product-subtasks d-none" id="subtaskList_@itemId" style="display:none!important;">
+                @if (itemSubtasks.Any())
+                {
+                    @foreach (var subtask in itemSubtasks)
+                    {
+                        <div class="product-subtask @(subtask.Status == 3 ? "done" : "")"
+                             data-subtask-id="@subtask.Id"
+                             data-subtask-title="@subtask.Title"
+                             data-subtask-status="@subtask.Status"
+                             data-subtask-priority="@subtask.Priority"
+                             data-subtask-assignee-id="@(subtask.AssigneeId?.ToString() ?? "")"
+                             data-subtask-assignee-name="@(subtask.AssigneeName ?? "")">
+                            <span>@subtask.Title</span>
+                        </div>
+                    }
+                }
+            </div>
         </div>
     </td>
     <td style="text-align:center;">
