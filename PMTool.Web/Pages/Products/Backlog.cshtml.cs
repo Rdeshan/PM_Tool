@@ -437,6 +437,7 @@ using PMTool.Application.DTOs.User;
 using Microsoft.EntityFrameworkCore;
 using PMTool.Domain.Entities;
 using PMTool.Infrastructure.Data;
+using PMTool.Infrastructure.Services.Interfaces;
 
 namespace PMTool.Web.Pages.Products;
 
@@ -454,6 +455,7 @@ public class BacklogModel : PageModel
     private readonly IBoardColumnService _boardColumnService;
     private readonly INotificationService _notificationService;
     private readonly IHubContext<NotificationsHub> _notificationsHub;
+    private readonly IEmailService _emailService;
     private readonly AppDbContext _db;
 
     public BacklogModel(
@@ -467,6 +469,7 @@ public class BacklogModel : PageModel
         IBoardColumnService boardColumnService,
         INotificationService notificationService,
         IHubContext<NotificationsHub> notificationsHub,
+        IEmailService emailService,
         AppDbContext db)
     {
         _projectService = projectService;
@@ -479,6 +482,7 @@ public class BacklogModel : PageModel
         _boardColumnService = boardColumnService;
         _notificationService = notificationService;
         _notificationsHub = notificationsHub;
+        _emailService = emailService;
         _db = db;
     }
 
@@ -963,11 +967,65 @@ public class BacklogModel : PageModel
         await _db.SaveChangesAsync();
         comment.Author = await _db.Users.FindAsync(comment.AuthorId);
 
+        await NotifyMentionedUsersAsync(request, comment, userId.Value);
+
         return new JsonResult(new
         {
             success = true,
             comment = MapComment(comment, userId.Value)
         });
+    }
+
+    private async Task NotifyMentionedUsersAsync(AddCommentRequest request, BacklogItemComment comment, Guid currentUserId)
+    {
+        var mentionedIds = new HashSet<Guid>(request.MentionUserIds.Where(id => id != Guid.Empty));
+        if (request.MentionAll)
+        {
+            var allIds = await _db.Users
+                .Where(u => u.IsActive)
+                .Select(u => u.Id)
+                .ToListAsync();
+            mentionedIds.UnionWith(allIds);
+        }
+
+        mentionedIds.Remove(currentUserId);
+        if (mentionedIds.Count == 0)
+        {
+            return;
+        }
+
+        var users = await _db.Users
+            .Where(u => mentionedIds.Contains(u.Id) && u.IsActive && u.NotificationsEnabled)
+            .ToListAsync();
+
+        if (users.Count == 0)
+        {
+            return;
+        }
+
+        var author = comment.Author ?? await _db.Users.FindAsync(comment.AuthorId);
+        var authorName = GetUserName(author);
+        var itemTitle = await _db.ProductBacklogs
+            .Where(b => b.Id == comment.BacklogItemId)
+            .Select(b => b.Title)
+            .FirstOrDefaultAsync() ?? "a backlog item";
+        var backlogUrl = Url.Page("/Products/Backlog", new { projectId = ProjectId, id = ProductId });
+        var message = $"{authorName} mentioned you in a comment on {itemTitle}.";
+
+        foreach (var user in users)
+        {
+            var notification = await _notificationService.CreateAsync(user.Id, message, comment.BacklogItemId);
+            if (notification != null)
+            {
+                await _notificationsHub.Clients.User(user.Id.ToString())
+                    .SendAsync("notificationReceived", notification);
+            }
+
+            if (!string.IsNullOrWhiteSpace(user.Email))
+            {
+                await _emailService.SendMentionNotificationAsync(user.Email, authorName, itemTitle, comment.Body, backlogUrl);
+            }
+        }
     }
 
     public async Task<IActionResult> OnPostUpdateCommentAsync([FromBody] UpdateCommentRequest request)
@@ -1260,6 +1318,8 @@ public class BacklogModel : PageModel
     {
         public Guid ItemId { get; set; }
         public string Body { get; set; } = string.Empty;
+        public List<Guid> MentionUserIds { get; set; } = new();
+        public bool MentionAll { get; set; }
     }
 
     public class UpdateCommentRequest
