@@ -1,32 +1,38 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using PMTool.Application.DTOs.Dashboard;
+using PMTool.Application.Interfaces;
 
 namespace PMTool.Web.Pages;
 
 [Authorize]
 public class DashboardModel : PageModel
 {
-    public IActionResult OnGet()
+    private readonly IDashboardService _dashboardService;
+
+    public PersonalDashboardDto Dashboard { get; set; } = new();
+
+    public DashboardModel(IDashboardService dashboardService)
+    {
+        _dashboardService = dashboardService;
+    }
+
+    public async Task<IActionResult> OnGetAsync()
     {
         if (!User.Identity?.IsAuthenticated ?? true)
-        {
             return RedirectToPage("/Auth/Login");
-        }
 
-        // Route users to their role-specific dashboards
         if (User.IsInRole("Administrator"))
-        {
             return RedirectToPage("/Admin/Dashboard");
-        }
 
         if (User.IsInRole("Project Manager"))
-        {
             return RedirectToPage("/PM/Dashboard");
-        }
 
-        // Regular users stay on this dashboard
+        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
+        Dashboard = await _dashboardService.GetPersonalDashboardAsync(userId);
         return Page();
     }
 

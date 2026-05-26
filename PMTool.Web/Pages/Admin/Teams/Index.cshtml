@@ -22,10 +22,20 @@
 
     @if (!string.IsNullOrEmpty(Model.SuccessMessage))
     {
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            <i class="bi bi-check-circle"></i> @Model.SuccessMessage
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1090;">
+            <div id="teamToast" class="toast align-items-center text-bg-success border-0 show" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body"><i class="bi bi-check-circle me-2"></i>@Model.SuccessMessage</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
         </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                var el = document.getElementById('teamToast');
+                if (el) setTimeout(function () { bootstrap.Toast.getOrCreateInstance(el).hide(); }, 2000);
+            });
+        </script>
     }
 
     <div class="row">

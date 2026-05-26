@@ -1,6 +1,5 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Text;
 
 namespace PMTool.Application.DTOs.Dashboard
 {
@@ -19,5 +18,60 @@ namespace PMTool.Application.DTOs.Dashboard
         public string Name { get; set; } = string.Empty;
         public DateTime DueDate { get; set; }
         public string? ColourCode { get; set; }
+    }
+
+    public class PersonalDashboardDto
+    {
+        public int OpenTickets { get; set; }
+        public int OverdueTickets { get; set; }
+        public int InProgressTickets { get; set; }
+        public int DoneThisWeek { get; set; }
+        public List<PersonalTicketDto> MyTickets { get; set; } = new();
+        public List<PersonalActivityDto> RecentActivity { get; set; } = new();
+        public PersonalSprintDto? ActiveSprint { get; set; }
+        public List<PersonalNotificationDto> Notifications { get; set; } = new();
+    }
+
+    public class PersonalTicketDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public int Status { get; set; }
+        public int Priority { get; set; }
+        public DateTime? DueDate { get; set; }
+        public string? ProductName { get; set; }
+        public Guid ProductId { get; set; }
+        public Guid? SprintId { get; set; }
+        public DateTime UpdatedAt { get; set; }
+    }
+
+    public class PersonalActivityDto
+    {
+        public Guid Id { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public int Status { get; set; }
+        public DateTime UpdatedAt { get; set; }
+        public string? ProductName { get; set; }
+        public Guid ProductId { get; set; }
+    }
+
+    public class PersonalSprintDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string Goal { get; set; } = string.Empty;
+        public int TotalItems { get; set; }
+        public int DoneItems { get; set; }
+        public int MyItems { get; set; }
+    }
+
+    public class PersonalNotificationDto
+    {
+        public Guid Id { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public DateTime CreatedAt { get; set; }
+        public Guid? ItemId { get; set; }
     }
 }

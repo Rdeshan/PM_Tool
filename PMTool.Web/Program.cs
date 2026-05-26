@@ -121,6 +121,7 @@ using (var scope = app.Services.CreateScope())
     // Seed test users for each role
     var seedingService = scope.ServiceProvider.GetRequiredService<DataSeedingService>();
     await seedingService.SeedTestUsersAsync();
+    await seedingService.SeedDashboardDataAsync();
 }
 
 // Configure the HTTP request pipeline.

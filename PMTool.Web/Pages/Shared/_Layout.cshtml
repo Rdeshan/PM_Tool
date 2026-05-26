@@ -28,16 +28,14 @@
                 <a asp-page="/Dashboard" class="nav-link"><i class="bi bi-speedometer2"></i> <span class="nav-text">Dashboard</span></a>
                 <a asp-page="/Projects/Index" class="nav-link"><i class="bi bi-folder2"></i> <span class="nav-text">Projects</span></a>
                 <a href="#" class="nav-link"><i class="bi bi-list-task"></i> <span class="nav-text">Tasks</span></a>
-                <a href="#" class="nav-link"><i class="bi bi-people"></i> <span class="nav-text">Team</span></a>
                 @if (User.IsInRole("Project Manager"))
                 {
                     <a asp-page="/PM/Dashboard" class="nav-link"><i class="bi bi-kanban"></i> <span class="nav-text">PM Dashboard</span></a>
                 }
                 @if (User.IsInRole("Administrator"))
                 {
-                    <a asp-page="/Admin/Dashboard" class="nav-link"><i class="bi bi-shield-lock"></i> <span class="nav-text">Admin</span></a>
                     <a asp-page="/Admin/Users/Index" class="nav-link"><i class="bi bi-person-badge"></i> <span class="nav-text">Users</span></a>
-                    <a asp-page="/Admin/Teams/Index" class="nav-link"><i class="bi bi-diagram-3"></i> <span class="nav-text">Teams</span></a>
+                    <a asp-page="/Admin/Teams/Index" class="nav-link"><i class="bi bi-people"></i> <span class="nav-text">Teams</span></a>
                 }
             </nav>
             <div class="mt-auto">

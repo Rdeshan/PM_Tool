@@ -123,6 +123,9 @@
     .product-subtask { display: flex; align-items: center; gap: 6px; width: fit-content; max-width: 100%; margin: 0; color: #42526e; font-size: 11px; line-height: 1.3; }
     .product-subtask input { width: 12px; height: 12px; margin: 0; }
     .product-subtask.done span { color: #6b778c; text-decoration: line-through; }
+    .subtask-status-select { border: none; border-radius: 4px; padding: 2px 6px; font-size: 10px; font-weight: 600; cursor: pointer; outline: none; appearance: none; -webkit-appearance: none; }
+    .subtask-status-select:hover { opacity: 0.85; }
+    .sidebar-subtask.done > span, .sidebar-subtask.done .subtask-title-text { text-decoration: line-through; color: #6b778c; }
     
     /* Make content full width */
     .container { max-width: 100% !important; padding-left: 30px !important; padding-right: 30px !important; }
@@ -839,29 +842,6 @@
                 <label class="form-label fw-bold small">Title</label>
                 <input type="text" id="editSubtaskTitle" class="form-control" placeholder="Subtask title" />
             </div>
-            <div class="row">
-                <div class="col-6">
-                    <div class="form-group mb-3">
-                        <label class="form-label fw-bold small">Priority</label>
-                        <select id="editSubtaskPriority" class="form-select form-select-sm">
-                            <option value="1">Highest</option>
-                            <option value="2">High</option>
-                            <option value="3">Medium</option>
-                            <option value="4">Low</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="form-group mb-3">
-                        <label class="form-label fw-bold small">Status</label>
-                        <select id="editSubtaskStatus" class="form-select form-select-sm">
-                            <option value="1">To Do</option>
-                            <option value="2">In Progress</option>
-                            <option value="3">Done</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
             <div class="form-group mb-3">
                 <label class="form-label fw-bold small">Assignee</label>
                 <select id="editSubtaskAssignee" class="form-select form-select-sm">
@@ -1535,9 +1515,16 @@ async function createSubtask(itemId, e) {
 async function updateProductSubtaskStatus(subtaskId, status, e) {
     if (e) e.stopPropagation();
 
-    const checkbox = e?.target;
-    const label = checkbox?.closest('.product-subtask');
-    if (label) label.classList.toggle('done', status === 3);
+    const select = e?.target;
+    const previousStatus = select ? parseInt(select.dataset.previousStatus || '0') || status : status;
+    if (select) select.dataset.previousStatus = select.value;
+
+    const label = select?.closest('.product-subtask, .sidebar-subtask');
+    if (label) {
+        label.classList.toggle('done', status === 3);
+        label.dataset.subtaskStatus = status.toString();
+    }
+    if (select) applyStatusSelectStyle(select, status);
 
     const resp = await fetch('?handler=UpdateSubtaskStatus', {
         method: 'POST',
@@ -1550,21 +1537,35 @@ async function updateProductSubtaskStatus(subtaskId, status, e) {
 
     const result = await resp.json().catch(() => ({ success: false }));
     if (!result.success) {
-        if (checkbox) checkbox.checked = status !== 3;
-        if (label) label.classList.toggle('done', status !== 3);
+        if (select) {
+            select.value = previousStatus.toString();
+            applyStatusSelectStyle(select, previousStatus);
+        }
+        if (label) {
+            label.classList.toggle('done', previousStatus === 3);
+            label.dataset.subtaskStatus = previousStatus.toString();
+        }
         showToast('Failed to update subtask', 'danger');
         return false;
     }
 
-    document.querySelectorAll(`input[data-subtask-id="${subtaskId}"]`).forEach(cb => {
-        cb.checked = status === 3;
-        const subtask = cb.closest('.product-subtask, .sidebar-subtask');
-        if (subtask) {
-            subtask.classList.toggle('done', status === 3);
-            subtask.dataset.subtaskStatus = status.toString();
+    document.querySelectorAll(`select.subtask-status-select[data-subtask-id="${subtaskId}"]`).forEach(sel => {
+        sel.value = status.toString();
+        applyStatusSelectStyle(sel, status);
+        const subtaskEl = sel.closest('.product-subtask, .sidebar-subtask');
+        if (subtaskEl) {
+            subtaskEl.classList.toggle('done', status === 3);
+            subtaskEl.dataset.subtaskStatus = status.toString();
         }
     });
     return true;
+}
+
+function applyStatusSelectStyle(select, status) {
+    const bg = status === 1 ? '#dbeafe' : status === 2 ? '#fef3c7' : '#dcfce7';
+    const fg = status === 1 ? '#1d4ed8' : status === 2 ? '#92400e' : '#166534';
+    select.style.background = bg;
+    select.style.color = fg;
 }
 
 let currentBacklogId = null;
@@ -1898,8 +1899,9 @@ function renderSidebarSubtasks(itemId) {
         const priority = parseInt(subtask.dataset.subtaskPriority);
         const assigneeId = subtask.dataset.subtaskAssigneeId || '';
         const assigneeName = subtask.dataset.subtaskAssigneeName || '';
-        const checked = status === 3 ? 'checked' : '';
         const doneClass = status === 3 ? ' done' : '';
+        const statusBg = status === 1 ? '#dbeafe' : status === 2 ? '#fef3c7' : '#dcfce7';
+        const statusFg = status === 1 ? '#1d4ed8' : status === 2 ? '#92400e' : '#166534';
 
         const assigneeHtml = assigneeName
             ? `<div class="avatar-circle" style="${avatarStyle(assigneeId || assigneeName)};width:20px;height:20px;font-size:8px;flex-shrink:0;" title="${escapeHtml(assigneeName)}">${getInitials(assigneeName)}</div><span style="font-size:11px;color:#172b4d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;">${escapeHtml(assigneeName)}</span>`
@@ -1909,9 +1911,14 @@ function renderSidebarSubtasks(itemId) {
         item.className = `sidebar-subtask product-subtask${doneClass}`;
         item.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;';
         item.innerHTML = `
-            <input type="checkbox" data-subtask-id="${subtaskId}" ${checked} style="flex-shrink:0;"
-                onchange="updateProductSubtaskStatus('${subtaskId}', this.checked ? 3 : 1, event)" />
-            <span style="flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${status===3?'text-decoration:line-through;color:#6b778c;':''}">${escapeHtml(title)}</span>
+            <select class="subtask-status-select" data-subtask-id="${subtaskId}"
+                style="flex-shrink:0;border:none;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;font-weight:600;background:${statusBg};color:${statusFg};outline:none;appearance:none;-webkit-appearance:none;"
+                onchange="updateProductSubtaskStatus('${subtaskId}', parseInt(this.value), event)">
+                <option value="1" ${status===1?'selected':''}>To Do</option>
+                <option value="2" ${status===2?'selected':''}>In Progress</option>
+                <option value="3" ${status===3?'selected':''}>Done</option>
+            </select>
+            <span style="flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(title)}</span>
             <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">${assigneeHtml}</div>
             <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;margin-left:4px;">
                 <button type="button" class="ib" onclick="openEditSubtaskModal('${subtaskId}', '${escapeJs(title)}', ${priority}, '${assigneeId}', ${status}, event)" title="Edit">
@@ -1930,9 +1937,7 @@ function openEditSubtaskModal(id, title, priority, assigneeId, status, e) {
     if (e) e.stopPropagation();
     document.getElementById('editSubtaskId').value = id;
     document.getElementById('editSubtaskTitle').value = title;
-    document.getElementById('editSubtaskPriority').value = priority;
     document.getElementById('editSubtaskAssignee').value = assigneeId || '';
-    document.getElementById('editSubtaskStatus').value = status;
     document.getElementById('editSubtaskModal').style.display = 'flex';
 }
 
@@ -1943,11 +1948,14 @@ function closeEditSubtaskModal() {
 async function submitEditSubtask() {
     const id = document.getElementById('editSubtaskId').value;
     const title = document.getElementById('editSubtaskTitle').value.trim();
-    const priority = parseInt(document.getElementById('editSubtaskPriority').value);
     const assigneeSelect = document.getElementById('editSubtaskAssignee');
     const assigneeId = assigneeSelect.value || null;
     const assigneeName = assigneeId ? (assigneeSelect.options[assigneeSelect.selectedIndex]?.text || '') : '';
-    const status = parseInt(document.getElementById('editSubtaskStatus').value);
+
+    // Preserve existing priority and status from the DOM data attributes
+    const subtaskEl = document.querySelector(`.product-subtask[data-subtask-id="${id}"]`);
+    const priority = parseInt(subtaskEl?.dataset.subtaskPriority || '3');
+    const status = parseInt(subtaskEl?.dataset.subtaskStatus || '1');
 
     if (!title) { showToast('Title is required', 'danger'); return; }
 
@@ -2177,10 +2185,24 @@ function updateOwner(itemId, ownerId, e) {
         signalChange();
         const row = document.getElementById('row-' + itemId);
         const selected = e?.currentTarget || e?.target?.closest('.dd-item');
-        const name = selected?.textContent?.trim() || 'Unassigned';
+        const name = (selected?.textContent?.trim() || 'Unassigned');
         if (row) {
             row.dataset.itemAssignee = ownerId ? name : 'Unassigned';
             row.dataset.itemAssigneeId = ownerId || '';
+        }
+        // Update avatar button without page refresh
+        const btn = document.querySelector(`#assignDd_${itemId}`)?.previousElementSibling;
+        if (btn) {
+            if (ownerId) {
+                const avatarEl = selected?.querySelector('.avatar-circle');
+                btn.innerHTML = avatarEl
+                    ? avatarEl.outerHTML
+                    : `<div class="avatar-circle" style="background:#dfe1e6;color:#42526e;">${name.substring(0,2).toUpperCase()}</div>`;
+                btn.title = name;
+            } else {
+                btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>`;
+                btn.title = 'Unassigned';
+            }
         }
     }).catch(() => {});
 }
@@ -2289,8 +2311,20 @@ function pickItemDate(itemId, y, m, d) {
     const fmt = `${SMON[m]} ${d}`;
     const panel = document.getElementById('itemCal_' + itemId);
     panel.dataset.currentDate = iso;
-    const lbl = document.getElementById('dateLbl_' + itemId);
-    if (lbl) lbl.textContent = fmt;
+    let lbl = document.getElementById('dateLbl_' + itemId);
+    if (lbl) {
+        lbl.textContent = fmt;
+    } else {
+        // Item had no due date — create the label span inside the calendar button
+        const calBtn = panel.previousElementSibling;
+        if (calBtn) {
+            lbl = document.createElement('span');
+            lbl.id = 'dateLbl_' + itemId;
+            lbl.style.fontSize = '11px';
+            lbl.textContent = fmt;
+            calBtn.appendChild(lbl);
+        }
+    }
     closeDds();
 
     fetch('?handler=UpdateDueDate', {
