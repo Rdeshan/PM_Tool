@@ -856,7 +856,8 @@ public class BacklogModel : PageModel
                 title = subtask.Title,
                 status = subtask.Status,
                 priority = subtask.Priority,
-                assigneeId = subtask.AssigneeId
+                assigneeId = subtask.AssigneeId,
+                assigneeName = subtask.AssigneeName ?? ""
             }
         });
     }

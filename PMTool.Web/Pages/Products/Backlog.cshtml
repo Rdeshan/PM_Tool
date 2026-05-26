@@ -469,56 +469,170 @@
 
         <!-- Backlog Table -->
         <div class="backlog-table-wrap">
-            @if (Model.BacklogItems.Count == 0)
-            {
-                <div class="text-center text-muted py-5">
-                    <i class="bi bi-inbox" style="font-size:2rem;opacity:0.3;"></i>
-                    <p class="mt-2 mb-0" style="font-size:13px;">Your backlog is empty.</p>
-                </div>
-            }
-            else
-            {
-                <table>
-                    <thead>
-                        <tr>
-                            <th style="width:32px;"><input type="checkbox" id="selectAll" /></th>
-                            <th style="width:28px;"></th>
-                            <th>Title</th>
-                            <th style="width:35%; text-align:center;">Subproject</th>
-                            <th style="width:110px;">Status</th>
-                            <th style="width:80px;">Assignee</th>
-                            <th style="width:64px;">Points</th>
-                            <th style="width:95px;">Due date</th>
-                            <th style="width:36px;"></th>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width:32px;"><input type="checkbox" id="selectAll" /></th>
+                        <th style="width:28px;"></th>
+                        <th>Title</th>
+                        <th style="width:35%; text-align:center;">Subproject</th>
+                        <th style="width:110px;">Status</th>
+                        <th style="width:80px;">Assignee</th>
+                        <th style="width:64px;">Points</th>
+                        <th style="width:95px;">Due date</th>
+                        <th style="width:36px;"></th>
+                    </tr>
+                </thead>
+                <tbody id="backlogTableBody" class="sprint-drop-zone" data-sprint-id="">
+                    @{
+                        var backlogItems = Model.BacklogItems
+                            .Where(x => x.SprintId == null)
+                            .OrderBy(x => x.Priority)
+                            .ToList();
+                    }
+                    @foreach (var item in backlogItems)
+                    {
+                        @await Html.PartialAsync("_BacklogItemRow", item, new ViewDataDictionary(ViewData)
+                        {
+                            ["SubProjects"] = Model.ProductSubProjects,
+                            ["WorkTypes"] = Model.WorkTypes,
+                            ["ActiveUsers"] = Model.ActiveUsers,
+                            ["CustomStatuses"] = Model.CustomBoardColumns,
+                            ["SubtasksByItem"] = Model.SubtasksByItem
+                        })
+                    }
+                    @if (!backlogItems.Any())
+                    {
+                        <tr class="drop-placeholder text-center" data-placeholder="true">
+                            <td colspan="9" class="text-muted py-5">
+                                <i class="bi bi-inbox" style="font-size:2rem;opacity:0.3;display:block;margin-bottom:8px;"></i>
+                                Your backlog is empty. Create your first item above.
+                            </td>
                         </tr>
-                    </thead>
-                    <tbody id="backlogTableBody" class="sprint-drop-zone" data-sprint-id="">
-                        @{
-                            var backlogItems = Model.BacklogItems
-                                .Where(x => x.SprintId == null)
-                                .OrderBy(x => x.Priority)
-                                .ToList();
-                        }
-                        @foreach (var item in backlogItems)
-                        {
-                            @await Html.PartialAsync("_BacklogItemRow", item, new ViewDataDictionary(ViewData)
-                            {
-                                ["SubProjects"] = Model.ProductSubProjects,
-                                ["WorkTypes"] = Model.WorkTypes,
-                                ["ActiveUsers"] = Model.ActiveUsers,
-                                ["CustomStatuses"] = Model.CustomBoardColumns,
-                                ["SubtasksByItem"] = Model.SubtasksByItem
-                            })
-                        }
-                        @if (!backlogItems.Any())
-                        {
-                            <tr class="drop-placeholder text-center" data-placeholder="true">
-                                <td colspan="9" class="text-muted small py-3">Drop items here</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            }
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Product Backlog Subtask Sidebar -->
+<div id="productSubtaskSidebar" class="sidebar-overlay d-none">
+    <div class="sidebar-panel">
+        <div class="sidebar-header">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h5 id="sidebarTaskTitle" class="sidebar-title">Subtask</h5>
+                    <span id="sidebarTaskKey" class="sidebar-key">PB-0000</span>
+                </div>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeProductSidebar()">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <select id="sidebarStatus" class="sidebar-status mt-2" onchange="updateSidebarStatus(this.value)">
+                <option value="1">To do</option>
+                <option value="2">In progress</option>
+                <option value="3">In review</option>
+                <option value="4">Done</option>
+            </select>
+        </div>
+
+        <div class="sidebar-body">
+            <div class="mb-4">
+                <label class="form-label fw-bold small">Description</label>
+                <textarea id="sidebarDescription"
+                          class="form-control"
+                          rows="4"
+                          placeholder="Add a description..."
+                          onblur="saveSidebarDescription()"></textarea>
+            </div>
+
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="sidebar-section-title">Details</h6>
+                </div>
+                <div class="sidebar-details-grid" id="sidebarDetailsGrid">
+                    <div class="sidebar-detail-label">Assignee</div>
+                    <div id="sidebarAssignee" class="sidebar-detail-value">Unassigned</div>
+                    <div class="sidebar-detail-label">Story points</div>
+                    <div id="sidebarStoryPoints" class="sidebar-detail-value">0</div>
+                    <div class="sidebar-detail-label">Due date</div>
+                    <div id="sidebarDueDate" class="sidebar-detail-value">-</div>
+                    <div class="sidebar-detail-label">Start date</div>
+                    <div id="sidebarStartDate" class="sidebar-detail-value">-</div>
+                    <div class="sidebar-detail-label">Sprint name</div>
+                    <div id="sidebarSprint" class="sidebar-detail-value">Backlog</div>
+                    <div class="sidebar-detail-label">Priority</div>
+                    <div id="sidebarPriority" class="sidebar-detail-value">Medium</div>
+                    <div class="sidebar-detail-label">Work type</div>
+                    <div id="sidebarWorkType" class="sidebar-detail-value">Work Item</div>
+                    <div class="sidebar-detail-label">Created date</div>
+                    <div id="sidebarCreatedAt" class="sidebar-detail-value">-</div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0">Subtasks</h6>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="showSubtaskInput()">
+                        <i class="bi bi-plus"></i>
+                    </button>
+                </div>
+
+                <div id="sidebarSubtaskList" class="sidebar-subtask-list"></div>
+
+                <div id="newSubtaskWrap" class="d-none mt-2">
+                    <div class="d-flex flex-column gap-2">
+                        <input type="text"
+                               id="newSubtaskInput"
+                               class="form-control form-control-sm"
+                               placeholder="Subtask title..."
+                               onkeydown="if(event.key==='Enter')createSidebarSubtask(event);if(event.key==='Escape')hideSubtaskInput();" />
+                        <div class="d-flex align-items-center gap-2">
+                            <div style="position:relative;">
+                                <button type="button" class="ib" id="subtaskAssignBtn" onclick="toggleDd('subtaskAssignDd',event)" title="Assign user" style="gap:4px;">
+                                    <span id="subtaskAssignIcon">
+                                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+                                    </span>
+                                    <span id="subtaskAssignLabel" style="font-size:11px;color:#6b778c;">Assignee</span>
+                                </button>
+                                <div class="dd-panel" id="subtaskAssignDd" style="max-height:220px;overflow-y:auto;">
+                                    <div class="dd-item" onclick="setSubtaskAssignee('','',event)">
+                                        <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>
+                                        Unassigned
+                                    </div>
+                                    @foreach (var user in Model.ActiveUsers)
+                                    {
+                                        var uName = user.DisplayName ?? $"{user.FirstName} {user.LastName}";
+                                        var initials = GetInitials(uName);
+                                        var bg = GetAvatarBg(user.Id.ToString());
+                                        <div class="dd-item" onclick="setSubtaskAssignee('@user.Id','@uName',event)">
+                                            <div class="avatar-circle" style="background:@bg.bg;color:@bg.fg">@initials</div>
+                                            @uName
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+                            <div class="ms-auto d-flex gap-2">
+                                <button type="button" class="btn btn-sm btn-primary" onclick="createSidebarSubtask(event)">Add</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="hideSubtaskInput()">Cancel</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-tabs">
+                <button type="button" class="sidebar-tab active" onclick="setSidebarTab('all', event)">All</button>
+                <button type="button" class="sidebar-tab" onclick="setSidebarTab('comments', event)">Comments</button>
+                <button type="button" class="sidebar-tab" onclick="setSidebarTab('history', event)">History</button>
+            </div>
+            <div id="sidebarActivity" class="sidebar-tab-panel">No activity yet.</div>
+        </div>
+
+        <div class="sidebar-footer">
+            <input id="sidebarCommentInput" type="text" placeholder="Add a comment..." onkeydown="if(event.key==='Enter')addSidebarComment();" />
+            <button type="button" onclick="addSidebarComment()">Comment</button>
         </div>
     </div>
 </div>
@@ -713,7 +827,7 @@
 </div>
 
 <!-- Edit Subtask Modal -->
-<div class="modal-overlay" id="editSubtaskModal">
+<div class="modal-overlay" id="editSubtaskModal" style="z-index: 100001;">
     <div class="modal-card" style="width:400px;">
         <div class="modal-header">
             <h5 class="modal-title">Edit Subtask</h5>
@@ -971,8 +1085,8 @@ function updateBacklogStats() {
     const inProgressCountEl = document.getElementById('backlogInProgressCount');
     const inReviewCountEl = document.getElementById('backlogInReviewCount');
 
-    const backlogRows = [...backlogZone.querySelectorAll('tr')];
-    const totalRows = document.querySelectorAll('.sprint-drop-zone tr').length;
+    const backlogRows = [...backlogZone.querySelectorAll('tr[data-item-id]')];
+    const totalRows = document.querySelectorAll('.sprint-drop-zone tr[data-item-id]').length;
 
     if (totalCountEl) totalCountEl.textContent = totalRows.toString();
     if (availableCountEl) availableCountEl.textContent = backlogRows.length.toString();
@@ -1410,21 +1524,7 @@ async function createSubtask(itemId, e) {
         return;
     }
 
-    const list = document.getElementById('subtaskList_' + itemId);
-    if (list) {
-        list.classList.remove('d-none');
-        const label = document.createElement('div');
-        label.className = 'product-subtask';
-        label.dataset.subtaskId = result.subtask.id;
-        label.dataset.subtaskTitle = result.subtask.title;
-        label.dataset.subtaskStatus = result.subtask.status;
-        label.dataset.subtaskPriority = result.subtask.priority;
-        label.dataset.subtaskAssigneeId = result.subtask.assigneeId || '';
-        label.innerHTML = `<input type="checkbox" data-subtask-id="${result.subtask.id}" onchange="updateProductSubtaskStatus('${result.subtask.id}', this.checked ? 3 : 1, event)" /><span></span>`;
-        label.querySelector('input').dataset.subtaskId = result.subtask.id;
-        label.querySelector('span').textContent = result.subtask.title;
-        list.appendChild(label);
-    }
+    appendSubtaskToRow(itemId, result.subtask);
 
     updateSubtaskCount(itemId);
     if (currentBacklogId === itemId) renderSidebarSubtasks(itemId);
@@ -1747,6 +1847,8 @@ function saveSidebarDescription() {
     }).catch(() => {});
 }
 
+let newSubtaskAssigneeId = '';
+
 function showSubtaskInput() {
     const wrap = document.getElementById('newSubtaskWrap');
     const input = document.getElementById('newSubtaskInput');
@@ -1759,6 +1861,23 @@ function hideSubtaskInput() {
     const input = document.getElementById('newSubtaskInput');
     wrap.classList.add('d-none');
     input.value = '';
+    setSubtaskAssignee('', '', null);
+}
+
+function setSubtaskAssignee(id, name, e) {
+    if (e) e.stopPropagation();
+    newSubtaskAssigneeId = id || '';
+    const icon = document.getElementById('subtaskAssignIcon');
+    const label = document.getElementById('subtaskAssignLabel');
+    if (name) {
+        const initials = name.trim().split(/\s+/).map(w => w[0]).join('').substring(0, 2).toUpperCase();
+        if (icon) icon.innerHTML = `<div style="width:18px;height:18px;border-radius:50%;background:#deebff;color:#0747a6;display:inline-flex;align-items:center;justify-content:center;font-size:8px;font-weight:600;">${initials}</div>`;
+        if (label) { label.textContent = name; label.style.color = '#172b4d'; }
+    } else {
+        if (icon) icon.innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>`;
+        if (label) { label.textContent = 'Assignee'; label.style.color = '#6b778c'; }
+    }
+    closeDds();
 }
 
 function renderSidebarSubtasks(itemId) {
@@ -1777,18 +1896,24 @@ function renderSidebarSubtasks(itemId) {
         const title = subtask.dataset.subtaskTitle || subtask.querySelector('span')?.textContent || '';
         const status = parseInt(subtask.dataset.subtaskStatus);
         const priority = parseInt(subtask.dataset.subtaskPriority);
-        const assigneeId = subtask.dataset.subtaskAssigneeId;
+        const assigneeId = subtask.dataset.subtaskAssigneeId || '';
+        const assigneeName = subtask.dataset.subtaskAssigneeName || '';
         const checked = status === 3 ? 'checked' : '';
         const doneClass = status === 3 ? ' done' : '';
 
+        const assigneeHtml = assigneeName
+            ? `<div class="avatar-circle" style="${avatarStyle(assigneeId || assigneeName)};width:20px;height:20px;font-size:8px;flex-shrink:0;" title="${escapeHtml(assigneeName)}">${getInitials(assigneeName)}</div><span style="font-size:11px;color:#172b4d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;">${escapeHtml(assigneeName)}</span>`
+            : `<span style="font-size:11px;color:#aaa;">—</span>`;
+
         const item = document.createElement('div');
         item.className = `sidebar-subtask product-subtask${doneClass}`;
+        item.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;';
         item.innerHTML = `
-            <div>
-                <input type="checkbox" data-subtask-id="${subtaskId}" ${checked} onchange="updateProductSubtaskStatus('${subtaskId}', this.checked ? 3 : 1, event)" />
-                <span>${escapeHtml(title)}</span>
-            </div>
-            <div class="subtask-actions">
+            <input type="checkbox" data-subtask-id="${subtaskId}" ${checked} style="flex-shrink:0;"
+                onchange="updateProductSubtaskStatus('${subtaskId}', this.checked ? 3 : 1, event)" />
+            <span style="flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;${status===3?'text-decoration:line-through;color:#6b778c;':''}">${escapeHtml(title)}</span>
+            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">${assigneeHtml}</div>
+            <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;margin-left:4px;">
                 <button type="button" class="ib" onclick="openEditSubtaskModal('${subtaskId}', '${escapeJs(title)}', ${priority}, '${assigneeId}', ${status}, event)" title="Edit">
                     <i class="bi bi-pencil"></i>
                 </button>
@@ -1819,7 +1944,9 @@ async function submitEditSubtask() {
     const id = document.getElementById('editSubtaskId').value;
     const title = document.getElementById('editSubtaskTitle').value.trim();
     const priority = parseInt(document.getElementById('editSubtaskPriority').value);
-    const assigneeId = document.getElementById('editSubtaskAssignee').value || null;
+    const assigneeSelect = document.getElementById('editSubtaskAssignee');
+    const assigneeId = assigneeSelect.value || null;
+    const assigneeName = assigneeId ? (assigneeSelect.options[assigneeSelect.selectedIndex]?.text || '') : '';
     const status = parseInt(document.getElementById('editSubtaskStatus').value);
 
     if (!title) { showToast('Title is required', 'danger'); return; }
@@ -1836,7 +1963,7 @@ async function submitEditSubtask() {
 
         const result = await resp.json();
         if (result.success) {
-            updateSubtaskInRow(id, { title, priority, assigneeId, status });
+            updateSubtaskInRow(id, { title, priority, assigneeId, assigneeName, status });
             renderSidebarSubtasks(currentBacklogId);
             closeEditSubtaskModal();
             showToast('Subtask updated', 'success');
@@ -1849,15 +1976,13 @@ async function submitEditSubtask() {
 }
 
 function updateSubtaskInRow(id, data) {
-    const subtaskEl = document.querySelector(`.product-subtask[data-subtask-id="${id}"]`);
+    const subtaskEl = document.querySelector(`#subtaskList_${data.parentId || currentBacklogId} .product-subtask[data-subtask-id="${id}"]`);
     if (subtaskEl) {
         subtaskEl.dataset.subtaskTitle = data.title;
         subtaskEl.dataset.subtaskPriority = data.priority;
         subtaskEl.dataset.subtaskAssigneeId = data.assigneeId || '';
+        subtaskEl.dataset.subtaskAssigneeName = data.assigneeName || '';
         subtaskEl.dataset.subtaskStatus = data.status;
-        subtaskEl.querySelector('span').textContent = data.title;
-        subtaskEl.querySelector('input').checked = data.status === 3;
-        subtaskEl.classList.toggle('done', data.status === 3);
     }
 }
 
@@ -1910,7 +2035,8 @@ async function createSidebarSubtask(e) {
             parentId: currentBacklogId,
             title,
             priority: 3,
-            status: 1
+            status: 1,
+            assigneeId: newSubtaskAssigneeId || null
         })
     });
 
@@ -1931,8 +2057,6 @@ function appendSubtaskToRow(itemId, subtask) {
     const list = document.getElementById('subtaskList_' + itemId);
     if (!list) return;
 
-    list.classList.remove('d-none');
-
     const label = document.createElement('div');
     label.className = 'product-subtask';
     label.dataset.subtaskId = subtask.id;
@@ -1940,8 +2064,8 @@ function appendSubtaskToRow(itemId, subtask) {
     label.dataset.subtaskStatus = subtask.status;
     label.dataset.subtaskPriority = subtask.priority;
     label.dataset.subtaskAssigneeId = subtask.assigneeId || '';
-    label.innerHTML = `<input type="checkbox" data-subtask-id="${subtask.id}" onchange="updateProductSubtaskStatus('${subtask.id}', this.checked ? 3 : 1, event)" /><span></span>`;
-    label.querySelector('span').textContent = subtask.title;
+    label.dataset.subtaskAssigneeName = subtask.assigneeName || '';
+    label.innerHTML = `<span>${escapeHtml(subtask.title)}</span>`;
     list.appendChild(label);
 }
 

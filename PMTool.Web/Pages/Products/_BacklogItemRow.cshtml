@@ -131,29 +131,18 @@
                     <i class="bi bi-pencil" style="font-size:10px;"></i>
                 </span>
             </div>
-            <div class="subtask-create d-none" id="subtaskForm_@itemId">
-                <i class="bi bi-diagram-2"></i>
-                <input type="text"
-                       id="subtaskInput_@itemId"
-                       placeholder="Add subtask"
-                       onkeydown="if(event.key==='Enter')createSubtask('@itemId', event);if(event.key==='Escape')toggleSubtaskForm('@itemId', event, true);" />
-                <button type="button" onclick="createSubtask('@itemId', event)">Add</button>
-            </div>
-            <div class="product-subtasks d-none" id="subtaskList_@itemId">
+            <div class="product-subtasks d-none" id="subtaskList_@itemId" style="display:none!important;">
                 @if (itemSubtasks.Any())
                 {
                     @foreach (var subtask in itemSubtasks)
                     {
-                        <div class="product-subtask @(subtask.Status == 3 ? "done" : "")" 
+                        <div class="product-subtask @(subtask.Status == 3 ? "done" : "")"
                              data-subtask-id="@subtask.Id"
                              data-subtask-title="@subtask.Title"
                              data-subtask-status="@subtask.Status"
                              data-subtask-priority="@subtask.Priority"
-                             data-subtask-assignee-id="@(subtask.AssigneeId?.ToString() ?? "")">
-                            <input type="checkbox"
-                                   data-subtask-id="@subtask.Id"
-                                   @(subtask.Status == 3 ? "checked" : "")
-                                   onchange="updateProductSubtaskStatus('@subtask.Id', this.checked ? 3 : 1, event)" />
+                             data-subtask-assignee-id="@(subtask.AssigneeId?.ToString() ?? "")"
+                             data-subtask-assignee-name="@(subtask.AssigneeName ?? "")">
                             <span>@subtask.Title</span>
                         </div>
                     }
