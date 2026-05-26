@@ -9,4 +9,7 @@ public interface IBacklogService
     Task<BacklogItemDTO?> UpdateBacklogFieldAsync(UpdateBacklogFieldRequest request);
     Task<bool> ReorderItemsAsync(Guid projectId, Guid? productId, List<ReorderBacklogItemRequest> items);
     Task<bool> DeleteItemAsync(Guid itemId);
+    Task<BacklogItemDTO?> GetBacklogItemAsync(Guid itemId);
+    Task<BacklogSubtaskDto?> CreateSubtaskAsync(Guid parentId, CreateBacklogSubtaskDto request);
+    Task<bool> UpdateSubtaskStatusAsync(Guid subtaskId, int status);
 }

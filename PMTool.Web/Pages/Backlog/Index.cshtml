@@ -190,6 +190,131 @@
     </div>
 </div>
 
+<!-- Subtask Sidebar -->
+<div id="subtaskSidebar" class="sidebar-overlay d-none">
+    <div class="sidebar-panel">
+        <div class="sidebar-header">
+            <div class="d-flex align-items-center justify-content-between">
+                <div>
+                    <h5 id="sidebarTitle" class="mb-0">Task Title</h5>
+                    <small id="sidebarId" class="text-muted">ID</small>
+                </div>
+                <button id="closeSidebar" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>
+            <div class="mt-2">
+                <select id="sidebarStatus" class="form-select form-select-sm">
+                    <option value="1">To Do</option>
+                    <option value="2">In Progress</option>
+                    <option value="3">Done</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="sidebar-body">
+            <div class="mb-3">
+                <label class="form-label">Description</label>
+                <textarea id="sidebarDescription" class="form-control" rows="3" placeholder="Add a description..."></textarea>
+            </div>
+
+            <div class="subtasks-section">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="mb-0">Subtasks</h6>
+                    <button id="addSubtaskBtn" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-plus"></i>
+                    </button>
+                </div>
+                <div id="subtasksList" class="subtasks-list">
+                    <!-- Subtasks will be populated here -->
+                </div>
+                <div id="newSubtaskForm" class="mt-2 d-none">
+                    <div class="input-group input-group-sm">
+                        <input type="text" id="newSubtaskTitle" class="form-control" placeholder="What needs to be done?">
+                        <button id="saveSubtaskBtn" class="btn btn-primary" type="button">Add</button>
+                        <button id="cancelSubtaskBtn" class="btn btn-outline-secondary" type="button">Cancel</button>
+                    </div>
+                </div>
+                <div id="subtaskProgress" class="progress mt-2 d-none" style="height: 6px;">
+                    <div class="progress-bar" role="progressbar" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <div class="details-section mt-4">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <h6 class="mb-0">Details</h6>
+                    <button class="btn btn-sm btn-link p-0 text-muted" type="button" data-bs-toggle="collapse" data-bs-target="#detailsCollapse">
+                        <i class="bi bi-chevron-down"></i>
+                    </button>
+                </div>
+                <div id="detailsCollapse" class="collapse show">
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small">Assignee</label>
+                            <div>
+                                <span id="sidebarAssignee" class="text-muted small">Unassigned</span>
+                                <a href="#" id="assignToMe" class="ms-2 small text-primary">Assign to me</a>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Priority</label>
+                            <select id="sidebarPriority" class="form-select form-select-sm">
+                                <option value="1">Highest</option>
+                                <option value="2">High</option>
+                                <option value="3">Medium</option>
+                                <option value="4">Low</option>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Parent</label>
+                            <div id="sidebarParent" class="small text-muted">-</div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Due date</label>
+                            <input type="date" id="sidebarDueDate" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Labels</label>
+                            <div class="small text-muted">-</div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Start date</label>
+                            <input type="date" id="sidebarStartDate" class="form-control form-control-sm">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Sprint</label>
+                            <div class="small text-muted">-</div>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small">Story point estimate</label>
+                            <input type="number" id="sidebarStoryPoints" class="form-control form-control-sm" min="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="activity-section mt-4">
+                <div class="d-flex border-bottom">
+                    <button class="btn btn-link text-decoration-none px-3 py-2 active" data-tab="all">All</button>
+                    <button class="btn btn-link text-decoration-none px-3 py-2" data-tab="comments">Comments</button>
+                    <button class="btn btn-link text-decoration-none px-3 py-2" data-tab="history">History</button>
+                    <button class="btn btn-link text-decoration-none px-3 py-2" data-tab="worklog">Work log</button>
+                </div>
+                <div id="activityContent" class="mt-3 small text-muted">
+                    No activity yet.
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar-footer">
+            <div class="input-group">
+                <input type="text" id="commentInput" class="form-control form-control-sm" placeholder="Add a comment...">
+                <button class="btn btn-primary btn-sm" type="button">Comment</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 @Html.AntiForgeryToken()
 
 @section Styles {
@@ -299,6 +424,79 @@
             z-index: 1055;
             width: min(320px, calc(100vw - 2rem));
             display: none;
+        }
+
+        /* Subtask Sidebar */
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1060;
+            display: flex;
+            justify-content: flex-end;
+            animation: slideIn 0.3s ease-out;
+        }
+        .sidebar-panel {
+            width: 480px;
+            max-width: 90vw;
+            height: 100%;
+            background: #fff;
+            box-shadow: -4px 0 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-header {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+            background: #f8f9fa;
+        }
+        .sidebar-body {
+            flex: 1;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        .sidebar-footer {
+            padding: 1rem;
+            border-top: 1px solid #e9ecef;
+            background: #f8f9fa;
+        }
+        .subtasks-section {
+            display: none;
+        }
+        .subtasks-list {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .subtask-item {
+            display: flex;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .subtask-item:last-child {
+            border-bottom: none;
+        }
+        .subtask-checkbox {
+            margin-right: 0.5rem;
+        }
+        .subtask-title {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+        .subtask-meta {
+            font-size: 0.8rem;
+            color: #6c757d;
+        }
+        @@keyframes slideIn {
+            from {
+                transform: translateX(100%);
+            }
+            to {
+                transform: translateX(0);
+            }
         }
 
     </style>
@@ -881,6 +1079,16 @@
             return;
         }
 
+        const row = e.target.closest('tr');
+        if (row && !e.target.closest('.editable, .editable-select, .delete-btn, .fold-toggle, .usecase-desc-toggle')) {
+            // Open sidebar for the row
+            const itemId = row.dataset.id;
+            if (itemId) {
+                openSidebar(itemId);
+                return;
+            }
+        }
+
         const useCaseDescBtn = e.target.closest('.usecase-desc-toggle');
         if (useCaseDescBtn) {
             e.preventDefault();
@@ -1044,6 +1252,230 @@
 
     document.addEventListener('click', (e) => {
         if (!e.target.closest('#dueDatePicker') && !e.target.closest('.due-date-btn')) closePicker();
+    });
+    // ─────────────────────────────────────────────────────────────────────
+
+    // ── Subtask Sidebar ──────────────────────────────────────────────────
+    const sidebar = document.getElementById('subtaskSidebar');
+    const sidebarTitle = document.getElementById('sidebarTitle');
+    const sidebarId = document.getElementById('sidebarId');
+    const sidebarStatus = document.getElementById('sidebarStatus');
+    const sidebarDescription = document.getElementById('sidebarDescription');
+    const sidebarAssignee = document.getElementById('sidebarAssignee');
+    const sidebarPriority = document.getElementById('sidebarPriority');
+    const sidebarParent = document.getElementById('sidebarParent');
+    const sidebarDueDate = document.getElementById('sidebarDueDate');
+    const sidebarStartDate = document.getElementById('sidebarStartDate');
+    const sidebarStoryPoints = document.getElementById('sidebarStoryPoints');
+    const subtasksList = document.getElementById('subtasksList');
+    const subtaskProgress = document.getElementById('subtaskProgress');
+    const addSubtaskBtn = document.getElementById('addSubtaskBtn');
+    const closeSidebarBtn = document.getElementById('closeSidebar');
+    const assignToMe = document.getElementById('assignToMe');
+    
+    const newSubtaskForm = document.getElementById('newSubtaskForm');
+    const newSubtaskTitle = document.getElementById('newSubtaskTitle');
+    const saveSubtaskBtn = document.getElementById('saveSubtaskBtn');
+    const cancelSubtaskBtn = document.getElementById('cancelSubtaskBtn');
+
+    let currentItemId = null;
+
+    const updateSidebarField = async (field, value) => {
+        if (!currentItemId) return;
+        const result = await postJson('UpdateField', { itemId: currentItemId, field, value });
+        if (result.success) {
+            // Update table row if needed (optional, for real-time feel)
+            const row = rowsBody.querySelector(`tr[data-id="${currentItemId}"]`);
+            if (row) {
+                const cell = row.querySelector(`.editable-select[data-field="${field}"], .editable[data-field="${field}"]`);
+                if (cell) {
+                    if (field === 'status') {
+                        const statusNames = { 1: 'Draft', 2: 'Approved', 3: 'InProgress', 4: 'Done' };
+                        cell.textContent = statusNames[value] || 'Unknown';
+                    } else if (field === 'priority') {
+                        // Priority in table is usually the rank, not the enum PriorityLevel
+                    } else if (field === 'title') {
+                        const titleText = row.querySelector('.item-title-text');
+                        if (titleText) titleText.textContent = value;
+                    }
+                }
+            }
+            notify(result.message, true);
+        } else {
+            notify(result.message || 'Failed to update field.', false);
+        }
+    };
+
+    const openSidebar = async (itemId) => {
+        currentItemId = itemId;
+        const result = await fetch(`?handler=Item&id=${itemId}`, {
+            method: 'GET',
+            headers: {
+                'RequestVerificationToken': token
+            }
+        });
+
+        if (!result.ok) {
+            notify('Failed to load item details.', false);
+            return;
+        }
+
+        const data = await result.json();
+        if (!data.success) {
+            notify(data.message || 'Failed to load item details.', false);
+            return;
+        }
+
+        const item = data.item;
+        sidebarTitle.textContent = item.title;
+        sidebarId.textContent = `SCRUM-${item.id.slice(-6).toUpperCase()}`;
+        sidebarStatus.value = item.status;
+        sidebarDescription.value = item.description || '';
+        sidebarAssignee.textContent = item.ownerName || 'Unassigned';
+        sidebarPriority.value = item.priority;
+        sidebarParent.textContent = item.parentBacklogItemTitle || '-';
+        sidebarDueDate.value = item.dueDate ? item.dueDate.split('T')[0] : '';
+        sidebarStartDate.value = item.startDate ? item.startDate.split('T')[0] : '';
+        sidebarStoryPoints.value = item.storyPoints || '';
+
+        // Populate subtasks
+        populateSubtasks(item.subtasks || []);
+        
+        newSubtaskForm.classList.add('d-none');
+        sidebar.classList.remove('d-none');
+    };
+
+    const closeSidebar = () => {
+        sidebar.classList.add('d-none');
+        currentItemId = null;
+    };
+
+    const populateSubtasks = (subtasks) => {
+        subtasksList.innerHTML = '';
+        if (subtasks.length === 0) {
+            subtasksList.innerHTML = '<div class="text-muted small">No subtasks yet.</div>';
+            subtaskProgress.classList.add('d-none');
+            return;
+        }
+
+        const doneCount = subtasks.filter(s => s.status === 3).length;
+        const progressPercent = Math.round((doneCount / subtasks.length) * 100);
+        subtaskProgress.querySelector('.progress-bar').style.width = `${progressPercent}%`;
+        subtaskProgress.classList.remove('d-none');
+
+        subtasks.forEach(subtask => {
+            const item = document.createElement('div');
+            item.className = 'subtask-item';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.className = 'form-check-input subtask-checkbox';
+            checkbox.checked = subtask.status === 3;
+            checkbox.dataset.id = subtask.id;
+
+            const title = document.createElement('span');
+            title.className = 'subtask-title';
+            title.textContent = subtask.title;
+
+            const meta = document.createElement('div');
+            meta.className = 'subtask-meta';
+            meta.textContent = `${subtask.priorityName} • ${subtask.assigneeName || 'Unassigned'} • ${subtask.statusName}`;
+
+            item.appendChild(checkbox);
+            item.appendChild(title);
+            item.appendChild(meta);
+            subtasksList.appendChild(item);
+
+            checkbox.addEventListener('change', async () => {
+                const status = checkbox.checked ? 3 : 1;
+                const result = await postJson('UpdateStatus', { subtaskId: subtask.id, status });
+                if (result.success) {
+                    subtask.status = status;
+                    subtask.statusName = status === 3 ? 'Done' : 'To Do';
+                    meta.textContent = `${subtask.priorityName} • ${subtask.assigneeName || 'Unassigned'} • ${subtask.statusName}`;
+                    populateSubtasks(subtasks); // Refresh progress
+                } else {
+                    notify(result.message || 'Failed to update status.', false);
+                    checkbox.checked = !checkbox.checked;
+                }
+            });
+        });
+    };
+
+    // Auto-save listeners
+    sidebarStatus.addEventListener('change', () => updateSidebarField('status', sidebarStatus.value));
+    sidebarPriority.addEventListener('change', () => updateSidebarField('priority', sidebarPriority.value));
+    sidebarDueDate.addEventListener('change', () => updateSidebarField('duedate', sidebarDueDate.value));
+    sidebarStartDate.addEventListener('change', () => updateSidebarField('startdate', sidebarStartDate.value));
+    sidebarStoryPoints.addEventListener('change', () => updateSidebarField('storypoints', sidebarStoryPoints.value));
+    
+    let descTimeout = null;
+    sidebarDescription.addEventListener('input', () => {
+        clearTimeout(descTimeout);
+        descTimeout = setTimeout(() => updateSidebarField('description', sidebarDescription.value), 1000);
+    });
+
+    addSubtaskBtn.addEventListener('click', () => {
+        newSubtaskForm.classList.remove('d-none');
+        newSubtaskTitle.focus();
+    });
+
+    cancelSubtaskBtn.addEventListener('click', () => {
+        newSubtaskForm.classList.add('d-none');
+        newSubtaskTitle.value = '';
+    });
+
+    const saveSubtask = async () => {
+        const title = newSubtaskTitle.value.trim();
+        if (!title) return;
+
+        const result = await postJson('Subtask', {
+            parentId: currentItemId,
+            title: title,
+            priority: 3,
+            status: 1
+        });
+
+        if (result.success) {
+            newSubtaskTitle.value = '';
+            newSubtaskForm.classList.add('d-none');
+            openSidebar(currentItemId);
+        } else {
+            notify(result.message || 'Failed to add subtask.', false);
+        }
+    };
+
+    saveSubtaskBtn.addEventListener('click', saveSubtask);
+    newSubtaskTitle.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') saveSubtask();
+        if (e.key === 'Escape') cancelSubtaskBtn.click();
+    });
+
+    assignToMe.addEventListener('click', async (e) => {
+        e.preventDefault();
+        // This would normally get the current user ID, but for now we can send a special value
+        // or just let the backend handle it if we send 'me'
+        const result = await postJson('UpdateField', { itemId: currentItemId, field: 'owner', value: 'me' });
+        if (result.success) {
+            sidebarAssignee.textContent = result.item.ownerName;
+            notify('Assigned to you.', true);
+            // Reload page to update table? or just update row
+            location.reload(); 
+        }
+    });
+
+    closeSidebarBtn.addEventListener('click', closeSidebar);
+
+    sidebar.addEventListener('click', (e) => {
+        if (e.target === sidebar) {
+            closeSidebar();
+        }
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !sidebar.classList.contains('d-none')) {
+            closeSidebar();
+        }
     });
     // ─────────────────────────────────────────────────────────────────────
 

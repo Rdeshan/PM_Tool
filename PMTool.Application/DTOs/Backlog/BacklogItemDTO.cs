@@ -5,6 +5,7 @@ public class BacklogItemDTO
     public Guid Id { get; set; }
     public Guid ProjectId { get; set; }
     public Guid? ProductId { get; set; }
+    public Guid? SubProjectId { get; set; }
     public Guid? ParentBacklogItemId { get; set; }
     public Guid? OwnerId { get; set; }
     public string? OwnerName { get; set; }
@@ -19,4 +20,7 @@ public class BacklogItemDTO
     public DateTime? DueDate { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    public int? StoryPoints { get; set; }
+    public string? ParentBacklogItemTitle { get; set; }
+    public List<BacklogSubtaskDto> Subtasks { get; set; } = new();
 }

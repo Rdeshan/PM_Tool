@@ -18,6 +18,8 @@ public class AppDbContext : DbContext
     public DbSet<Project> Projects { get; set; } = null!;
     public DbSet<ProjectBacklog> ProjectBacklogs { get; set; } = null!;
     public DbSet<ProductBacklog> ProductBacklogs { get; set; } = null!;
+    public DbSet<BacklogSubtask> BacklogSubtasks { get; set; } = null!;
+    public DbSet<BacklogItemComment> BacklogItemComments { get; set; } = null!;
     public DbSet<ProjectDocument> ProjectDocuments { get; set; } = null!;
     public DbSet<Product> Products { get; set; } = null!;
     public DbSet<ReleaseNotes> ReleaseNotes { get; set; } = null!;
@@ -367,6 +369,55 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(pb => pb.OwnerId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        // BacklogSubtask configuration
+        modelBuilder.Entity<BacklogSubtask>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Title)
+                .IsRequired()
+                .HasMaxLength(300);
+
+            entity.HasOne(s => s.ProjectBacklog)
+                .WithMany(pb => pb.Subtasks)
+                .HasForeignKey(s => s.ProjectBacklogId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(s => s.ProductBacklog)
+                .WithMany(pb => pb.Subtasks)
+                .HasForeignKey(s => s.ProductBacklogId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(s => s.Assignee)
+                .WithMany()
+                .HasForeignKey(s => s.AssigneeId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<BacklogItemComment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Body)
+                .IsRequired()
+                .HasMaxLength(2000);
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasIndex(e => new { e.BacklogItemId, e.CreatedAt });
+
+            entity.HasOne(e => e.BacklogItem)
+                .WithMany(e => e.Comments)
+                .HasForeignKey(e => e.BacklogItemId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Author)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // ReleaseNotes configuration

@@ -434,6 +434,9 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.SignalR;
 using PMTool.Web.Hubs;
 using PMTool.Application.DTOs.User;
+using Microsoft.EntityFrameworkCore;
+using PMTool.Domain.Entities;
+using PMTool.Infrastructure.Data;
 
 namespace PMTool.Web.Pages.Products;
 
@@ -451,6 +454,7 @@ public class BacklogModel : PageModel
     private readonly IBoardColumnService _boardColumnService;
     private readonly INotificationService _notificationService;
     private readonly IHubContext<NotificationsHub> _notificationsHub;
+    private readonly AppDbContext _db;
 
     public BacklogModel(
         IProjectService projectService,
@@ -462,7 +466,8 @@ public class BacklogModel : PageModel
         IWorkTypeService workTypeService,
         IBoardColumnService boardColumnService,
         INotificationService notificationService,
-        IHubContext<NotificationsHub> notificationsHub)
+        IHubContext<NotificationsHub> notificationsHub,
+        AppDbContext db)
     {
         _projectService = projectService;
         _productService = productService;
@@ -474,6 +479,7 @@ public class BacklogModel : PageModel
         _boardColumnService = boardColumnService;
         _notificationService = notificationService;
         _notificationsHub = notificationsHub;
+        _db = db;
     }
 
     // ── Page Properties ───────────────────────────────────────────────────────
@@ -495,6 +501,7 @@ public class BacklogModel : PageModel
     public List<SubProjectDTO> ProductSubProjects { get; set; } = new();
     public List<SprintDTO> Sprints { get; set; } = new();
     public List<BoardColumnDTO> CustomBoardColumns { get; set; } = new();
+    public Dictionary<Guid, List<BacklogSubtaskDto>> SubtasksByItem { get; set; } = new();
 
     // Status counts — 1=To do, 2=In progress, 3=In review, 4=Done
     public int TodoCount      => BacklogItems.Count(x => x.Status == 1);
@@ -531,6 +538,7 @@ public class BacklogModel : PageModel
         ProductName = product.VersionName;
 
         BacklogItems = await _productBacklogService.GetBacklogItemsAsync(ProductId, null);
+        SubtasksByItem = BacklogItems.ToDictionary(x => x.Id, x => x.Subtasks);
         ItemTypes = _productBacklogService.GetBacklogItemTypes();
         var customWorkTypes = await _workTypeService.GetCustomWorkTypesAsync();
         WorkTypes = BuildWorkTypes(customWorkTypes);
@@ -746,6 +754,38 @@ public class BacklogModel : PageModel
             ItemId = itemId,
             Field  = "title",
             Value  = title
+        };
+
+        var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
+        return new JsonResult(new { success = result != null });
+    }
+
+    public async Task<IActionResult> OnPostUpdateDescriptionAsync(Guid itemId, string description)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var request = new UpdateProductBacklogFieldRequest
+        {
+            ItemId = itemId,
+            Field = "description",
+            Value = description ?? string.Empty
+        };
+
+        var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
+        return new JsonResult(new { success = result != null });
+    }
+
+    public async Task<IActionResult> OnPostUpdateStartDateAsync(Guid itemId, string startDate)
+    {
+        SetPermissions();
+        if (!CanEditBacklog) return Forbid();
+
+        var request = new UpdateProductBacklogFieldRequest
+        {
+            ItemId = itemId,
+            Field = "startdate",
+            Value = startDate ?? string.Empty
         };
 
         var result = await _productBacklogService.UpdateBacklogFieldAsync(request);
@@ -1103,6 +1143,82 @@ public class BacklogModel : PageModel
         _ => "To do"
     };
 
+    private JsonResult BadJson(string message) =>
+        new(new { success = false, message }) { StatusCode = 400 };
+
+    private Guid? GetCurrentUserId()
+    {
+        var id = User.FindFirstValue(ClaimTypes.NameIdentifier);
+        return Guid.TryParse(id, out var userId) ? userId : null;
+    }
+
+    private async Task<bool> BacklogItemBelongsToRouteAsync(Guid itemId)
+    {
+        var item = await _db.ProductBacklogs
+            .Include(x => x.Product)
+            .FirstOrDefaultAsync(x => x.Id == itemId);
+
+        return BacklogItemMatchesRoute(item);
+    }
+
+    private bool BacklogItemMatchesRoute(ProductBacklog? item)
+    {
+        if (item == null)
+        {
+            return false;
+        }
+
+        return item.ProductId == ProductId
+            && (ProjectId == Guid.Empty || item.Product?.ProjectId == ProjectId);
+    }
+
+    private async Task<bool> SubtaskBelongsToRouteAsync(Guid subtaskId)
+    {
+        return await _db.BacklogSubtasks
+            .Include(s => s.ProductBacklog)
+            .ThenInclude(p => p!.Product)
+            .AnyAsync(s => s.Id == subtaskId
+                && s.ProductBacklog != null
+                && s.ProductBacklog.ProductId == ProductId
+                && (ProjectId == Guid.Empty || s.ProductBacklog.Product!.ProjectId == ProjectId));
+    }
+
+    private static object MapComment(BacklogItemComment comment, Guid currentUserId)
+    {
+        var authorName = GetUserName(comment.Author);
+        return new
+        {
+            id = comment.Id,
+            authorName,
+            authorInitials = GetInitials(authorName),
+            body = comment.Body,
+            createdAt = comment.CreatedAt,
+            isOwn = comment.AuthorId == currentUserId
+        };
+    }
+
+    private static string GetUserName(User? user)
+    {
+        if (user == null)
+        {
+            return "Unknown user";
+        }
+
+        var fullName = $"{user.FirstName} {user.LastName}".Trim();
+        return !string.IsNullOrWhiteSpace(user.DisplayName)
+            ? user.DisplayName
+            : string.IsNullOrWhiteSpace(fullName) ? user.Email : fullName;
+    }
+
+    private static string GetInitials(string name)
+    {
+        if (string.IsNullOrWhiteSpace(name)) return "?";
+        var parts = name.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length >= 2
+            ? $"{parts[0][0]}{parts[^1][0]}".ToUpperInvariant()
+            : name[..Math.Min(2, name.Length)].ToUpperInvariant();
+    }
+
     private static List<WorkTypeOptionDTO> BuildWorkTypes(IEnumerable<WorkTypeDTO> customTypes)
     {
         var workTypes = new List<WorkTypeOptionDTO>
@@ -1123,5 +1239,32 @@ public class BacklogModel : PageModel
         }));
 
         return workTypes;
+    }
+
+    public class UpdateSubtaskStatusRequest
+    {
+        public Guid SubtaskId { get; set; }
+        public int Status { get; set; }
+    }
+
+    public class UpdateSubtaskRequest
+    {
+        public Guid SubtaskId { get; set; }
+        public string Title { get; set; } = string.Empty;
+        public int Priority { get; set; }
+        public Guid? AssigneeId { get; set; }
+        public int Status { get; set; }
+    }
+
+    public class AddCommentRequest
+    {
+        public Guid ItemId { get; set; }
+        public string Body { get; set; } = string.Empty;
+    }
+
+    public class UpdateCommentRequest
+    {
+        public Guid CommentId { get; set; }
+        public string Body { get; set; } = string.Empty;
     }
 }

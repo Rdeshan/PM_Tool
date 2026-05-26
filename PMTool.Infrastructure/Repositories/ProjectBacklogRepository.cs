@@ -18,6 +18,8 @@ public class ProjectBacklogRepository : IProjectBacklogRepository
     {
         return await _context.ProjectBacklogs
             .Include(x => x.Owner)
+            .Include(x => x.ParentBacklogItem)
+            .Include(x => x.Subtasks).ThenInclude(s => s.Assignee)
             .FirstOrDefaultAsync(x => x.Id == id);
     }
 
@@ -25,6 +27,8 @@ public class ProjectBacklogRepository : IProjectBacklogRepository
     {
         var query = _context.ProjectBacklogs
             .Include(x => x.Owner)
+            .Include(x => x.ParentBacklogItem)
+            .Include(x => x.Subtasks).ThenInclude(s => s.Assignee)
             .Where(x => x.ProjectId == projectId);
 
         if (productId.HasValue)

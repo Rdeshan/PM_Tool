@@ -6,13 +6,36 @@
     ViewData["Title"] = "Product Summary";
 }
 
+@functions {
+    private static readonly JsonSerializerOptions SafeJsonOptions = new()
+    {
+        PropertyNamingPolicy = JsonNamingPolicy.CamelCase
+    };
+
+    private static string SafeJson(object value)
+    {
+        return JsonSerializer.Serialize(value, SafeJsonOptions)
+            .Replace("\u2028", "\\u2028")
+            .Replace("\u2029", "\\u2029");
+    }
+}
+
 <style>
     .summary-card { border: 1px solid #e6e8ec; border-radius: 12px; box-shadow: 0 6px 16px rgba(9, 30, 66, 0.06); }
     .summary-card .card-header { background: #fff; border-bottom: 1px solid #edf0f3; font-weight: 600; color: #172b4d; }
-    .summary-chart { height: 280px; }
+    .summary-chart { display: block; width: 100%; height: 280px; }
     .milestone-list { display: flex; flex-direction: column; gap: 12px; }
     .milestone-title { font-size: 13px; font-weight: 600; color: #172b4d; }
     .milestone-meta { font-size: 11px; color: #6b778c; }
+    .summary-table { font-size: 12px; }
+    .summary-table thead th { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: #6b778c; }
+    .tag { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 600; }
+    .tag-danger { background: #ffebe6; color: #bf2600; }
+    .tag-muted { background: #f1f2f4; color: #42526e; }
+    .matrix-cell { width: 32px; height: 32px; text-align: center; vertical-align: middle; }
+    .matrix-cell.dep { background: #deebff; color: #0747a6; font-weight: 700; }
+    .matrix-cell.blocked { background: #ffebe6; color: #bf2600; font-weight: 700; }
+    .matrix-label { max-width: 160px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 </style>
 
 <div class="container-fluid mt-3">
@@ -53,6 +76,14 @@
     </div>
 
     <div class="row g-4">
+        <div class="col-lg-4">
+            <div class="card summary-card h-100">
+                <div class="card-header">Ticket status distribution</div>
+                <div class="card-body">
+                    <canvas id="statusChart" class="summary-chart"></canvas>
+                </div>
+            </div>
+        </div>
 
         <div class="col-lg-4">
             <div class="card summary-card h-100">
@@ -63,7 +94,7 @@
             </div>
         </div>
 
-        <div class="col-lg-8">
+        <div class="col-lg-4">
             <div class="card summary-card h-100">
                 <div class="card-header">Team workload (@Model.WorkloadUnit)</div>
                 <div class="card-body">
@@ -116,21 +147,143 @@
                 </div>
             </div>
         </div>
+    </div>
+</div>
 
+<div class="container-fluid mt-4">
+    <div class="row g-4">
+        <div class="col-lg-12">
+            <div class="card summary-card">
+                <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>
+                        Requirements Traceability Matrix (RTM)
+                        <span class="badge bg-light text-dark ms-2" id="rtmCount"></span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <select class="form-select form-select-sm" id="rtmSubProjectFilter" style="min-width:200px;">
+                            <option value="">All sub-projects</option>
+                        </select>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="rtmExportExcel">
+                            <i class="bi bi-filetype-xlsx"></i> Export Excel
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="rtmExportPdf">
+                            <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm summary-table" id="rtmTable">
+                            <thead>
+                                <tr>
+                                    <th>Requirement ID</th>
+                                    <th>Requirement Description</th>
+                                    <th>Use Case #</th>
+                                    <th>User Story</th>
+                                    <th>Linked Ticket(s)</th>
+                                    <th>Ticket Status</th>
+                                    <th>Test Case #</th>
+                                    <th>Test Status</th>
+                                    <th>Coverage</th>
+                                </tr>
+                            </thead>
+                            <tbody id="rtmBody"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-12">
+            <div class="card summary-card">
+                <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
+                    <div>Dependency Matrix</div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <select class="form-select form-select-sm" id="depSubProjectFilter" style="min-width:180px;">
+                            <option value="">All sub-projects</option>
+                        </select>
+                        <select class="form-select form-select-sm" id="depTeamFilter" style="min-width:160px;">
+                            <option value="">All teams</option>
+                        </select>
+                        <select class="form-select form-select-sm" id="depSprintFilter" style="min-width:160px;">
+                            <option value="">All sprints</option>
+                        </select>
+                        <button type="button" class="btn btn-sm btn-outline-primary" id="depExportExcel">
+                            <i class="bi bi-filetype-xlsx"></i> Export Excel
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="depExportPdf">
+                            <i class="bi bi-file-earmark-pdf"></i> Export PDF
+                        </button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <ul class="nav nav-tabs" id="depTabs" role="tablist">
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link active" id="ticket-deps-tab" data-bs-toggle="tab" data-bs-target="#ticketDeps" type="button" role="tab">Ticket Dependencies</button>
+                        </li>
+                        <li class="nav-item" role="presentation">
+                            <button class="nav-link" id="subproject-deps-tab" data-bs-toggle="tab" data-bs-target="#subprojectDeps" type="button" role="tab">Sub-Project Dependencies</button>
+                        </li>
+                    </ul>
+                    <div class="tab-content pt-3">
+                        <div class="tab-pane fade show active" id="ticketDeps" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-sm summary-table" id="ticketMatrix"></table>
+                            </div>
+                        </div>
+                        <div class="tab-pane fade" id="subprojectDeps" role="tabpanel">
+                            <div class="table-responsive">
+                                <table class="table table-sm summary-table" id="subprojectMatrix"></table>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-muted small mt-2" id="matrixHint"></div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
-    const categoryData = @Html.Raw(JsonSerializer.Serialize(Model.CategoryBreakdown, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
-    const workloadData = @Html.Raw(JsonSerializer.Serialize(Model.TeamWorkload,      new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
-    const bugTrendData = @Html.Raw(JsonSerializer.Serialize(Model.BugTrend,          new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+    const statusData = @Html.Raw(SafeJson(Model.StatusDistribution));
+    const categoryData = @Html.Raw(SafeJson(Model.CategoryBreakdown));
+    const workloadData = @Html.Raw(SafeJson(Model.TeamWorkload));
+    const bugTrendData = @Html.Raw(SafeJson(Model.BugTrend));
+    const rtmRows = @Html.Raw(SafeJson(Model.RtmRows));
+    const subProjects = @Html.Raw(SafeJson(Model.SubProjects));
+    const teamOptions = @Html.Raw(SafeJson(Model.TeamOptions));
+    const sprints = @Html.Raw(SafeJson(Model.Sprints));
+    const ticketDeps = @Html.Raw(SafeJson(Model.TicketDependencies));
+    const subProjectDeps = @Html.Raw(SafeJson(Model.SubProjectDependencies));
+
+    document.addEventListener('DOMContentLoaded', () => {
 
     // ── Category chart (vertical bars) ───────────────────────────────────────
     // backgroundColor: array = one colour per bar
     // barPercentage + categoryPercentage control column width
+    const statusCtx = document.getElementById('statusChart');
+    if (statusCtx && window.Chart) {
+        new Chart(statusCtx, {
+            type: 'doughnut',
+            data: {
+                labels: statusData.labels,
+                datasets: [{
+                    data: statusData.values,
+                    backgroundColor: ['#dfe1e6', '#deebff', '#fff0b3', '#e3fcef'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { position: 'bottom' } }
+            }
+        });
+    }
+
     const categoryCtx = document.getElementById('categoryChart');
-    if (categoryCtx) {
+    if (categoryCtx && window.Chart) {
         const categoryColors      = ['#F09595', '#85B7EB', '#AFA9EC', '#9FE1CB', '#D3D1C7'];
         const categoryHoverColors = ['#e07070', '#5a9fd4', '#8f87d4', '#6fcfad', '#b0aea6'];
 
@@ -162,7 +315,7 @@
 
     // ── Workload chart (horizontal bars) ─────────────────────────────────────
     const workloadCtx = document.getElementById('workloadChart');
-    if (workloadCtx) {
+    if (workloadCtx && window.Chart) {
         new Chart(workloadCtx, {
             type: 'bar',
             data: {
@@ -246,10 +399,207 @@
         });
     }
 
-    if (bugTrendCtx) {
+    if (bugTrendCtx && window.Chart) {
         updateBugTrend(document.getElementById('bugTrendRange').value);
         document.getElementById('bugTrendRange').addEventListener('change', function () {
             updateBugTrend(this.value);
         });
     }
+
+    // ── RTM ───────────────────────────────────────────────────────────────
+    const rtmBody = document.getElementById('rtmBody');
+    const rtmCount = document.getElementById('rtmCount');
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+    }
+
+    function renderRtmTable(subProjectId) {
+        if (!rtmBody) return;
+        const rows = rtmRows.filter(r => !subProjectId || r.subProjectId === subProjectId);
+        rtmBody.innerHTML = rows.map(r => {
+            const coverage = r.missingTicket
+                ? '<span class="tag tag-danger">Missing ticket</span>'
+                : r.missingRequirement
+                    ? '<span class="tag tag-danger">Missing requirement</span>'
+                    : '<span class="tag tag-muted">Covered</span>';
+
+            return `<tr>
+                <td>${escapeHtml(r.requirementId)}</td>
+                <td>${escapeHtml(r.requirementDescription)}</td>
+                <td>${escapeHtml(r.useCaseNumber)}</td>
+                <td>${escapeHtml(r.userStory)}</td>
+                <td>${escapeHtml(r.linkedTickets)}</td>
+                <td>${escapeHtml(r.ticketStatus)}</td>
+                <td>${escapeHtml(r.testCaseNumber)}</td>
+                <td>${escapeHtml(r.testStatus)}</td>
+                <td>${coverage}</td>
+            </tr>`;
+        }).join('');
+        if (rtmCount) {
+            rtmCount.textContent = `${rows.length} rows`;
+        }
+    }
+
+    const rtmFilter = document.getElementById('rtmSubProjectFilter');
+    if (rtmFilter) {
+        subProjects.forEach(sp => {
+            const opt = document.createElement('option');
+            opt.value = sp.id;
+            opt.textContent = sp.name;
+            rtmFilter.appendChild(opt);
+        });
+        rtmFilter.addEventListener('change', () => renderRtmTable(rtmFilter.value || null));
+        renderRtmTable(null);
+    }
+
+    document.getElementById('rtmExportExcel')?.addEventListener('click', () => exportTableToCsv('rtmTable', 'rtm.xlsx'));
+    document.getElementById('rtmExportPdf')?.addEventListener('click', () => exportTableToPdf('rtmTable', 'Requirements Traceability Matrix'));
+
+    // ── Dependency Matrix ───────────────────────────────────────────────
+    const depSubProjectFilter = document.getElementById('depSubProjectFilter');
+    const depTeamFilter = document.getElementById('depTeamFilter');
+    const depSprintFilter = document.getElementById('depSprintFilter');
+    const ticketMatrix = document.getElementById('ticketMatrix');
+    const subProjectMatrix = document.getElementById('subprojectMatrix');
+    const matrixHint = document.getElementById('matrixHint');
+
+    if (depSubProjectFilter) {
+        subProjects.forEach(sp => {
+            const opt = document.createElement('option');
+            opt.value = sp.id;
+            opt.textContent = sp.name;
+            depSubProjectFilter.appendChild(opt);
+        });
+    }
+
+    if (depTeamFilter) {
+        teamOptions.forEach(team => {
+            const opt = document.createElement('option');
+            opt.value = team.teamId;
+            opt.textContent = team.teamName;
+            depTeamFilter.appendChild(opt);
+        });
+    }
+
+    if (depSprintFilter) {
+        sprints.forEach(sp => {
+            const opt = document.createElement('option');
+            opt.value = sp.id;
+            opt.textContent = sp.name;
+            depSprintFilter.appendChild(opt);
+        });
+    }
+
+    function filterTickets() {
+        const subProjectId = depSubProjectFilter?.value || '';
+        const teamId = depTeamFilter?.value || '';
+        const sprintId = depSprintFilter?.value || '';
+
+        return ticketDeps.filter(item => {
+            if (subProjectId && item.subProjectId !== subProjectId) return false;
+            if (sprintId && item.sprintId !== sprintId) return false;
+            if (teamId && !item.teamIds.includes(teamId)) return false;
+            return true;
+        });
+    }
+
+    function renderTicketMatrix() {
+        if (!ticketMatrix) return;
+        const items = filterTickets();
+        const limited = items.slice(0, 10);
+        const header = `<thead><tr><th></th>${limited.map(i => `<th class="matrix-label" title="${escapeHtml(i.title)}">${escapeHtml(i.shortId)}</th>`).join('')}</tr></thead>`;
+
+        const body = limited.map(row => {
+            const cells = limited.map(col => {
+                if (row.id === col.id) return '<td class="matrix-cell">—</td>';
+                if (row.parentId === col.id) {
+                    const blocked = col.status !== 4 ? 'blocked' : 'dep';
+                    return `<td class="matrix-cell ${blocked}">●</td>`;
+                }
+                return '<td class="matrix-cell"></td>';
+            }).join('');
+
+            return `<tr><th class="matrix-label" title="${escapeHtml(row.title)}">${escapeHtml(row.shortId)}</th>${cells}</tr>`;
+        }).join('');
+
+        ticketMatrix.innerHTML = header + `<tbody>${body}</tbody>`;
+        if (matrixHint) {
+            matrixHint.textContent = items.length > 10 ? 'Showing first 10 tickets. Refine filters to narrow the matrix.' : '';
+        }
+    }
+
+    function renderSubProjectMatrix() {
+        if (!subProjectMatrix) return;
+        const limited = subProjectDeps.slice(0, 10);
+        const header = `<thead><tr><th></th>${limited.map(i => `<th class="matrix-label" title="${escapeHtml(i.name)}">${escapeHtml(i.name)}</th>`).join('')}</tr></thead>`;
+        const body = limited.map(row => {
+            const cells = limited.map(col => {
+                if (row.id === col.id) return '<td class="matrix-cell">—</td>';
+                if (row.dependsOnIds.includes(col.id)) {
+                    return '<td class="matrix-cell dep">●</td>';
+                }
+                return '<td class="matrix-cell"></td>';
+            }).join('');
+
+            return `<tr><th class="matrix-label" title="${escapeHtml(row.name)}">${escapeHtml(row.name)}</th>${cells}</tr>`;
+        }).join('');
+
+        subProjectMatrix.innerHTML = header + `<tbody>${body}</tbody>`;
+    }
+
+    depSubProjectFilter?.addEventListener('change', renderTicketMatrix);
+    depTeamFilter?.addEventListener('change', renderTicketMatrix);
+    depSprintFilter?.addEventListener('change', renderTicketMatrix);
+
+    renderTicketMatrix();
+    renderSubProjectMatrix();
+
+    document.getElementById('depExportExcel')?.addEventListener('click', () => {
+        const activeTable = document.querySelector('.tab-pane.active table')?.id;
+        if (activeTable) exportTableToCsv(activeTable, 'dependency-matrix.xlsx');
+    });
+
+    document.getElementById('depExportPdf')?.addEventListener('click', () => {
+        const activeTable = document.querySelector('.tab-pane.active table')?.id;
+        if (activeTable) exportTableToPdf(activeTable, 'Dependency Matrix');
+    });
+
+    function exportTableToCsv(tableId, fileName) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        const rows = [...table.querySelectorAll('tr')];
+        const csv = rows.map(row => [...row.querySelectorAll('th,td')]
+            .map(cell => `"${cell.textContent.replace(/"/g, '""')}"`)
+            .join(','))
+            .join('\n');
+
+        const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = fileName.replace('.xlsx', '.csv');
+        link.click();
+    }
+
+    function exportTableToPdf(tableId, title) {
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        const win = window.open('', '_blank');
+        if (!win) return;
+        win.document.write(`<html><head><title>${title}</title>` +
+            '<style>body{font-family:Segoe UI, sans-serif;}table{width:100%;border-collapse:collapse;}th,td{border:1px solid #ddd;padding:6px;font-size:11px;}th{background:#f4f5f7;}</style>' +
+            '</head><body>');
+        win.document.write(`<h3>${title}</h3>`);
+        win.document.write(table.outerHTML);
+        win.document.write('</bo' + 'dy></ht' + 'ml>');
+        win.document.close();
+        win.focus();
+        win.print();
+    }
+    });
 </script>

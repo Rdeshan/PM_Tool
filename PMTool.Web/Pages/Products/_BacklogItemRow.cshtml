@@ -53,9 +53,36 @@
     var currentWorkType = workTypes.FirstOrDefault(x => x.Value == item.Type);
     var currentWorkIcon = currentWorkType?.IconClass ?? "bi bi-tag";
     var currentWorkName = currentWorkType?.Name ?? "Work Item";
+    var priorityLabel = item.Priority switch {
+        1 => "Highest",
+        2 => "High",
+        3 => "Medium",
+        4 => "Low",
+        _ => "Medium"
+    };
+    var subtasksByItem = ViewData["SubtasksByItem"] as Dictionary<Guid, List<BacklogSubtaskDto>>;
+    var itemSubtasks = subtasksByItem != null && subtasksByItem.TryGetValue(item.Id, out var fromDictionary)
+        ? fromDictionary
+        : item.Subtasks;
 }
 
-<tr id="row-@item.Id" data-item-id="@item.Id" data-status="@item.Status">
+<tr id="row-@item.Id"
+    data-item-id="@item.Id"
+    data-item-title="@item.Title"
+    data-item-key="@shortId"
+    data-item-description="@item.Description"
+    data-item-status="@item.Status"
+    data-item-status-label="@statusLabel"
+    data-item-assignee="@(item.OwnerName ?? "Unassigned")"
+    data-item-assignee-id="@(item.OwnerId?.ToString() ?? "")"
+    data-item-priority="@item.Priority"
+    data-item-priority-label="@priorityLabel"
+    data-item-work-type="@currentWorkName"
+    data-item-due-date="@(item.DueDate?.ToString("yyyy-MM-dd") ?? "")"
+    data-item-start-date="@(item.StartDate?.ToString("yyyy-MM-dd") ?? "")"
+    data-item-story-points="@item.StoryPoints"
+    data-item-created-at="@item.CreatedAt.ToString("yyyy-MM-ddTHH:mm:ssZ")"
+    data-status="@item.Status">
     <td><input type="checkbox" value="@item.Id" /></td>
     <td>
         <!-- Type icon with dropdown -->

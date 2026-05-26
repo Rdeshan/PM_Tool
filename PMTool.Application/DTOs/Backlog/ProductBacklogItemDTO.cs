@@ -24,4 +24,6 @@ public class ProductBacklogItemDTO
     public Guid? SprintId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+
+    public List<BacklogSubtaskDto> Subtasks { get; set; } = new();
 }

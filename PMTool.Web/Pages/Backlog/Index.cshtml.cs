@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -207,18 +208,34 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostUpdateFieldAsync([FromBody] UpdateBacklogFieldRequest request)
     {
-        if (request.ItemId == Guid.Empty || string.IsNullOrWhiteSpace(request.Field))
+        try
         {
-            return new JsonResult(new { success = false, message = "Invalid update request." });
-        }
+            if (request.ItemId == Guid.Empty || string.IsNullOrWhiteSpace(request.Field))
+            {
+                return new JsonResult(new { success = false, message = "Invalid update request." });
+            }
 
-        var updated = await _backlogService.UpdateBacklogFieldAsync(request);
-        if (updated == null)
+            if (request.Field.Equals("owner", StringComparison.OrdinalIgnoreCase) && request.Value == "me")
+            {
+                var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier);
+                if (userIdClaim != null)
+                {
+                    request.Value = userIdClaim.Value;
+                }
+            }
+
+            var updated = await _backlogService.UpdateBacklogFieldAsync(request);
+            if (updated == null)
+            {
+                return new JsonResult(new { success = false, message = "Failed to update item." });
+            }
+
+            return new JsonResult(new { success = true, item = updated, message = "Field updated." });
+        }
+        catch (Exception ex)
         {
-            return new JsonResult(new { success = false, message = "Failed to update item." });
+            return new JsonResult(new { success = false, message = "Error: " + ex.Message });
         }
-
-        return new JsonResult(new { success = true, item = updated, message = "Issue updated." });
     }
 
     public async Task<IActionResult> OnPostReorderAsync([FromBody] ReorderRequest request)
@@ -284,6 +301,55 @@ public class IndexModel : PageModel
         {
             success = true,
             message = $"Deleted {deletedCount} item(s)."
+        });
+    }
+
+    public async Task<IActionResult> OnGetItemAsync(Guid id)
+    {
+        var item = await _backlogService.GetBacklogItemAsync(id);
+        if (item == null)
+        {
+            return new JsonResult(new { success = false, message = "Item not found." });
+        }
+
+        return new JsonResult(new { success = true, item });
+    }
+
+    public async Task<IActionResult> OnPostSubtaskAsync([FromBody] CreateBacklogSubtaskDto request)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(request.Title))
+            {
+                return new JsonResult(new { success = false, message = "Title is required." });
+            }
+
+            var subtask = await _backlogService.CreateSubtaskAsync(request.ParentId, request);
+            if (subtask == null)
+            {
+                return new JsonResult(new { success = false, message = "Failed to create subtask." });
+            }
+
+            return new JsonResult(new { success = true, subtask = subtask, message = "Subtask added." });
+        }
+        catch (Exception ex)
+        {
+            return new JsonResult(new { success = false, message = "Error: " + ex.Message });
+        }
+    }
+
+    public async Task<IActionResult> OnPostUpdateStatusAsync([FromBody] UpdateSubtaskStatusRequest request)
+    {
+        if (request.SubtaskId == Guid.Empty)
+        {
+            return new JsonResult(new { success = false, message = "Invalid subtask." });
+        }
+
+        var result = await _backlogService.UpdateSubtaskStatusAsync(request.SubtaskId, request.Status);
+        return new JsonResult(new
+        {
+            success = result,
+            message = result ? "Status updated." : "Failed to update status."
         });
     }
 
@@ -490,5 +556,11 @@ public class IndexModel : PageModel
     public class DeleteManyRequest
     {
         public List<Guid> ItemIds { get; set; } = new();
+    }
+
+    public class UpdateSubtaskStatusRequest
+    {
+        public Guid SubtaskId { get; set; }
+        public int Status { get; set; }
     }
 }
