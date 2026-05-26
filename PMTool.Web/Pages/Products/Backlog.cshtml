@@ -76,6 +76,12 @@
     .dd-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 3px; cursor: pointer; font-size: 12px; color: #172b4d; }
     .dd-item:hover { background: #f4f5f7; }
     .dd-item svg { width: 14px; height: 14px; flex-shrink: 0; }
+    .mention-wrap { position: relative; flex: 1; }
+    .mention-list { position: absolute; left: 0; right: 0; bottom: 36px; background: #fff; border: 1px solid #e0e0e0; border-radius: 4px; box-shadow: 0 6px 16px rgba(0,0,0,0.12); max-height: 220px; overflow-y: auto; z-index: 9999; display: none; }
+    .mention-list.open { display: block; }
+    .mention-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; font-size: 12px; cursor: pointer; color: #172b4d; }
+    .mention-item:hover { background: #f4f5f7; }
+    .mention-item .mention-hint { color: #6b778c; font-size: 11px; }
     .rel { position: relative; }
     .avatar-circle { width: 24px; height: 24px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; flex-shrink: 0; }
     .pts-val { font-size: 12px; cursor: pointer; border-bottom: 1px dashed #ccc; padding: 0 2px; color: #172b4d; }
@@ -631,7 +637,10 @@
         </div>
 
         <div class="sidebar-footer">
-            <input id="sidebarCommentInput" type="text" placeholder="Add a comment..." onkeydown="if(event.key==='Enter')addSidebarComment();" />
+            <div class="mention-wrap">
+                <input id="sidebarCommentInput" type="text" placeholder="Add a comment..." onkeydown="if(event.key==='Enter')addSidebarComment();" />
+                <div id="sidebarMentionList" class="mention-list"></div>
+            </div>
             <button type="button" onclick="addSidebarComment()">Comment</button>
         </div>
     </div>
@@ -724,7 +733,10 @@
         </div>
 
         <div class="sidebar-footer">
-            <input id="sidebarCommentInput" type="text" placeholder="Add a comment..." onkeydown="if(event.key==='Enter')addSidebarComment();" />
+            <div class="mention-wrap">
+                <input id="sidebarCommentInput" type="text" placeholder="Add a comment..." onkeydown="if(event.key==='Enter')addSidebarComment();" />
+                <div id="sidebarMentionList" class="mention-list"></div>
+            </div>
             <button type="button" onclick="addSidebarComment()">Comment</button>
         </div>
     </div>
@@ -1182,6 +1194,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     updateBacklogStats();
     updateDropPlaceholders();
+    initMentionPicker();
 });
 
 function updatePoints(container) {
@@ -1680,6 +1693,132 @@ function renderComments(comments) {
         </div>`).join('')}</div>`;
 }
 
+const mentionUsers = @Html.Raw(JsonSerializer.Serialize(
+    Model.ActiveUsers.Select(u => new
+    {
+        id = u.Id,
+        name = string.IsNullOrWhiteSpace(u.DisplayName)
+            ? (string.IsNullOrWhiteSpace($"{u.FirstName} {u.LastName}".Trim()) ? u.Email : $"{u.FirstName} {u.LastName}".Trim())
+            : u.DisplayName
+    }),
+    new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }));
+
+let mentionAnchorIndex = -1;
+
+function escapeRegex(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function toggleMentionList(open) {
+    const list = document.getElementById('sidebarMentionList');
+    if (!list) return;
+    list.classList.toggle('open', open);
+}
+
+function getMentionQuery(input) {
+    const cursor = input.selectionStart ?? input.value.length;
+    const text = input.value.slice(0, cursor);
+    const atIndex = text.lastIndexOf('@@');
+    if (atIndex < 0) return null;
+
+    const fragment = text.slice(atIndex + 1);
+    if (fragment.includes(' ') || fragment.includes('\n')) return null;
+
+    mentionAnchorIndex = atIndex;
+    return fragment;
+}
+
+function buildMentionList(query) {
+    const list = document.getElementById('sidebarMentionList');
+    if (!list) return;
+    list.innerHTML = '';
+
+    const normalized = query.toLowerCase();
+    const allowAll = normalized.length === 0 || 'all'.startsWith(normalized);
+    if (allowAll) {
+        const item = document.createElement('div');
+        item.className = 'mention-item';
+        item.dataset.mentionValue = 'All';
+        item.innerHTML = '<strong>@@All</strong><span class="mention-hint">Notify everyone</span>';
+        list.appendChild(item);
+    }
+
+    mentionUsers
+        .filter(u => u.name.toLowerCase().includes(normalized))
+        .slice(0, 12)
+        .forEach(u => {
+            const item = document.createElement('div');
+            item.className = 'mention-item';
+            item.dataset.mentionValue = u.name;
+            item.dataset.mentionId = u.id;
+            item.textContent = `@@${u.name}`;
+            list.appendChild(item);
+        });
+
+    toggleMentionList(list.children.length > 0);
+}
+
+function applyMentionSelection(input, name) {
+    const cursor = input.selectionStart ?? input.value.length;
+    if (mentionAnchorIndex < 0) return;
+    const before = input.value.slice(0, mentionAnchorIndex);
+    const after = input.value.slice(cursor);
+    const insert = `@@${name} `;
+    input.value = `${before}${insert}${after}`;
+    const newCursor = before.length + insert.length;
+    input.setSelectionRange(newCursor, newCursor);
+    mentionAnchorIndex = -1;
+    toggleMentionList(false);
+    input.focus();
+}
+
+function initMentionPicker() {
+    const input = document.getElementById('sidebarCommentInput');
+    const list = document.getElementById('sidebarMentionList');
+    if (!input || !list) return;
+
+    input.addEventListener('input', () => {
+        const query = getMentionQuery(input);
+        if (query === null) {
+            toggleMentionList(false);
+            return;
+        }
+        buildMentionList(query);
+    });
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            toggleMentionList(false);
+        }
+    });
+
+    list.addEventListener('mousedown', (e) => {
+        const item = e.target.closest('.mention-item');
+        if (!item) return;
+        e.preventDefault();
+        applyMentionSelection(input, item.dataset.mentionValue || item.textContent.replace('@@', '').trim());
+    });
+
+    document.addEventListener('click', (e) => {
+        if (e.target === input || list.contains(e.target)) return;
+        toggleMentionList(false);
+    });
+}
+
+function getMentionPayload(body) {
+    const userIds = new Set();
+    let mentionAll = /(^|\s)@@all(?=\s|$|[.,!?])/i.test(body);
+
+    mentionUsers.forEach(u => {
+        const regex = new RegExp(`(^|\\s)@@${escapeRegex(u.name)}(?=\\s|$|[.,!?])`, 'i');
+        if (regex.test(body)) {
+            userIds.add(u.id);
+        }
+    });
+
+    return { mentionAll, mentionUserIds: Array.from(userIds) };
+}
+
 async function addSidebarComment() {
     if (!currentBacklogId) return;
 
@@ -1687,13 +1826,20 @@ async function addSidebarComment() {
     const body = input.value.trim();
     if (!body) return;
 
+    const mentionPayload = getMentionPayload(body);
+
     const resp = await fetch('?handler=AddComment', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'RequestVerificationToken': getToken()
         },
-        body: JSON.stringify({ itemId: currentBacklogId, body })
+        body: JSON.stringify({
+            itemId: currentBacklogId,
+            body,
+            mentionUserIds: mentionPayload.mentionUserIds,
+            mentionAll: mentionPayload.mentionAll
+        })
     });
     const result = await resp.json().catch(() => ({ success: false }));
     if (!result.success) {
@@ -1703,6 +1849,7 @@ async function addSidebarComment() {
 
     currentSidebarComments.push(result.comment);
     input.value = '';
+    toggleMentionList(false);
     setSidebarTab('comments');
 }
 

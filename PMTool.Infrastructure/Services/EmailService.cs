@@ -171,6 +171,40 @@ public class EmailService : IEmailService
         }
     }
 
+    public async Task<bool> SendMentionNotificationAsync(string email, string senderName, string itemTitle, string commentBody, string? link)
+    {
+        try
+        {
+            if (!_emailSettings.IsEnabled)
+            {
+                _logger.LogInformation("Email service is disabled. Mention notification for {Email}", email);
+                return true;
+            }
+
+            var safeSender = string.IsNullOrWhiteSpace(senderName) ? "Someone" : senderName;
+            var safeTitle = string.IsNullOrWhiteSpace(itemTitle) ? "a backlog item" : itemTitle;
+            var subject = $"You were mentioned in PMTool: {safeTitle}";
+            var linkMarkup = string.IsNullOrWhiteSpace(link) ? string.Empty : $"<p><a href='{link}'>Open in PMTool</a></p>";
+            var body = $@"
+                <h2>You were mentioned</h2>
+                <p>{safeSender} mentioned you in a comment on <strong>{safeTitle}</strong>.</p>
+                <blockquote style='margin:12px 0;padding-left:12px;border-left:3px solid #e0e0e0;'>
+                    {System.Net.WebUtility.HtmlEncode(commentBody)}
+                </blockquote>
+                {linkMarkup}
+                <hr/>
+                <p><small>This is an automated message. Please do not reply to this email.</small></p>
+            ";
+
+            return await SendEmailAsync(email, subject, body);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error sending mention notification to {Email}", email);
+            return false;
+        }
+    }
+
     private async Task<bool> SendEmailAsync(string recipientEmail, string subject, string htmlBody)
     {
         try
