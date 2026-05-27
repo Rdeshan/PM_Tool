@@ -98,6 +98,9 @@ else
         color: var(--pm-muted);
         font-size: .75rem;
         text-decoration: none;
+        background: none;
+        padding: 0;
+        cursor: pointer;
         transition: border-color .15s, color .15s;
     }
     .stat-card.dark .arrow-btn { border-color: rgba(255,255,255,.3); color: rgba(255,255,255,.7); }
@@ -337,7 +340,7 @@ else
             <div class="stat-card dark">
                 <div class="d-flex justify-content-between align-items-start">
                     <span class="stat-label">Total Projects</span>
-                    <a href="#" class="arrow-btn"><i class="bi bi-arrow-up-right"></i></a>
+                    <button type="button" class="arrow-btn" onclick="openProjectModal('total')"><i class="bi bi-arrow-up-right"></i></button>
                 </div>
                 <div class="stat-value">@Model.Dashboard.TotalProjects</div>
                 <div class="stat-sub"><i class="bi bi-graph-up me-1"></i>Increased from last month</div>
@@ -347,7 +350,7 @@ else
             <div class="stat-card">
                 <div class="d-flex justify-content-between align-items-start">
                     <span class="stat-label">Ended Projects</span>
-                    <a href="#" class="arrow-btn"><i class="bi bi-arrow-up-right"></i></a>
+                    <button type="button" class="arrow-btn" onclick="openProjectModal('ended')"><i class="bi bi-arrow-up-right"></i></button>
                 </div>
                 <div class="stat-value">@Model.Dashboard.CompletedProjects</div>
                 <div class="stat-sub"><i class="bi bi-graph-up me-1"></i>Increased from last month</div>
@@ -357,7 +360,7 @@ else
             <div class="stat-card">
                 <div class="d-flex justify-content-between align-items-start">
                     <span class="stat-label">Running Projects</span>
-                    <a href="#" class="arrow-btn"><i class="bi bi-arrow-up-right"></i></a>
+                    <button type="button" class="arrow-btn" onclick="openProjectModal('running')"><i class="bi bi-arrow-up-right"></i></button>
                 </div>
                 <div class="stat-value">@Model.Dashboard.RunningProjects</div>
                 <div class="stat-sub"><i class="bi bi-graph-up me-1"></i>Increased from last month</div>
@@ -367,7 +370,7 @@ else
             <div class="stat-card">
                 <div class="d-flex justify-content-between align-items-start">
                     <span class="stat-label">Pending Project</span>
-                    <a href="#" class="arrow-btn"><i class="bi bi-arrow-up-right"></i></a>
+                    <button type="button" class="arrow-btn" onclick="openProjectModal('pending')"><i class="bi bi-arrow-up-right"></i></button>
                 </div>
                 <div class="stat-value">@Model.Dashboard.PendingProjects</div>
                 <div class="stat-sub text-muted">On Discuss</div>
@@ -531,6 +534,145 @@ else
             </div>
         </div>
     </div>
+
+    @{
+        var projectsJson = System.Text.Json.JsonSerializer.Serialize(
+            Model.AllProjects.Select(p => new {
+                id       = p.Id,
+                name     = p.Name,
+                code     = p.ProjectCode,
+                client   = p.ClientName,
+                status   = p.Status,
+                startDate = p.StartDate.ToString("MMM d, yyyy"),
+                endDate  = p.ExpectedEndDate.ToString("MMM d, yyyy"),
+                colour   = string.IsNullOrEmpty(p.ColourCode) ? "#0D6EFD" : p.ColourCode,
+                desc     = (p.Description?.Length > 90 ? p.Description.Substring(0, 90) + "…" : p.Description) ?? ""
+            })
+        );
+    }
+
+    <!-- ── Projects Detail Modal ── -->
+    <div class="modal fade" id="projectsModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content" style="border-radius:16px; border:none; box-shadow:0 8px 32px rgba(0,0,0,.14);">
+                <div class="modal-header" style="border-bottom:1px solid #f0f0f0; padding:1.25rem 1.5rem;">
+                    <div class="d-flex align-items-center gap-2">
+                        <h5 class="modal-title mb-0 fw-bold" id="projectsModalTitle" style="color:var(--pm-text);"></h5>
+                        <span class="badge rounded-pill" id="projectsModalBadge"
+                              style="background:var(--pm-green); font-size:.73rem; padding:4px 10px;"></span>
+                    </div>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" style="padding:1.25rem 1.5rem;">
+                    <!-- Search -->
+                    <div class="mb-3 position-relative">
+                        <i class="bi bi-search position-absolute"
+                           style="left:12px; top:50%; transform:translateY(-50%); color:var(--pm-muted); pointer-events:none;"></i>
+                        <input type="text" id="projectsSearchInput" class="form-control"
+                               placeholder="Search by name, code or client…"
+                               style="padding-left:2.3rem; border-radius:10px; border:1.5px solid #dee2e6; font-size:.88rem;">
+                    </div>
+                    <!-- Project rows -->
+                    <div id="projectsModalBody"></div>
+                    <div id="projectsNoResults" class="text-center text-muted py-4 d-none">
+                        <i class="bi bi-folder-x" style="font-size:2.2rem; opacity:.35;"></i>
+                        <p class="mt-2 mb-0 small">No projects match your search.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+    (function () {
+        const ALL = @Html.Raw(projectsJson);
+
+        const STATUS = {
+            1: { label: 'Active',    bg: '#d1edff', color: '#0056CA' },
+            2: { label: 'On Hold',   bg: '#fff3cd', color: '#856404' },
+            3: { label: 'Completed', bg: '#d1f5e0', color: '#0a6130' }
+        };
+
+        let currentFilter = [];
+
+        window.openProjectModal = function (type) {
+            const titles = {
+                total:   'All Projects',
+                running: 'Running Projects',
+                ended:   'Ended Projects',
+                pending: 'Pending Projects'
+            };
+            const filters = {
+                total:   null,
+                running: 1,
+                ended:   3,
+                pending: 2
+            };
+
+            const statusFilter = filters[type];
+            currentFilter = statusFilter === null ? ALL : ALL.filter(p => p.status === statusFilter);
+
+            document.getElementById('projectsModalTitle').textContent = titles[type];
+            document.getElementById('projectsModalBadge').textContent = currentFilter.length;
+            document.getElementById('projectsSearchInput').value = '';
+            renderProjects(currentFilter);
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('projectsModal')).show();
+
+            document.getElementById('projectsSearchInput').oninput = function () {
+                const q = this.value.toLowerCase();
+                const results = currentFilter.filter(p =>
+                    p.name.toLowerCase().includes(q) ||
+                    p.code.toLowerCase().includes(q) ||
+                    p.client.toLowerCase().includes(q)
+                );
+                document.getElementById('projectsModalBadge').textContent = results.length;
+                renderProjects(results);
+            };
+        };
+
+        function renderProjects(projects) {
+            const body = document.getElementById('projectsModalBody');
+            const empty = document.getElementById('projectsNoResults');
+            if (projects.length === 0) {
+                body.innerHTML = '';
+                empty.classList.remove('d-none');
+                return;
+            }
+            empty.classList.add('d-none');
+            body.innerHTML = projects.map(p => {
+                const s = STATUS[p.status] || { label: 'Unknown', bg: '#e9ecef', color: '#6c757d' };
+                const initials = p.name.length >= 2 ? p.name.substring(0, 2).toUpperCase() : p.name.toUpperCase();
+                return `
+                <div class="d-flex align-items-center gap-3 py-2" style="border-bottom:1px solid #f4f4f4;">
+                    <div style="width:42px;height:42px;border-radius:10px;background:${p.colour}22;
+                                display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                        <span style="font-weight:700;font-size:.8rem;color:${p.colour};">${initials}</span>
+                    </div>
+                    <div class="flex-grow-1 overflow-hidden">
+                        <div class="fw-semibold text-truncate" style="font-size:.9rem;color:var(--pm-text);">${escHtml(p.name)}</div>
+                        <div style="font-size:.75rem;color:var(--pm-muted);">${escHtml(p.code)} &middot; ${escHtml(p.client)}</div>
+                        ${p.desc ? `<div class="text-truncate" style="font-size:.73rem;color:#999;margin-top:1px;">${escHtml(p.desc)}</div>` : ''}
+                    </div>
+                    <div class="d-none d-sm-flex flex-column align-items-end" style="flex-shrink:0;">
+                        <div style="font-size:.72rem;color:var(--pm-muted);white-space:nowrap;">${p.startDate}</div>
+                        <div style="font-size:.72rem;color:var(--pm-muted);white-space:nowrap;">${p.endDate}</div>
+                    </div>
+                    <span class="badge rounded-pill" style="background:${s.bg};color:${s.color};font-size:.7rem;font-weight:600;white-space:nowrap;flex-shrink:0;">${s.label}</span>
+                    <a href="/Projects/Details?id=${p.id}"
+                       class="btn btn-sm btn-outline-primary"
+                       style="border-radius:8px;font-size:.75rem;padding:3px 11px;white-space:nowrap;flex-shrink:0;">
+                        View
+                    </a>
+                </div>`;
+            }).join('');
+        }
+
+        function escHtml(str) {
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+        }
+    })();
+    </script>
 
     @if (false && Model.RecentProjects.Any())
     {

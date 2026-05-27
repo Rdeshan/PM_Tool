@@ -17,6 +17,7 @@ public class DashboardModel : PageModel
     private readonly IDashboardService _dashboardService;
 
     public List<ProjectDTO> RecentProjects { get; set; } = new();
+    public List<ProjectDTO> AllProjects { get; set; } = new();
     public DashboardDto Dashboard { get; set; } = new();
 
     public DashboardModel(IProjectService projectService, IDashboardService dashboardService)
@@ -44,17 +45,16 @@ public class DashboardModel : PageModel
             Dashboard = new DashboardDto();
         }
 
-        // Load recent projects (last 6)
+        // Load all projects; recent = latest 6
         try
         {
             var allProjects = await _projectService.GetAllProjectsAsync();
-            RecentProjects = allProjects
-                .OrderByDescending(p => p.UpdatedAt)
-                .Take(6)
-                .ToList();
+            AllProjects = allProjects.OrderByDescending(p => p.UpdatedAt).ToList();
+            RecentProjects = AllProjects.Take(6).ToList();
         }
         catch
         {
+            AllProjects = new List<ProjectDTO>();
             RecentProjects = new List<ProjectDTO>();
         }
 
