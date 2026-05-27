@@ -164,7 +164,7 @@ public class ProductService : IProductService
             ActualReleaseDate = product.ActualReleaseDate,
             Status = product.Status,
             ReleaseType = product.ReleaseType,
-            BacklogItemCount = product.Backlogs?.Count ?? 0,
+            BacklogItemCount = product.ProductBacklogs?.Count ?? 0,
             ReleaseNotesCount = product.ReleaseNotes?.Count ?? 0,
             CreatedAt = product.CreatedAt,
             UpdatedAt = product.UpdatedAt

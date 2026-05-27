@@ -44,6 +44,7 @@ public class TeamService : ITeamService
         {
             Name = request.Name,
             Description = request.Description,
+            ColorCode = string.IsNullOrEmpty(request.ColorCode) ? "#007bff" : request.ColorCode,
             IsActive = true
         };
 
@@ -58,6 +59,8 @@ public class TeamService : ITeamService
 
         team.Name = request.Name;
         team.Description = request.Description;
+        team.ColorCode = string.IsNullOrEmpty(request.ColorCode) ? "#007bff" : request.ColorCode;
+        team.IsActive = request.IsActive;
 
         return await _teamRepository.UpdateAsync(team);
     }

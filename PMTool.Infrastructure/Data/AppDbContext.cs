@@ -659,6 +659,11 @@ public class AppDbContext : DbContext
                 .WithMany(s => s.BacklogItems)
                 .HasForeignKey(pb => pb.SprintId)
                 .OnDelete(DeleteBehavior.NoAction);
+
+            // entity.HasOne(pb => pb.Product)
+            //     .WithMany(p => p.ProductBacklogs)
+            //     .HasForeignKey(pb => pb.ProductId)
+            //     .OnDelete(DeleteBehavior.Cascade);
         });
         // NEW: WorkStatus configuration
         modelBuilder.Entity<WorkStatus>(entity =>
