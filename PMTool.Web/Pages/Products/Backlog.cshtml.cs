@@ -938,9 +938,6 @@ public class BacklogModel : PageModel
 
     public async Task<IActionResult> OnPostAddCommentAsync([FromBody] AddCommentRequest request)
     {
-        SetPermissions();
-        if (!CanEditBacklog) return Forbid();
-
         var userId = GetCurrentUserId();
         if (!userId.HasValue) return Forbid();
 
@@ -1030,9 +1027,6 @@ public class BacklogModel : PageModel
 
     public async Task<IActionResult> OnPostUpdateCommentAsync([FromBody] UpdateCommentRequest request)
     {
-        SetPermissions();
-        if (!CanEditBacklog) return Forbid();
-
         var userId = GetCurrentUserId();
         if (!userId.HasValue) return Forbid();
 
@@ -1059,9 +1053,6 @@ public class BacklogModel : PageModel
 
     public async Task<IActionResult> OnPostDeleteCommentAsync(Guid commentId)
     {
-        SetPermissions();
-        if (!CanEditBacklog) return Forbid();
-
         var userId = GetCurrentUserId();
         if (!userId.HasValue) return Forbid();
 

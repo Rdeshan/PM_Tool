@@ -631,108 +631,10 @@
                 </div>
             </div>
 
-            <div class="sidebar-tabs">
-                <button type="button" class="sidebar-tab active" onclick="setSidebarTab('all', event)">All</button>
-                <button type="button" class="sidebar-tab" onclick="setSidebarTab('comments', event)">Comments</button>
-                <button type="button" class="sidebar-tab" onclick="setSidebarTab('history', event)">History</button>
+            <div style="font-size:13px;font-weight:600;color:#172b4d;margin:16px 0 8px;padding-top:4px;border-top:1px solid #f0f0f0;">
+                <i class="bi bi-chat-left-text me-1" style="font-size:11px;"></i>Comments
             </div>
-            <div id="sidebarActivity" class="sidebar-tab-panel">No activity yet.</div>
-        </div>
-
-        <div class="sidebar-footer">
-            <div class="mention-wrap">
-                <input id="sidebarCommentInput" type="text" placeholder="Add a comment..." onkeydown="if(event.key==='Enter')addSidebarComment();" />
-                <div id="sidebarMentionList" class="mention-list"></div>
-            </div>
-            <button type="button" onclick="addSidebarComment()">Comment</button>
-        </div>
-    </div>
-</div>
-
-<!-- Product Backlog Subtask Sidebar -->
-<div id="productSubtaskSidebar" class="sidebar-overlay d-none">
-    <div class="sidebar-panel">
-        <div class="sidebar-header">
-            <div class="d-flex justify-content-between align-items-start">
-                <div>
-                    <h5 id="sidebarTaskTitle" class="sidebar-title">Subtask</h5>
-                    <span id="sidebarTaskKey" class="sidebar-key">PB-0000</span>
-                </div>
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="closeProductSidebar()">
-                    <i class="bi bi-x-lg"></i>
-                </button>
-            </div>
-            <select id="sidebarStatus" class="sidebar-status mt-2" onchange="updateSidebarStatus(this.value)">
-                <option value="1">To do</option>
-                <option value="2">In progress</option>
-                <option value="3">In review</option>
-                <option value="4">Done</option>
-            </select>
-        </div>
-
-        <div class="sidebar-body">
-            <div class="mb-4">
-                <label class="form-label fw-bold small">Description</label>
-                <textarea id="sidebarDescription"
-                          class="form-control"
-                          rows="4"
-                          placeholder="Add a description..."
-                          onblur="saveSidebarDescription()"></textarea>
-            </div>
-
-            <div class="mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="sidebar-section-title">Details</h6>
-                </div>
-                <div class="sidebar-details-grid" id="sidebarDetailsGrid">
-                    <div class="sidebar-detail-label">Assignee</div>
-                    <div id="sidebarAssignee" class="sidebar-detail-value">Unassigned</div>
-                    <div class="sidebar-detail-label">Story points</div>
-                    <div id="sidebarStoryPoints" class="sidebar-detail-value">0</div>
-                    <div class="sidebar-detail-label">Due date</div>
-                    <div id="sidebarDueDate" class="sidebar-detail-value">-</div>
-                    <div class="sidebar-detail-label">Start date</div>
-                    <div id="sidebarStartDate" class="sidebar-detail-value">-</div>
-                    <div class="sidebar-detail-label">Sprint name</div>
-                    <div id="sidebarSprint" class="sidebar-detail-value">Backlog</div>
-                    <div class="sidebar-detail-label">Priority</div>
-                    <div id="sidebarPriority" class="sidebar-detail-value">Medium</div>
-                    <div class="sidebar-detail-label">Work type</div>
-                    <div id="sidebarWorkType" class="sidebar-detail-value">Work Item</div>
-                    <div class="sidebar-detail-label">Created date</div>
-                    <div id="sidebarCreatedAt" class="sidebar-detail-value">-</div>
-                </div>
-            </div>
-
-            <div class="mb-4">
-                <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="fw-bold mb-0">Subtasks</h6>
-                    <button type="button" class="btn btn-sm btn-primary" onclick="showSubtaskInput()">
-                        <i class="bi bi-plus"></i>
-                    </button>
-                </div>
-
-                <div id="sidebarSubtaskList" class="sidebar-subtask-list"></div>
-
-                <div id="newSubtaskWrap" class="d-none mt-2">
-                    <div class="input-group">
-                        <input type="text"
-                               id="newSubtaskInput"
-                               class="form-control"
-                               placeholder="Subtask title..."
-                               onkeydown="if(event.key==='Enter')createSidebarSubtask(event);if(event.key==='Escape')hideSubtaskInput();" />
-                        <button type="button" class="btn btn-primary" onclick="createSidebarSubtask(event)">Add</button>
-                        <button type="button" class="btn btn-outline-secondary" onclick="hideSubtaskInput()">Cancel</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="sidebar-tabs">
-                <button type="button" class="sidebar-tab active" onclick="setSidebarTab('all', event)">All</button>
-                <button type="button" class="sidebar-tab" onclick="setSidebarTab('comments', event)">Comments</button>
-                <button type="button" class="sidebar-tab" onclick="setSidebarTab('history', event)">History</button>
-            </div>
-            <div id="sidebarActivity" class="sidebar-tab-panel">No activity yet.</div>
+            <div id="sidebarActivity" class="sidebar-comments"></div>
         </div>
 
         <div class="sidebar-footer">
@@ -1617,7 +1519,6 @@ function openProductSidebar(id, title, key, focusNewSubtask, e) {
     renderSidebarSubtasks(id);
 
     document.getElementById('productSubtaskSidebar').classList.remove('d-none');
-    setSidebarTab('all');
     loadSidebarComments(id);
 
     if (focusNewSubtask) {
@@ -1672,11 +1573,11 @@ async function loadSidebarComments(itemId) {
 function renderComments(comments) {
     const panel = document.getElementById('sidebarActivity');
     if (!comments || comments.length === 0) {
-        panel.textContent = currentSidebarTab === 'history' ? 'No history yet.' : 'No comments yet.';
+        panel.innerHTML = '<div style="font-size:12px;color:#6b778c;padding:8px 0;">No comments yet.</div>';
         return;
     }
 
-    panel.innerHTML = `<div class="sidebar-comments">${comments.map(comment => `
+    panel.innerHTML = comments.map(comment => `
         <div class="sidebar-comment" id="comment_${comment.id}">
             <div class="avatar-circle" style="${avatarStyle(comment.authorName)}">${escapeHtml(comment.authorInitials || getInitials(comment.authorName))}</div>
             <div class="comment-body-wrap">
@@ -1691,7 +1592,7 @@ function renderComments(comments) {
                 </div>
                 <div class="comment-body" id="commentBody_${comment.id}">${escapeHtml(comment.body)}</div>
             </div>
-        </div>`).join('')}</div>`;
+        </div>`).join('');
 }
 
 const mentionUsers = @Html.Raw(JsonSerializer.Serialize(
@@ -1851,7 +1752,7 @@ async function addSidebarComment() {
     currentSidebarComments.push(result.comment);
     input.value = '';
     toggleMentionList(false);
-    setSidebarTab('comments');
+    renderComments(currentSidebarComments);
 }
 
 function startEditComment(commentId, currentBody) {

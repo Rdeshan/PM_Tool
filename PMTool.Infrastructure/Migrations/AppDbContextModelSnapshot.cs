@@ -102,6 +102,37 @@ namespace PMTool.Infrastructure.Migrations
                     b.ToTable("BacklogSubtasks");
                 });
 
+            modelBuilder.Entity("PMTool.Domain.Entities.BacklogSubtaskComment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("AuthorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("SubtaskId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("SubtaskId");
+
+                    b.ToTable("BacklogSubtaskComments");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.BoardColumn", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1278,6 +1309,25 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("ProductBacklog");
 
                     b.Navigation("ProjectBacklog");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.BacklogSubtaskComment", b =>
+                {
+                    b.HasOne("PMTool.Domain.Entities.User", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PMTool.Domain.Entities.BacklogSubtask", "Subtask")
+                        .WithMany()
+                        .HasForeignKey("SubtaskId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Subtask");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.BoardColumn", b =>

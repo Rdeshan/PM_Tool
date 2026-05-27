@@ -19,6 +19,7 @@ public class AppDbContext : DbContext
     public DbSet<ProjectBacklog> ProjectBacklogs { get; set; } = null!;
     public DbSet<ProductBacklog> ProductBacklogs { get; set; } = null!;
     public DbSet<BacklogSubtask> BacklogSubtasks { get; set; } = null!;
+    public DbSet<BacklogSubtaskComment> BacklogSubtaskComments { get; set; } = null!;
     public DbSet<BacklogItemComment> BacklogItemComments { get; set; } = null!;
     public DbSet<ProjectDocument> ProjectDocuments { get; set; } = null!;
     public DbSet<Product> Products { get; set; } = null!;
