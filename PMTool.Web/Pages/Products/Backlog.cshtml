@@ -1337,6 +1337,11 @@ function saveTitle(itemId, val, original) {
     }).then(r => {
         if (r.ok) {
             renderTitleCell(itemId, title);
+            const row = document.getElementById('row-' + itemId);
+            if (row) row.dataset.itemTitle = title;
+            if (currentBacklogId === itemId) {
+                document.getElementById('sidebarTaskTitle').textContent = title;
+            }
             showToast('Title updated', 'Item title has been changed.');
         } else {
             renderTitleCell(itemId, original);
@@ -2182,6 +2187,14 @@ function savePoints(itemId, val) {
                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
                 </button>`;
             }
+            const row = document.getElementById('row-' + itemId);
+            if (row) {
+                row.dataset.itemStoryPoints = String(pts);
+                updatePoints(row.closest('tbody'));
+            }
+            if (currentBacklogId === itemId) {
+                document.getElementById('sidebarStoryPoints').textContent = String(pts);
+            }
         }
     }).catch(() => {});
 }
@@ -2206,6 +2219,9 @@ function updateStatus(itemId, status, e) {
         row.dataset.itemStatus = status.toString();
         row.dataset.itemStatusLabel = sm.label;
     }
+    if (currentBacklogId === itemId) {
+        document.getElementById('sidebarStatus').value = status.toString();
+    }
     fetch('?handler=UpdateStatus', {
         method: 'POST',
         headers: {
@@ -2215,6 +2231,7 @@ function updateStatus(itemId, status, e) {
         body: `itemId=${itemId}&status=${status}`
     }).then(() => {
         signalChange();
+        updateBacklogStats();
     }).catch(() => {});
 }
 
@@ -2237,6 +2254,9 @@ function updateOwner(itemId, ownerId, e) {
         if (row) {
             row.dataset.itemAssignee = ownerId ? name : 'Unassigned';
             row.dataset.itemAssigneeId = ownerId || '';
+        }
+        if (currentBacklogId === itemId) {
+            document.getElementById('sidebarAssignee').innerHTML = renderAssigneeValue(name, ownerId);
         }
         // Update avatar button without page refresh
         const btn = document.querySelector(`#assignDd_${itemId}`)?.previousElementSibling;
@@ -2270,7 +2290,19 @@ function updateType(itemId, type, e) {
         signalChange();
         const row = document.getElementById('row-' + itemId);
         const selected = e?.currentTarget || e?.target?.closest('.dd-item');
-        if (row && selected) row.dataset.itemWorkType = selected.textContent.trim();
+        if (row && selected) {
+            const name = selected.textContent.trim();
+            row.dataset.itemWorkType = name;
+            const icon = selected.querySelector('i');
+            const typeButton = row.querySelector('td:nth-child(2) .ib');
+            if (typeButton && icon) {
+                typeButton.innerHTML = icon.outerHTML;
+                typeButton.title = name;
+            }
+            if (currentBacklogId === itemId) {
+                document.getElementById('sidebarWorkType').textContent = name;
+            }
+        }
     }).catch(() => {});
 }
 
@@ -2373,6 +2405,11 @@ function pickItemDate(itemId, y, m, d) {
             calBtn.appendChild(lbl);
         }
     }
+    const row = document.getElementById('row-' + itemId);
+    if (row) row.dataset.itemDueDate = iso;
+    if (currentBacklogId === itemId) {
+        document.getElementById('sidebarDueDate').textContent = formatDate(iso);
+    }
     closeDds();
 
     fetch('?handler=UpdateDueDate', {
@@ -2398,6 +2435,12 @@ function pickItemDateFromIso(itemId, iso) {
 
     const panel = document.getElementById('itemCal_' + itemId);
     if (panel) panel.dataset.currentDate = iso;
+
+    const row = document.getElementById('row-' + itemId);
+    if (row) row.dataset.itemDueDate = iso;
+    if (currentBacklogId === itemId) {
+        document.getElementById('sidebarDueDate').textContent = formatDate(iso);
+    }
 
     fetch('?handler=UpdateDueDate', {
         method: 'POST',

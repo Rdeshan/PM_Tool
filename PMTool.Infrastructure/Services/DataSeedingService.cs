@@ -66,7 +66,7 @@ public class DataSeedingService
         {
             Id = Guid.NewGuid(),
             ProjectId = project.Id,
-            VersionName = "v1.0 — Core",
+            VersionName = "1.0",
             Description = "Initial release with core features.",
             PlannedReleaseDate = now.AddMonths(1),
             Status = 1,
@@ -80,7 +80,7 @@ public class DataSeedingService
         {
             Id = Guid.NewGuid(),
             ProjectId = project.Id,
-            VersionName = "v2.0 — Dashboard",
+            VersionName = "1.1",
             Description = "Personal dashboard and reporting features.",
             PlannedReleaseDate = now.AddMonths(3),
             Status = 1,
