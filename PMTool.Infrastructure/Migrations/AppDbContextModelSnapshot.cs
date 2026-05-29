@@ -113,10 +113,13 @@ namespace PMTool.Infrastructure.Migrations
 
                     b.Property<string>("Body")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
 
                     b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("GETUTCDATE()");
 
                     b.Property<Guid>("SubtaskId")
                         .HasColumnType("uniqueidentifier");
@@ -128,7 +131,7 @@ namespace PMTool.Infrastructure.Migrations
 
                     b.HasIndex("AuthorId");
 
-                    b.HasIndex("SubtaskId");
+                    b.HasIndex("SubtaskId", "CreatedAt");
 
                     b.ToTable("BacklogSubtaskComments");
                 });
@@ -1316,7 +1319,7 @@ namespace PMTool.Infrastructure.Migrations
                     b.HasOne("PMTool.Domain.Entities.User", "Author")
                         .WithMany()
                         .HasForeignKey("AuthorId")
-                        .OnDelete(DeleteBehavior.Cascade)
+                        .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
 
                     b.HasOne("PMTool.Domain.Entities.BacklogSubtask", "Subtask")
@@ -1374,7 +1377,7 @@ namespace PMTool.Infrastructure.Migrations
                         .HasForeignKey("ParentBacklogItemId");
 
                     b.HasOne("PMTool.Domain.Entities.Product", "Product")
-                        .WithMany()
+                        .WithMany("ProductBacklogs")
                         .HasForeignKey("ProductId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -1715,6 +1718,8 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("Backlogs");
 
                     b.Navigation("BoardColumns");
+
+                    b.Navigation("ProductBacklogs");
 
                     b.Navigation("ReleaseNotes");
 
