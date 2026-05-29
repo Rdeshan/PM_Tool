@@ -265,6 +265,126 @@ else
     }
     .pm-topbar h4 { font-weight: 700; color: var(--pm-text); margin: 0; }
     .pm-topbar .topbar-right { display: flex; gap: .75rem; align-items: center; }
+
+    /* ── Team Collab Hierarchy ── */
+    .collab-project-row {
+        border-bottom: 1px solid #f0f0f0;
+        padding-bottom: .2rem;
+        margin-bottom: .2rem;
+    }
+    .collab-project-row:last-child { border-bottom: none; margin-bottom: 0; }
+
+    .collab-proj-header {
+        display: flex;
+        align-items: center;
+        gap: .6rem;
+        padding: .45rem .3rem;
+        cursor: pointer;
+        border-radius: 8px;
+        transition: background .15s;
+        user-select: none;
+    }
+    .collab-proj-header:hover { background: #f8f9fa; }
+
+    .collab-proj-icon {
+        width: 32px; height: 32px;
+        border-radius: 8px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: .8rem;
+        flex-shrink: 0;
+    }
+    .collab-proj-name { font-size: .88rem; font-weight: 600; color: var(--pm-text); }
+    .collab-proj-due  { font-size: .72rem; color: var(--pm-muted); }
+
+    .collab-chevron {
+        font-size: .75rem;
+        color: var(--pm-muted);
+        transition: transform .25s ease;
+        flex-shrink: 0;
+    }
+    .collab-chevron.open { transform: rotate(180deg); }
+
+    .collab-teams-wrap {
+        overflow: hidden;
+        max-height: 0;
+        transition: max-height .35s ease;
+        padding-left: .75rem;
+    }
+    .collab-teams-wrap.expanded { max-height: 1000px; }
+
+    .collab-team-row { margin: .2rem 0; }
+
+    .collab-team-header {
+        display: flex;
+        align-items: center;
+        gap: .45rem;
+        padding: .3rem .4rem;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: background .15s;
+        user-select: none;
+    }
+    .collab-team-header:hover { background: #f4f6f5; }
+
+    .team-color-dot {
+        width: 8px; height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .collab-team-name  { font-size: .8rem; font-weight: 600; color: var(--pm-text); }
+    .collab-team-count { font-size: .7rem; color: var(--pm-muted); }
+
+    .collab-members-wrap {
+        overflow: hidden;
+        max-height: 0;
+        transition: max-height .3s ease;
+        padding-left: 1rem;
+    }
+    .collab-members-wrap.expanded { max-height: 1000px; }
+
+    .collab-member-row {
+        display: flex;
+        align-items: flex-start;
+        gap: .55rem;
+        padding: .4rem .2rem;
+        border-bottom: 1px solid #f7f7f7;
+    }
+    .collab-member-row:last-child { border-bottom: none; }
+
+    .collab-member-avatar {
+        width: 30px; height: 30px;
+        border-radius: 50%;
+        background: var(--pm-green-pale);
+        display: flex; align-items: center; justify-content: center;
+        font-size: .7rem; font-weight: 700;
+        color: var(--pm-green);
+        flex-shrink: 0;
+        margin-top: 2px;
+    }
+    .collab-member-name { font-size: .82rem; font-weight: 600; color: var(--pm-text); line-height: 1.25; }
+    .collab-member-sub  { font-size: .71rem; color: var(--pm-muted); }
+
+    .collab-member-prog {
+        display: flex;
+        align-items: center;
+        gap: .4rem;
+        margin-top: .3rem;
+    }
+    .collab-prog-bar {
+        flex: 1;
+        height: 5px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        min-width: 55px;
+    }
+    .collab-prog-fill {
+        height: 100%;
+        border-radius: 4px;
+        background: var(--pm-green);
+        transition: width .6s ease;
+    }
+    .collab-prog-pct { font-size: .69rem; color: var(--pm-muted); white-space: nowrap; }
 </style>
 @* 
 <!-- Sidebar -->
@@ -429,33 +549,87 @@ else
 
     *@
 
-    <!-- Bottom Row: Team Collab | Project Progress | Project List -->
+    <!-- Bottom Row: Team Collab Hierarchy | Project Progress -->
     <div class="row g-3 mb-4">
 
-        <!-- Team Collaboration -->
-        <div class="col-lg-5">
+        <!-- Team Collaboration (hierarchical: Project → Team → Member) -->
+        <div class="col-lg-8">
             <div class="section-card">
-                <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="section-title mb-0">Team Collaboration</span>
-                    <a href="#" class="btn btn-sm btn-outline-secondary" style="border-radius:8px; font-size:.78rem;">
+                    <a asp-page="/Admin/Users" class="btn btn-sm btn-outline-secondary" style="border-radius:8px; font-size:.78rem;">
                         <i class="bi bi-plus"></i> Add Member
                     </a>
                 </div>
-                @if (Model.RecentProjects.Any())
+
+                @if (Model.CollabData.Any())
                 {
-                    @foreach (var project in Model.RecentProjects.Take(4))
+                    @foreach (var proj in Model.CollabData)
                     {
-                        var status = project.Status;
-                        var statusLabel = status == 3 ? "Completed" : status == 1 ? "In Progress" : "Pending";
-                        var statusClass = status == 3 ? "badge-completed" : status == 1 ? "badge-inprogress" : "badge-pending";
-                        var initials = project.ClientName?.Length > 1 ? project.ClientName.Substring(0, 2).ToUpper() : "??";
-                        <div class="member-row">
-                            <div class="member-avatar">@initials</div>
-                            <div class="member-info overflow-hidden">
-                                <div class="member-name text-truncate">@project.ClientName</div>
-                                <div class="member-task text-truncate">Working on @project.Name</div>
+                        var sLabel = proj.Status == 3 ? "Completed" : proj.Status == 1 ? "In Progress" : "Pending";
+                        var sClass = proj.Status == 3 ? "badge-completed" : proj.Status == 1 ? "badge-inprogress" : "badge-pending";
+                        var iconBg  = proj.ColourCode + "22";
+                        var projUid = "proj-" + proj.Id.ToString("N");
+
+                        <div class="collab-project-row">
+                            <!-- Project header -->
+                            <div class="collab-proj-header" onclick="toggleCollab('@projUid')">
+                                <div class="collab-proj-icon" style="background:@iconBg">
+                                    <i class="bi bi-folder2-open" style="color:@proj.ColourCode"></i>
+                                </div>
+                                <div class="overflow-hidden">
+                                    <div class="collab-proj-name text-truncate">@proj.Name</div>
+                                    <div class="collab-proj-due">Due @proj.DueDate.ToString("MMM d, yyyy")</div>
+                                </div>
+                                <span class="badge-status @sClass ms-2">@sLabel</span>
+                                <i class="bi bi-chevron-down collab-chevron ms-2" id="chevron-@projUid"></i>
                             </div>
-                            <span class="badge-status @statusClass">@statusLabel</span>
+
+                            <!-- Teams (collapsible) -->
+                            <div class="collab-teams-wrap" id="@projUid">
+                                @if (proj.Teams.Any())
+                                {
+                                    @foreach (var team in proj.Teams)
+                                    {
+                                        var teamUid = "team-" + proj.Id.ToString("N") + "-" + team.Id.ToString("N");
+                                        <div class="collab-team-row">
+                                            <div class="collab-team-header" onclick="toggleCollab('@teamUid')">
+                                                <div class="team-color-dot" style="background:@team.ColorCode"></div>
+                                                <span class="collab-team-name">@team.Name</span>
+                                                <span class="collab-team-count ms-1">(@team.Members.Count)</span>
+                                                <i class="bi bi-chevron-down collab-chevron ms-auto" id="chevron-@teamUid"></i>
+                                            </div>
+
+                                            <!-- Members (collapsible) -->
+                                            <div class="collab-members-wrap" id="@teamUid">
+                                                @foreach (var member in team.Members)
+                                                {
+                                                    var mpct = member.TotalTasks > 0
+                                                        ? (int)Math.Round((double)member.CompletedTasks / member.TotalTasks * 100)
+                                                        : 0;
+                                                    <div class="collab-member-row">
+                                                        <div class="collab-member-avatar">@member.Initials</div>
+                                                        <div class="flex-grow-1 overflow-hidden">
+                                                            <div class="collab-member-name text-truncate">@member.DisplayName</div>
+                                                            <div class="collab-member-sub text-truncate">@member.Email &nbsp;&middot;&nbsp; @member.RoleName</div>
+                                                            <div class="collab-member-prog">
+                                                                <div class="collab-prog-bar">
+                                                                    <div class="collab-prog-fill" style="width:@mpct%"></div>
+                                                                </div>
+                                                                <span class="collab-prog-pct">@member.CompletedTasks/@member.TotalTasks tasks &middot; @mpct%</span>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                }
+                                            </div>
+                                        </div>
+                                    }
+                                }
+                                else
+                                {
+                                    <p class="text-muted small ps-2 py-1 mb-0">No members assigned.</p>
+                                }
+                            </div>
                         </div>
                     }
                 }
@@ -504,33 +678,6 @@ else
                         <div style="font-size:.72rem; color:var(--pm-muted)">Pending</div>
                     </div>
                 </div>
-            </div>
-        </div>
-
-        <!-- Project List -->
-        <div class="col-lg-3">
-            <div class="section-card dashboard-project-card">
-                <div class="section-title">Recent Projects</div>
-                @if (Model.Dashboard.UpcomingProjects.Any())
-                {
-                    @foreach (var project in Model.Dashboard.UpcomingProjects.Take(5))
-                    {
-                        <div class="project-list-item">
-                            <div class="project-icon"
-                                 style="background:@(string.IsNullOrEmpty(project.ColourCode) ? "var(--pm-green-pale)" : project.ColourCode + "33")">
-                                <i class="bi bi-folder2-open" style="color:@(string.IsNullOrEmpty(project.ColourCode) ? "var(--pm-green-mid)" : project.ColourCode)"></i>
-                            </div>
-                            <div class="overflow-hidden">
-                                <div class="proj-name text-truncate">@project.Name</div>
-                                <div class="proj-due">Due date: @project.DueDate.ToString("MMM d, yyyy")</div>
-                            </div>
-                        </div>
-                    }
-                }
-                else
-                {
-                    <p class="text-muted small mb-0">No projects yet.</p>
-                }
             </div>
         </div>
     </div>
@@ -725,6 +872,17 @@ else
     }
 
 </div>
+
+<script>
+function toggleCollab(id) {
+    var wrap = document.getElementById(id);
+    var chev = document.getElementById('chevron-' + id);
+    if (!wrap) return;
+    var opening = !wrap.classList.contains('expanded');
+    wrap.classList.toggle('expanded', opening);
+    if (chev) chev.classList.toggle('open', opening);
+}
+</script>
 
 }
 

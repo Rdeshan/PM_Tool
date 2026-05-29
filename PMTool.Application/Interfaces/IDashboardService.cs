@@ -6,5 +6,6 @@ namespace PMTool.Application.Interfaces
     {
         Task<DashboardDto> GetDashboardDataAsync(string userId);
         Task<PersonalDashboardDto> GetPersonalDashboardAsync(string userId);
+        Task<List<CollabProjectDto>> GetCollabDataAsync();
     }
 }
