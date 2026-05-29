@@ -397,6 +397,31 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.SetNull);
         });
 
+        // BacklogSubtaskComment configuration
+        modelBuilder.Entity<BacklogSubtaskComment>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Body)
+                .IsRequired()
+                .HasMaxLength(2000);
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasIndex(e => new { e.SubtaskId, e.CreatedAt });
+
+            entity.HasOne(e => e.Subtask)
+                .WithMany()
+                .HasForeignKey(e => e.SubtaskId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Author)
+                .WithMany()
+                .HasForeignKey(e => e.AuthorId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
         modelBuilder.Entity<BacklogItemComment>(entity =>
         {
             entity.HasKey(e => e.Id);
