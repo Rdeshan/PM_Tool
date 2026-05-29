@@ -83,7 +83,7 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IUserAdminRepository, UserAdminRepository>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 builder.Services.AddScoped<ISprintRepository, SprintRepository>();
-builder.Services.AddScoped<DataSeedingService>();
+// builder.Services.AddScoped<DataSeedingService>();
 
 // Application Services
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
@@ -119,9 +119,9 @@ using (var scope = app.Services.CreateScope())
     await roleService.InitializeDefaultRolesAsync();
 
     // Seed test users for each role
-    var seedingService = scope.ServiceProvider.GetRequiredService<DataSeedingService>();
-    await seedingService.SeedTestUsersAsync();
-    await seedingService.SeedDashboardDataAsync();
+    // var seedingService = scope.ServiceProvider.GetRequiredService<DataSeedingService>();
+    // await seedingService.SeedTestUsersAsync();
+    // await seedingService.SeedDashboardDataAsync();
 }
 
 // Configure the HTTP request pipeline.

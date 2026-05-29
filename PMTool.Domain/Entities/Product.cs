@@ -18,6 +18,7 @@ public class Product
     public Project? Project { get; set; }
     public ICollection<ReleaseNotes> ReleaseNotes { get; set; } = new List<ReleaseNotes>();
     public ICollection<ProjectBacklog> Backlogs { get; set; } = new List<ProjectBacklog>();
+    public ICollection<ProductBacklog> ProductBacklogs { get; set; } = new List<ProductBacklog>();
     public ICollection<Sprint> Sprints { get; set; } = new List<Sprint>();
     public ICollection<SubProject> SubProjects { get; set; } = new List<SubProject>();
     public ICollection<BoardColumn> BoardColumns { get; set; } = new List<BoardColumn>();

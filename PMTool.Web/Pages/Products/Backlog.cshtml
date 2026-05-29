@@ -963,10 +963,7 @@ function appendSprintCard(sprint) {
             </tbody></table>
         </div>`;
     backlogWrap.parentNode.insertBefore(card, backlogWrap);
-    const zone = card.querySelector('.sprint-drop-zone');
-    if (window.Sortable && zone) {
-        new Sortable(zone, { group: 'backlog', animation: 150, ghostClass: 'sortable-ghost', chosenClass: 'sortable-chosen', filter: '.drop-placeholder' });
-    }
+    initDropZone(card.querySelector('.sprint-drop-zone'));
 }
 
 function updateBacklogStats() {
@@ -1023,56 +1020,57 @@ function updateDropPlaceholders() {
 }
 
 // ── DRAG AND DROP ────────────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', function() {
-    const zones = document.querySelectorAll('.sprint-drop-zone');
-    zones.forEach(zone => {
-        new Sortable(zone, {
-            group: 'backlog',
-            animation: 150,
-            ghostClass: 'sortable-ghost',
-            chosenClass: 'sortable-chosen',
-            filter: '.drop-placeholder',
-            onEnd: async function(evt) {
-                if (evt.from === evt.to) return; // Didn't move between lists
+function initDropZone(zone) {
+    if (!window.Sortable || !zone) return;
+    new Sortable(zone, {
+        group: 'backlog',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        chosenClass: 'sortable-chosen',
+        filter: '.drop-placeholder',
+        onEnd: async function(evt) {
+            if (evt.from === evt.to) return;
 
-                const itemId = evt.item.dataset.itemId;
-                const newSprintId = evt.to.dataset.sprintId || '';
-                
-                try {
-                    const resp = await fetch(`?handler=MoveToSprint&itemId=${itemId}&sprintId=${newSprintId}`, {
-                        method: 'POST',
-                        headers: { 
-                            'RequestVerificationToken': getToken(),
-                            'Accept': 'application/json'
-                        }
-                    });
-                    
-                    if (!resp.ok) throw new Error('Network response was not ok');
+            const itemId = evt.item.dataset.itemId;
+            const newSprintId = evt.to.dataset.sprintId || '';
 
-                    const result = await resp.json();
-                    if(result.success) {
-                        showToast('Moved successfully');
-                        signalChange();
-                        updatePoints(evt.from);
-                        updatePoints(evt.to);
-                        updateBacklogStats();
-                        updateDropPlaceholders();
-                    } else {
-                        throw new Error('Server returned false');
+            try {
+                const resp = await fetch(`?handler=MoveToSprint&itemId=${itemId}&sprintId=${newSprintId}`, {
+                    method: 'POST',
+                    headers: {
+                        'RequestVerificationToken': getToken(),
+                        'Accept': 'application/json'
                     }
-                } catch(e) {
-                    showToast('Failed to move item', 'danger');
-                    // Revert DOM visually
-                    if (evt.from.children.length > evt.oldIndex) {
-                        evt.from.insertBefore(evt.item, evt.from.children[evt.oldIndex]);
-                    } else {
-                        evt.from.appendChild(evt.item);
-                    }
+                });
+
+                if (!resp.ok) throw new Error('Network response was not ok');
+
+                const result = await resp.json();
+                if (result.success) {
+                    showToast('Moved successfully');
+                    signalChange();
+                    updatePoints(evt.from);
+                    updatePoints(evt.to);
+                    updateBacklogStats();
                     updateDropPlaceholders();
+                } else {
+                    throw new Error('Server returned false');
                 }
+            } catch(e) {
+                showToast('Failed to move item', 'danger');
+                if (evt.from.children.length > evt.oldIndex) {
+                    evt.from.insertBefore(evt.item, evt.from.children[evt.oldIndex]);
+                } else {
+                    evt.from.appendChild(evt.item);
+                }
+                updateDropPlaceholders();
             }
-        });
+        }
     });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.sprint-drop-zone').forEach(initDropZone);
 
     updateBacklogStats();
     updateDropPlaceholders();
@@ -2460,6 +2458,9 @@ document.getElementById('createBacklogForm').addEventListener('submit', async fu
     btn.disabled = true;
     btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
 
+    // Capture the currently selected type icon before the async call clears the form
+    const capturedTypeIconHtml = document.getElementById('createTypeIcon').innerHTML;
+
     try {
         const fd = new FormData(this);
         const resp = await fetch(this.action, {
@@ -2475,7 +2476,7 @@ document.getElementById('createBacklogForm').addEventListener('submit', async fu
         if (result.success) {
             showToast('Item created!', 'success');
             signalChange();
-            appendCreatedBacklogItem(result.item);
+            appendCreatedBacklogItem(result.item, capturedTypeIconHtml);
             document.getElementById('newItemTitle').value = '';
             document.getElementById('hiddenOwner').value = '';
             document.getElementById('hiddenDueDate').value = '';
@@ -2493,7 +2494,7 @@ document.getElementById('createBacklogForm').addEventListener('submit', async fu
     }
 });
 
-function appendCreatedBacklogItem(item) {
+function appendCreatedBacklogItem(item, typeIconHtml) {
     const body = document.getElementById('backlogTableBody');
     if (!body || !item) return;
 
@@ -2524,7 +2525,7 @@ function appendCreatedBacklogItem(item) {
 
     row.innerHTML = `
         <td><input type="checkbox" value="${id}" /></td>
-        <td><button type="button" class="ib" title="${escapeHtml(item.typeName || 'Work Item')}"><i class="bi bi-tag"></i></button></td>
+        <td><button type="button" class="ib" title="${escapeHtml(item.typeName || 'Work Item')}">${typeIconHtml || '<i class="bi bi-tag"></i>'}</button></td>
         <td>
             <div class="item-title-stack">
                 <div class="d-flex align-items-center gap-2" id="titleCell_${id}">

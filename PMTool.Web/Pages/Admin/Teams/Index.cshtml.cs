@@ -24,6 +24,17 @@ public class IndexModel : PageModel
     [BindProperty]
     public CreateTeamRequest Input { get; set; } = new();
 
+    [BindProperty]
+    public Guid EditTeamId { get; set; }
+    [BindProperty]
+    public string EditTeamName { get; set; } = string.Empty;
+    [BindProperty]
+    public string EditTeamDescription { get; set; } = string.Empty;
+    [BindProperty]
+    public string EditTeamColorCode { get; set; } = "#007bff";
+    [BindProperty]
+    public bool EditTeamIsActive { get; set; } = true;
+
     public IndexModel(ITeamService teamService, IUserAdminService userAdminService)
     {
         _teamService = teamService;
@@ -95,5 +106,35 @@ public class IndexModel : PageModel
         }
 
         return RedirectToPage(new { teamId });
+    }
+
+    public async Task<IActionResult> OnPostEditTeamAsync()
+    {
+        var request = new CreateTeamRequest
+        {
+            Name = EditTeamName,
+            Description = EditTeamDescription,
+            ColorCode = EditTeamColorCode,
+            IsActive = EditTeamIsActive
+        };
+
+        var result = await _teamService.UpdateTeamAsync(EditTeamId, request);
+        if (result)
+            TempData["SuccessMessage"] = $"Team '{EditTeamName}' updated successfully.";
+        else
+            TempData["ErrorMessage"] = "Failed to update team.";
+
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostDeleteTeamAsync(Guid teamId)
+    {
+        var result = await _teamService.DeleteTeamAsync(teamId);
+        if (result)
+            TempData["SuccessMessage"] = "Team deleted successfully.";
+        else
+            TempData["ErrorMessage"] = "Failed to delete team.";
+
+        return RedirectToPage();
     }
 }

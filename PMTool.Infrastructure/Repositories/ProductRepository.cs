@@ -19,6 +19,7 @@ public class ProductRepository : IProductRepository
         return await _context.Products
             .Include(p => p.Project)
             .Include(p => p.ReleaseNotes)
+            .Include(p => p.ProductBacklogs)
             .FirstOrDefaultAsync(p => p.Id == id);
     }
 
