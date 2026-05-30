@@ -33,6 +33,7 @@ else
         --pm-card:        #ffffff;
         --pm-text:        #1b2b23;
         --pm-muted:       #6c757d;
+        --pm-muted-light: #e9ecef;
     }
 
     body { background: var(--pm-bg); }
@@ -310,7 +311,8 @@ else
         transition: max-height .35s ease;
         padding-left: .75rem;
     }
-    .collab-teams-wrap.expanded { max-height: 1000px; }
+    .collab-teams-wrap.expanded,
+    .collab-teams-wrap.hover-expanded { max-height: 1000px; }
 
     .collab-team-row { margin: .2rem 0; }
 
@@ -340,7 +342,8 @@ else
         transition: max-height .3s ease;
         padding-left: 1rem;
     }
-    .collab-members-wrap.expanded { max-height: 1000px; }
+    .collab-members-wrap.expanded,
+    .collab-members-wrap.hover-expanded { max-height: 1000px; }
 
     .collab-member-row {
         display: flex;
@@ -418,7 +421,6 @@ else
             <a asp-page="/Account/Settings" class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-gear me-1"></i>Settings
             </a>
-            <a asp-page="/Dashboard" class="btn btn-sm btn-outline-secondary">User View</a>
         </div>
     </div>
 
@@ -557,9 +559,6 @@ else
             <div class="section-card">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="section-title mb-0">Team Collaboration</span>
-                    <a asp-page="/Admin/Users" class="btn btn-sm btn-outline-secondary" style="border-radius:8px; font-size:.78rem;">
-                        <i class="bi bi-plus"></i> Add Member
-                    </a>
                 </div>
 
                 @if (Model.CollabData.Any())
@@ -573,7 +572,7 @@ else
 
                         <div class="collab-project-row">
                             <!-- Project header -->
-                            <div class="collab-proj-header" onclick="toggleCollab('@projUid')">
+                            <div class="collab-proj-header">
                                 <div class="collab-proj-icon" style="background:@iconBg">
                                     <i class="bi bi-folder2-open" style="color:@proj.ColourCode"></i>
                                 </div>
@@ -593,7 +592,7 @@ else
                                     {
                                         var teamUid = "team-" + proj.Id.ToString("N") + "-" + team.Id.ToString("N");
                                         <div class="collab-team-row">
-                                            <div class="collab-team-header" onclick="toggleCollab('@teamUid')">
+                                            <div class="collab-team-header">
                                                 <div class="team-color-dot" style="background:@team.ColorCode"></div>
                                                 <span class="collab-team-name">@team.Name</span>
                                                 <span class="collab-team-count ms-1">(@team.Members.Count)</span>
@@ -653,8 +652,8 @@ else
                 }
                 <div class="donut-wrap mx-auto mb-3">
                     <svg width="120" height="120" viewBox="0 0 100 100">
-                        <circle cx="50" cy="50" r="45" fill="none" stroke="#e9ecef" stroke-width="10"/>
-                        <circle cx="50" cy="50" r="45" fill="none" stroke="#1a3c2e" stroke-width="10"
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="var(--pm-muted-light)" stroke-width="10"/>
+                        <circle cx="50" cy="50" r="45" fill="none" stroke="var(--pm-green)" stroke-width="10"
                                 stroke-dasharray="@circumference.ToString("F1")"
                                 stroke-dashoffset="@offset.ToString("F1")"
                                 stroke-linecap="round"/>
@@ -874,14 +873,62 @@ else
 </div>
 
 <script>
+// Track which items are manually expanded (clicked)
+const manuallyExpanded = new Set();
+
 function toggleCollab(id) {
     var wrap = document.getElementById(id);
     var chev = document.getElementById('chevron-' + id);
     if (!wrap) return;
-    var opening = !wrap.classList.contains('expanded');
-    wrap.classList.toggle('expanded', opening);
-    if (chev) chev.classList.toggle('open', opening);
+    
+    // Toggle manually expanded state
+    if (manuallyExpanded.has(id)) {
+        manuallyExpanded.delete(id);
+        wrap.classList.remove('expanded', 'hover-expanded');
+    } else {
+        manuallyExpanded.add(id);
+        wrap.classList.add('expanded');
+        wrap.classList.remove('hover-expanded');
+    }
+    
+    if (chev) chev.classList.toggle('open', manuallyExpanded.has(id));
 }
+
+function setupCollabHoverListeners() {
+    // Find all collapsible wrappers
+    const wrappers = document.querySelectorAll('[id^="proj-"], [id^="team-"]');
+    
+    wrappers.forEach(wrap => {
+        const header = wrap.previousElementSibling;
+        if (!header) return;
+        
+        // Add hover listeners to the header
+        header.addEventListener('mouseenter', () => {
+            if (!manuallyExpanded.has(wrap.id)) {
+                wrap.classList.add('hover-expanded');
+                const chev = document.getElementById('chevron-' + wrap.id);
+                if (chev) chev.classList.add('open');
+            }
+        });
+        
+        header.addEventListener('mouseleave', () => {
+            if (!manuallyExpanded.has(wrap.id)) {
+                wrap.classList.remove('hover-expanded');
+                const chev = document.getElementById('chevron-' + wrap.id);
+                if (chev) chev.classList.remove('open');
+            }
+        });
+        
+        // Add click listener to header to toggle permanent expand
+        header.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleCollab(wrap.id);
+        });
+    });
+}
+
+// Initialize hover listeners when DOM is ready
+document.addEventListener('DOMContentLoaded', setupCollabHoverListeners);
 </script>
 
 }
