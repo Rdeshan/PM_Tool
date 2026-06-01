@@ -457,6 +457,7 @@ public class BacklogModel : PageModel
     private readonly IHubContext<NotificationsHub> _notificationsHub;
     private readonly IEmailService _emailService;
     private readonly AppDbContext _db;
+    private readonly ILogger<BacklogModel> _logger;
 
     public BacklogModel(
         IProjectService projectService,
@@ -470,6 +471,7 @@ public class BacklogModel : PageModel
         INotificationService notificationService,
         IHubContext<NotificationsHub> notificationsHub,
         IEmailService emailService,
+        ILogger<BacklogModel> logger, // 👈 ADD THIS
         AppDbContext db)
     {
         _projectService = projectService;
@@ -483,6 +485,7 @@ public class BacklogModel : PageModel
         _notificationService = notificationService;
         _notificationsHub = notificationsHub;
         _emailService = emailService;
+        _logger = logger;
         _db = db;
     }
 
@@ -1095,25 +1098,73 @@ public class BacklogModel : PageModel
     }
 
     // ── DELETE ────────────────────────────────────────────────────────────────
-    public async Task<IActionResult> OnPostDeleteAsync(Guid itemId)
-    {
-        SetPermissions();
-        if (!CanEditBacklog) return Forbid();
+    // public async Task<IActionResult> OnPostDeleteAsync(Guid itemId)
+    // {
+    //     SetPermissions();
+    //     if (!CanEditBacklog) return Forbid();
 
+    //     var existing = await _productBacklogService.GetItemByIdAsync(itemId);
+    //     var subProjectId = existing?.SubProjectId;
+
+    //     var success = await _productBacklogService.DeleteItemAsync(itemId);
+
+    //     if (success && subProjectId.HasValue)
+    //     {
+    //         await _subProjectService.UpdateProgressAsync(subProjectId.Value);
+    //     }
+
+    //     TempData[success ? "SuccessMessage" : "ErrorMessage"] =
+    //         success ? "Item deleted" : "Failed dvfd to delete item";
+    //     return RedirectToPage(new { projectId = ProjectId, id = ProductId });
+    // }
+
+    public async Task<IActionResult> OnPostDeleteAsync(Guid itemId)
+{
+    SetPermissions();
+    if (!CanEditBacklog) return Forbid();
+
+    try
+    {
         var existing = await _productBacklogService.GetItemByIdAsync(itemId);
+        if (existing == null)
+        {
+            _logger.LogWarning("Delete failed - Item not found. ItemId: {ItemId}", itemId);
+            TempData["ErrorMessage"] = "Item not found";
+            return RedirectToPage(new { projectId = ProjectId, id = ProductId });
+        }
+
         var subProjectId = existing?.SubProjectId;
+
+        _logger.LogInformation("Attempting to delete item. ItemId: {ItemId}, Title: {Title}", 
+            itemId, existing.Title);
 
         var success = await _productBacklogService.DeleteItemAsync(itemId);
 
-        if (success && subProjectId.HasValue)
+        if (success)
         {
-            await _subProjectService.UpdateProgressAsync(subProjectId.Value);
+            _logger.LogInformation("Item deleted successfully. ItemId: {ItemId}", itemId);
+            if (subProjectId.HasValue)
+            {
+                await _subProjectService.UpdateProgressAsync(subProjectId.Value);
+            }
+        }
+        else
+        {
+            _logger.LogError("DeleteItemAsync returned false. ItemId: {ItemId}", itemId);
         }
 
         TempData[success ? "SuccessMessage" : "ErrorMessage"] =
             success ? "Item deleted" : "Failed to delete item";
+
         return RedirectToPage(new { projectId = ProjectId, id = ProductId });
     }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Exception while deleting item. ItemId: {ItemId}", itemId);
+        TempData["ErrorMessage"] = $"Error: {ex.Message}";
+        return RedirectToPage(new { projectId = ProjectId, id = ProductId });
+    }
+}
 
     // ── SPRINT HANDLERS ───────────────────────────────────────────────────────
     public async Task<IActionResult> OnPostCreateSprintAsync([FromBody] CreateSprintRequest request)
