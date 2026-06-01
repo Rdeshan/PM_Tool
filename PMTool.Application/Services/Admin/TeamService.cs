@@ -87,6 +87,7 @@ public class TeamService : ITeamService
             Id = team.Id,
             Name = team.Name,
             Description = team.Description,
+            ColorCode = team.ColorCode,
             IsActive = team.IsActive,
             MemberCount = team.TeamMembers?.Count ?? 0,
             CreatedAt = team.CreatedAt,

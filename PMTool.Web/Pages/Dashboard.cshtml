@@ -314,7 +314,7 @@ else
 
             <!-- Recent Activity -->
             <div class="section-card" style="flex:1;">
-                <div class="section-title">Recent Activity</div>
+                <div class="section-title mb-3">Recent Activity</div>
                 @if (!d.RecentActivity.Any())
                 {
                     <div class="empty-state" style="padding:1rem 0;">
@@ -324,7 +324,7 @@ else
                 }
                 else
                 {
-                    @foreach (var a in d.RecentActivity)
+                    @foreach (var a in d.RecentActivity.Take(5))
                     {
                         var dotCls = a.Status == 4 ? "done" : a.Status == 2 ? "prog" : "";
                         <div class="activity-row">
@@ -360,7 +360,7 @@ else
                 }
                 else
                 {
-                    @foreach (var n in d.Notifications)
+                    @foreach (var n in d.Notifications.Take(5))
                     {
                         <div class="notif-row">
                             <div class="notif-dot"></div>
@@ -370,6 +370,9 @@ else
                             </div>
                         </div>
                     }
+                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e9ecef;">
+                        <a asp-page="/Notifications/Index" class="btn btn-sm btn-outline-primary w-100" style="font-size:.75rem;">See all notifications</a>
+                    </div>
                 }
             </div>
 

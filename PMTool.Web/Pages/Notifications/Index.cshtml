@@ -3,3 +3,101 @@
 @{
     ViewData["Title"] = "Notifications";
 }
+
+<style>
+    .notif-page { max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    .notif-card { background: #fff; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.06); padding: 1.5rem; }
+    .notif-item { display: flex; gap: .75rem; align-items: flex-start; padding: .75rem 0; border-bottom: 1px solid #f4f4f4; }
+    .notif-item:last-child { border-bottom: none; }
+    .notif-dot { width: 10px; height: 10px; border-radius: 50%; background: #0D6EFD; flex-shrink: 0; margin-top: 5px; }
+    .notif-body { flex: 1; }
+    .notif-msg { font-size: .9rem; color: #1b2b23; line-height: 1.4; }
+    .notif-time { font-size: .75rem; color: #6c757d; margin-top: 3px; }
+    .empty-state { text-align: center; padding: 3rem 1rem; color: #6c757d; }
+    .empty-state i { font-size: 2.5rem; display: block; margin-bottom: .75rem; opacity: .4; }
+</style>
+
+<div class="notif-page">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="fw-bold mb-0">Notifications</h5>
+        <a asp-page="/Dashboard" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+        </a>
+    </div>
+
+    <div class="notif-card">
+        <div id="notif-list">
+            <div class="text-center py-4 text-muted">
+                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
+                Loading notifications...
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadNotifications() {
+        const res = await fetch('?handler=List', { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        const list = await res.json();
+        const container = document.getElementById('notif-list');
+
+        if (!list.length) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="bi bi-bell-slash"></i>
+                    You have no notifications.
+                </div>`;
+            return;
+        }
+
+        container.innerHTML = list.map(n => `
+            <div class="notif-item" id="notif-${n.id}">
+                <div class="notif-dot"></div>
+                <div class="notif-body">
+                    <div class="notif-msg">${escHtml(n.message)}</div>
+                    <div class="notif-time">${timeAgo(n.createdAt)}</div>
+                </div>
+                <button class="btn btn-sm btn-link text-muted p-0 ms-2" title="Dismiss" onclick="dismiss('${n.id}')">
+                    <i class="bi bi-x-lg"></i>
+                </button>
+            </div>`).join('');
+    }
+
+    async function dismiss(id) {
+        const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
+        const res = await fetch(`?handler=Delete&id=${id}`, {
+            method: 'POST',
+            headers: {
+                'RequestVerificationToken': token,
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        const data = await res.json();
+        if (data.success) {
+            const el = document.getElementById(`notif-${id}`);
+            el?.remove();
+            if (!document.querySelector('.notif-item')) {
+                document.getElementById('notif-list').innerHTML = `
+                    <div class="empty-state">
+                        <i class="bi bi-bell-slash"></i>
+                        You have no notifications.
+                    </div>`;
+            }
+        }
+    }
+
+    function timeAgo(dateStr) {
+        const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+        if (diff < 60) return 'just now';
+        if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
+        return `${Math.floor(diff / 86400)}d ago`;
+    }
+
+    function escHtml(s) {
+        return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    loadNotifications();
+</script>
+<form id="csrf-form" method="post">@Html.AntiForgeryToken()</form>
