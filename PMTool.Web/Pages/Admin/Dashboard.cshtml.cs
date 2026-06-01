@@ -7,6 +7,7 @@ using PMTool.Application.DTOs.Dashboard;
 using PMTool.Application.DTOs.Project;
 using PMTool.Application.Interfaces;
 using PMTool.Application.Services.Project;
+using System.Collections.Generic;
 
 namespace PMTool.Web.Pages.Admin;
 
@@ -19,6 +20,7 @@ public class DashboardModel : PageModel
     public List<ProjectDTO> RecentProjects { get; set; } = new();
     public List<ProjectDTO> AllProjects { get; set; } = new();
     public DashboardDto Dashboard { get; set; } = new();
+    public List<CollabProjectDto> CollabData { get; set; } = new();
 
     public DashboardModel(IProjectService projectService, IDashboardService dashboardService)
     {
@@ -56,6 +58,15 @@ public class DashboardModel : PageModel
         {
             AllProjects = new List<ProjectDTO>();
             RecentProjects = new List<ProjectDTO>();
+        }
+
+        try
+        {
+            CollabData = await _dashboardService.GetCollabDataAsync();
+        }
+        catch
+        {
+            CollabData = new List<CollabProjectDto>();
         }
 
         return Page();

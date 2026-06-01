@@ -74,4 +74,33 @@ namespace PMTool.Application.DTOs.Dashboard
         public DateTime CreatedAt { get; set; }
         public Guid? ItemId { get; set; }
     }
+
+    public class CollabProjectDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string ColourCode { get; set; } = "#0D6EFD";
+        public DateTime DueDate { get; set; }
+        public int Status { get; set; }
+        public List<CollabTeamDto> Teams { get; set; } = new();
+    }
+
+    public class CollabTeamDto
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = "";
+        public string ColorCode { get; set; } = "#6c757d";
+        public List<CollabMemberDto> Members { get; set; } = new();
+    }
+
+    public class CollabMemberDto
+    {
+        public Guid Id { get; set; }
+        public string DisplayName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string RoleName { get; set; } = "";
+        public string Initials { get; set; } = "";
+        public int TotalTasks { get; set; }
+        public int CompletedTasks { get; set; }
+    }
 }

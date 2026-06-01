@@ -4,6 +4,7 @@ using PMTool.Application.Interfaces;
 using PMTool.Domain.Enums;
 using PMTool.Infrastructure.Data;
 using PMTool.Infrastructure.Repositories.Interfaces;
+using System.Collections.Generic;
 
 public class DashboardService : IDashboardService
 {
@@ -44,6 +45,113 @@ public class DashboardService : IDashboardService
                 })
                 .ToList()
         };
+    }
+
+    public async Task<List<CollabProjectDto>> GetCollabDataAsync()
+    {
+        var projects = await _context.Projects
+            .Where(p => !p.IsArchived)
+            .OrderBy(p => p.ExpectedEndDate)
+            .Take(4)
+            .ToListAsync();
+
+        if (!projects.Any())
+            return new List<CollabProjectDto>();
+
+        var projectIds = projects.Select(p => p.Id).ToList();
+
+        var userRoles = await _context.UserRoles
+            .Include(ur => ur.User)
+            .Include(ur => ur.Role)
+            .Where(ur => ur.ProjectId.HasValue && projectIds.Contains(ur.ProjectId.Value) && ur.IsActive)
+            .ToListAsync();
+
+        var userIds = userRoles.Select(ur => ur.UserId).Distinct().ToList();
+
+        var teamMembers = await _context.TeamMembers
+            .Include(tm => tm.Team)
+            .Where(tm => userIds.Contains(tm.UserId))
+            .ToListAsync();
+
+        var productBacklogs = await _context.ProductBacklogs
+            .Include(pb => pb.Product)
+            .Where(pb => pb.OwnerId.HasValue
+                         && userIds.Contains(pb.OwnerId.Value)
+                         && pb.Product != null
+                         && projectIds.Contains(pb.Product.ProjectId))
+            .ToListAsync();
+
+        var result = new List<CollabProjectDto>();
+
+        foreach (var project in projects)
+        {
+            var projectUserRoles = userRoles
+                .Where(ur => ur.ProjectId == project.Id)
+                .GroupBy(ur => ur.UserId)
+                .Select(g => g.First())
+                .ToList();
+
+            if (!projectUserRoles.Any())
+                continue;
+
+            var teamGroups = new Dictionary<Guid, CollabTeamDto>();
+
+            foreach (var ur in projectUserRoles)
+            {
+                if (ur.User == null) continue;
+
+                var membership = teamMembers.FirstOrDefault(tm => tm.UserId == ur.UserId);
+                var teamKey = membership?.TeamId ?? Guid.Empty;
+                var teamName = membership?.Team?.Name ?? "Project Team";
+                var teamColor = membership?.Team?.ColorCode ?? "#6c757d";
+
+                if (!teamGroups.ContainsKey(teamKey))
+                {
+                    teamGroups[teamKey] = new CollabTeamDto
+                    {
+                        Id = teamKey,
+                        Name = teamName,
+                        ColorCode = teamColor
+                    };
+                }
+
+                var userTasks = productBacklogs
+                    .Where(pb => pb.OwnerId == ur.UserId && pb.Product?.ProjectId == project.Id)
+                    .ToList();
+
+                var fn = ur.User.FirstName ?? "";
+                var ln = ur.User.LastName ?? "";
+                var initials = ((fn.Length > 0 ? fn[0].ToString() : "") +
+                                (ln.Length > 0 ? ln[0].ToString() : "")).ToUpper();
+                if (string.IsNullOrEmpty(initials) && ur.User.Email.Length >= 2)
+                    initials = ur.User.Email.Substring(0, 2).ToUpper();
+
+                teamGroups[teamKey].Members.Add(new CollabMemberDto
+                {
+                    Id = ur.UserId,
+                    DisplayName = string.IsNullOrWhiteSpace(ur.User.DisplayName)
+                        ? $"{fn} {ln}".Trim()
+                        : ur.User.DisplayName,
+                    Email = ur.User.Email,
+                    RoleName = ur.Role?.Name ?? "Member",
+                    Initials = initials,
+                    TotalTasks = userTasks.Count,
+                    CompletedTasks = userTasks.Count(t => t.Status == 4)
+                });
+            }
+
+            result.Add(new CollabProjectDto
+            {
+                Id = project.Id,
+                Name = project.Name,
+                ColourCode = string.IsNullOrEmpty(project.ColourCode) ? "#0D6EFD" : project.ColourCode,
+                DueDate = project.ExpectedEndDate,
+                Status = project.Status,
+                Teams = teamGroups.Values.ToList()
+            });
+        }
+
+        return result;
     }
 
     public async Task<PersonalDashboardDto> GetPersonalDashboardAsync(string userId)
