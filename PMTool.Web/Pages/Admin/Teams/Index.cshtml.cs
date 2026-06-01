@@ -58,10 +58,16 @@ public class IndexModel : PageModel
 
     public async Task<IActionResult> OnPostCreateTeamAsync()
     {
+        ModelState.Remove(nameof(EditTeamId));
+        ModelState.Remove(nameof(EditTeamName));
+        ModelState.Remove(nameof(EditTeamDescription));
+        ModelState.Remove(nameof(EditTeamColorCode));
+        ModelState.Remove(nameof(EditTeamIsActive));
+
         if (!ModelState.IsValid)
         {
-            ErrorMessage = "Please fill in all required fields.";
             await OnGetAsync();
+            ErrorMessage = "Please fill in all required fields.";
             return Page();
         }
 
