@@ -2512,9 +2512,9 @@ function appendCreatedBacklogItem(item, typeIconHtml) {
     row.dataset.itemTitle = title;
     row.dataset.itemKey = shortId;
     row.dataset.itemDescription = '';
-    row.dataset.itemAssignee = item.ownerName || 'Unassigned';
-    row.dataset.itemAssigneeId = '';
-    row.dataset.itemDueDate = '';
+    row.dataset.itemAssignee   = item.ownerName || 'Unassigned';
+    row.dataset.itemAssigneeId = item.ownerId   || '';
+    row.dataset.itemDueDate    = item.dueDateRaw || '';
     row.dataset.itemStartDate = '';
     row.dataset.itemStoryPoints = String(item.storyPoints || 0);
     row.dataset.itemPriority = String(item.priority || 3);
@@ -2523,26 +2523,126 @@ function appendCreatedBacklogItem(item, typeIconHtml) {
     row.dataset.itemCreatedAt = new Date().toISOString();
     const titleArg = JSON.stringify(title);
 
+    // Primary source: server response. Fallback: read from hidden form inputs
+    // (they are still set at this point — cleared by the caller AFTER this function returns)
+    const ownerId    = item.ownerId    || document.getElementById('hiddenOwner')?.value    || '';
+    const dueDateRaw = item.dueDateRaw || document.getElementById('hiddenDueDate')?.value  || '';
+
+    // Resolve owner display name from mentionUsers list when server didn't return it
+    const ownerFromList = ownerId ? mentionUsers.find(u => String(u.id) === ownerId) : null;
+    const ownerName  = (item.ownerName && item.ownerName !== 'Unassigned')
+        ? item.ownerName
+        : (ownerFromList?.name || 'Unassigned');
+
+    // Format due date label (e.g. "Jun 30") from ISO date if server didn't return it
+    let dueDateLbl = item.dueDate || '';
+    if (!dueDateLbl && dueDateRaw) {
+        const d = new Date(dueDateRaw + 'T00:00:00');
+        if (!isNaN(d.getTime())) dueDateLbl = `${SMON[d.getMonth()]} ${d.getDate()}`;
+    }
+
+    // Fix dataset now that we have ownerId / dueDateRaw
+    row.dataset.itemAssigneeId = ownerId;
+    row.dataset.itemDueDate    = dueDateRaw;
+    row.dataset.itemAssignee   = ownerName;
+
+    // Type dropdown — built from the create-bar options already on the page
+    const typeOpts = [...document.querySelectorAll('#createTypeDd .dd-item.work-type-option')]
+        .map(o => `<div class="dd-item work-type-option" data-type-value="${o.dataset.typeValue}" data-icon-class="${escapeHtml(o.dataset.iconClass||'bi bi-tag')}" onclick="updateType('${id}',${o.dataset.typeValue},event)"><i class="${escapeHtml(o.dataset.iconClass||'bi bi-tag')}"></i> ${escapeHtml(o.textContent.trim())}</div>`)
+        .join('');
+
+    // Status dropdown
+    const statusDd = `<div class="dd-panel" id="statusDd_${id}">
+        <div class="dd-item" onclick="updateStatus('${id}',1,event)"><span class="pill-status s-todo" style="pointer-events:none;font-size:10px;">To do</span></div>
+        <div class="dd-item" onclick="updateStatus('${id}',2,event)"><span class="pill-status s-inprog" style="pointer-events:none;font-size:10px;">In progress</span></div>
+        <div class="dd-item" onclick="updateStatus('${id}',3,event)"><span class="pill-status s-inreview" style="pointer-events:none;font-size:10px;">In review</span></div>
+        <div class="dd-item" onclick="updateStatus('${id}',4,event)"><span class="pill-status s-done" style="pointer-events:none;font-size:10px;">Done</span></div>
+    </div>`;
+
+    // Assignee avatar + dropdown
+    const avatarHtml = ownerId
+        ? `<div class="avatar-circle" style="${avatarStyle(ownerId)}">${getInitials(ownerName)}</div>`
+        : `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>`;
+    const assignDd = `<div class="dd-panel dd-panel-right" id="assignDd_${id}">
+        <div class="dd-item" onclick="updateOwner('${id}','',event)"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg> Unassigned</div>
+        ${mentionUsers.map(u => `<div class="dd-item" onclick="updateOwner('${id}','${u.id}',event)"><div class="avatar-circle" style="${avatarStyle(String(u.id))}">${getInitials(u.name)}</div> ${escapeHtml(u.name)}</div>`).join('')}
+    </div>`;
+
+    // Due date
+    const dateLabel = dueDateLbl ? `<span style="font-size:11px;" id="dateLbl_${id}">${escapeHtml(dueDateLbl)}</span>` : '';
+
     row.innerHTML = `
         <td><input type="checkbox" value="${id}" /></td>
-        <td><button type="button" class="ib" title="${escapeHtml(item.typeName || 'Work Item')}">${typeIconHtml || '<i class="bi bi-tag"></i>'}</button></td>
+        <td>
+            <div class="rel d-inline-flex align-items-center">
+                <button type="button" class="ib" onclick="toggleDd('typeDd_${id}',event)" title="${escapeHtml(item.typeName||'Work Item')}">${typeIconHtml||'<i class="bi bi-tag"></i>'}</button>
+                <div class="dd-panel type-dropdown" id="typeDd_${id}" data-item-id="${id}">
+                    ${typeOpts}
+                    <div class="dd-item text-primary" onclick="openWorkTypeModal(event)"><i class="bi bi-plus-circle"></i> Add work type</div>
+                </div>
+            </div>
+        </td>
         <td>
             <div class="item-title-stack">
                 <div class="d-flex align-items-center gap-2" id="titleCell_${id}">
                     <span class="badge-id">${shortId}</span>
-                    <a href="#" class="title-link" onclick='openProductSidebar("${id}", ${titleArg}, "${shortId}", false, event)'>${escapeHtml(title)}</a>
-                    <button type="button" class="subtask-add-btn" onclick='openProductSidebar("${id}", ${titleArg}, "${shortId}", true, event)' title="Add subtask"><i class="bi bi-plus-lg"></i></button>
-                    <span class="edit-title-btn" onclick='editTitle("${id}", ${titleArg})' title="Edit title"><i class="bi bi-pencil" style="font-size:10px;"></i></span>
+                    <a href="#" class="title-link" onclick='openProductSidebar("${id}",${titleArg},"${shortId}",false,event)'>${escapeHtml(title)}</a>
+                    <button type="button" class="subtask-add-btn" onclick='openProductSidebar("${id}",${titleArg},"${shortId}",true,event)' title="Add subtask"><i class="bi bi-plus-lg"></i></button>
+                    <span class="edit-title-btn" onclick='editTitle("${id}",${titleArg})' title="Edit title"><i class="bi bi-pencil" style="font-size:10px;"></i></span>
                 </div>
-                <div class="product-subtasks d-none" id="subtaskList_${id}"></div>
+                <div class="product-subtasks d-none" id="subtaskList_${id}" style="display:none!important;"></div>
             </div>
         </td>
-        <td style="text-align:center;"><span class="text-muted small">-</span></td>
-        <td><button type="button" class="pill-status ${statusInfo.cls}" data-status="${status}">${statusInfo.label}</button></td>
-        <td><button type="button" class="ib" title="Unassigned"><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg></button></td>
-        <td><div id="ptsCell_${id}"><button type="button" class="ib" onclick="editPoints('${id}', 0)" title="Add story points"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg></button></div></td>
-        <td><span class="text-muted small">-</span></td>
-        <td></td>`;
+        <td style="text-align:center;">
+            <div class="rel d-inline-flex">
+                <button type="button" class="subproj-btn" onclick="toggleDd('subProjDd_${id}',event)" style="margin-left:0;"><i class="bi bi-plus"></i> Subprojects</button>
+                <div class="dd-panel" id="subProjDd_${id}"><div class="dd-item text-muted">No sub-projects available</div></div>
+            </div>
+        </td>
+        <td>
+            <div class="rel">
+                <button type="button" class="pill-status ${statusInfo.cls}" data-status="${status}" onclick="toggleDd('statusDd_${id}',event)">${statusInfo.label}</button>
+                ${statusDd}
+            </div>
+        </td>
+        <td>
+            <div class="rel">
+                <button type="button" class="ib" onclick="toggleDd('assignDd_${id}',event)" title="${escapeHtml(ownerName)}">${avatarHtml}</button>
+                ${assignDd}
+            </div>
+        </td>
+        <td>
+            <div id="ptsCell_${id}">
+                <button type="button" class="ib" onclick="editPoints('${id}',0)" title="Add story points">
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="6" y1="1" x2="6" y2="11"/><line x1="1" y1="6" x2="11" y2="6"/></svg>
+                </button>
+            </div>
+        </td>
+        <td>
+            <div class="rel">
+                <button type="button" class="ib" onclick="toggleItemCal('${id}',event)" title="${dueDateLbl||'Set due date'}">
+                    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="1" y="3" width="14" height="12" rx="2"/><path d="M5 1v4M11 1v4M1 7h14" stroke-linecap="round"/></svg>
+                    ${dateLabel}
+                </button>
+                <div class="cal-panel" id="itemCal_${id}" data-current-date="${dueDateRaw}"></div>
+            </div>
+        </td>
+        <td>
+            <div class="dropdown">
+                <button class="ib" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-three-dots-vertical" style="font-size:13px;"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm" style="font-size:12px;min-width:140px;">
+                    <li><a class="dropdown-item" href="#"><i class="bi bi-pencil me-2"></i>Edit</a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <button type="button" class="dropdown-item text-danger" onclick="deleteBacklogItem('${id}',event)">
+                            <i class="bi bi-trash me-2"></i>Delete
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </td>`;
     body.appendChild(row);
     updateBacklogStats();
 }
