@@ -61,7 +61,7 @@ public class ProjectService : IProjectService
         var project = new Domain.Entities.Project
         {
             Name = request.Name,
-            Description = request.Description,
+            Description = request.Description ?? string.Empty,
             ClientName = request.ClientName,
             ProjectCode = request.ProjectCode,
             StartDate = request.StartDate,
@@ -89,7 +89,7 @@ public class ProjectService : IProjectService
         }
 
         project.Name = request.Name;
-        project.Description = request.Description;
+        project.Description = request.Description ?? string.Empty;
         project.ClientName = request.ClientName;
         project.ProjectCode = request.ProjectCode;
         project.StartDate = request.StartDate;

@@ -26,10 +26,16 @@ public class CreateModel : PageModel
         _authorizationService = authorizationService;
     }
 
-    public IActionResult OnGet()
+ public IActionResult OnGet()
+{
+    Input = new CreateProjectRequest
     {
-        return Page();
-    }
+        StartDate = DateTime.Today,
+        ExpectedEndDate = DateTime.Today.AddDays(7) // optional default
+    };
+
+    return Page();
+}
 
     public async Task<IActionResult> OnPostAsync()
     {
@@ -48,7 +54,7 @@ public class CreateModel : PageModel
 
         if (!result)
         {
-            ErrorMessage = "Failed to create project. Project code may already exist.";
+            ErrorMessage = "Failed to create project. The project code may already exist.";
             return Page();
         }
 

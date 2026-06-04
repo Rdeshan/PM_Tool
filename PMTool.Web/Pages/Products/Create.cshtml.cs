@@ -28,7 +28,9 @@ public class CreateModel : PageModel
     {
         ProjectId = projectId;
         Input.ProjectId = projectId;
+        Input.PlannedReleaseDate = DateTime.Today; // current date
     }
+    
 
     public async Task<IActionResult> OnPostAsync(Guid projectId)
     {

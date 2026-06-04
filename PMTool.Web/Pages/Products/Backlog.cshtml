@@ -837,6 +837,13 @@ async function submitCreateSprint() {
             showToast('Sprint created successfully');
             appendSprintCard(result.sprint);
             closeCreateSprintModal();
+            // Reset modal fields for next use
+            document.getElementById('sprintName').value  = '';
+            document.getElementById('sprintGoal').value  = '';
+            const today = new Date().toISOString().substring(0, 10);
+            const twoWeeks = new Date(Date.now() + 14 * 86400000).toISOString().substring(0, 10);
+            document.getElementById('sprintStart').value = today;
+            document.getElementById('sprintEnd').value   = twoWeeks;
         } else {
             showToast(result.message || 'Failed to create sprint', 'danger');
         }
@@ -939,8 +946,45 @@ async function deleteSprint(id) {
 function appendSprintCard(sprint) {
     const backlogWrap = document.querySelector('.backlog-wrap');
     if (!backlogWrap || !sprint) return;
-    const id = sprint.id || sprint.Id;
-    const name = sprint.name || sprint.Name || 'Sprint';
+
+    const id        = sprint.id        || sprint.Id;
+    const name      = sprint.name      || sprint.Name      || 'Sprint';
+    const startDate = sprint.startDate || sprint.StartDate || '';
+    const endDate   = sprint.endDate   || sprint.EndDate   || '';
+    const goal      = sprint.goal      || sprint.Goal      || '';
+
+    // Format dates for display (e.g. "Jun 3 - Jun 17, 2026")
+    function fmtDate(d) {
+        if (!d) return '';
+        const dt = new Date(d);
+        return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    }
+    function fmtDateFull(d) {
+        if (!d) return '';
+        const dt = new Date(d);
+        return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    }
+    function fmtIso(d) {
+        if (!d) return '';
+        return new Date(d).toISOString().substring(0, 10);
+    }
+
+    const dateRange = (startDate && endDate)
+        ? `${fmtDate(startDate)} – ${fmtDateFull(endDate)}`
+        : '';
+
+    // Check whether there is already an active sprint (status==2 card present)
+    const hasActive = !!document.querySelector('.sprint-card .badge.bg-success');
+    const startBtnDisabled = hasActive ? 'disabled' : '';
+
+    // Encode name and goal for safe inline onclick attribute usage
+    const encodedName = encodeURIComponent(name);
+    const encodedGoal = encodeURIComponent(goal);
+
+    const goalHtml = goal
+        ? `<div class="px-2 mb-2 sprint-goal">Goal: ${escapeHtml(goal)}</div>`
+        : '';
+
     const card = document.createElement('div');
     card.className = 'sprint-card';
     card.id = `sprint_${id}`;
@@ -949,18 +993,50 @@ function appendSprintCard(sprint) {
             <div class="d-flex align-items-center gap-3">
                 <i class="bi bi-chevron-down chevron-toggle"></i>
                 <div>
-                    <div class="d-flex align-items-center gap-2"><h6 class="mb-0 fw-bold" style="font-size:14px;">${escapeHtml(name)}</h6></div>
-                    <div class="sprint-meta"><span class="capacity-indicator"><i class="bi bi-lightning-charge-fill" style="color:#0052cc"></i><span class="pts-sum">0</span> pts</span></div>
+                    <div class="d-flex align-items-center gap-2">
+                        <h6 class="mb-0 fw-bold" style="font-size:14px;">${escapeHtml(name)}</h6>
+                    </div>
+                    <div class="sprint-meta">
+                        <span>${dateRange}</span>
+                        <span class="capacity-indicator">
+                            <i class="bi bi-lightning-charge-fill" style="color:#0052cc"></i>
+                            <span class="pts-sum">0</span> pts
+                        </span>
+                    </div>
                 </div>
             </div>
             <div class="d-flex align-items-center gap-2" onclick="event.stopPropagation()">
-                <button class="btn btn-sm btn-link text-muted" onclick="deleteSprint('${id}')" title="Delete sprint"><i class="bi bi-trash"></i></button>
+                <button class="btn btn-sm btn-link text-muted" onclick="deleteSprint('${id}')" title="Delete sprint">
+                    <i class="bi bi-trash"></i>
+                </button>
+                <button class="btn btn-sm btn-primary"
+                        onclick="openStartSprintModal('${id}','${encodedName}','${fmtIso(startDate)}','${fmtIso(endDate)}','${encodedGoal}')"
+                        id="startSprintBtn_${id}"
+                        ${startBtnDisabled}>
+                    Start sprint
+                </button>
             </div>
         </div>
+        ${goalHtml}
         <div class="sprint-table-wrap">
-            <table class="table-backlog mb-0"><tbody class="sprint-drop-zone" data-sprint-id="${id}">
-                <tr class="drop-placeholder text-center" data-placeholder="true"><td colspan="9" class="text-muted small py-3">Drop items here</td></tr>
-            </tbody></table>
+            <table class="table-backlog mb-0">
+                <colgroup>
+                    <col style="width:32px;" />
+                    <col style="width:28px;" />
+                    <col />
+                    <col style="width:35%;" />
+                    <col style="width:110px;" />
+                    <col style="width:80px;" />
+                    <col style="width:64px;" />
+                    <col style="width:95px;" />
+                    <col style="width:36px;" />
+                </colgroup>
+                <tbody class="sprint-drop-zone" data-sprint-id="${id}">
+                    <tr class="drop-placeholder text-center" data-placeholder="true">
+                        <td colspan="9" class="text-muted small py-3">Drop items here</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>`;
     backlogWrap.parentNode.insertBefore(card, backlogWrap);
     initDropZone(card.querySelector('.sprint-drop-zone'));
