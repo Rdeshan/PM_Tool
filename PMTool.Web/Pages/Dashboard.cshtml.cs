@@ -12,6 +12,7 @@ namespace PMTool.Web.Pages;
 public class DashboardModel : PageModel
 {
     private readonly IDashboardService _dashboardService;
+    
 
     public PersonalDashboardDto Dashboard { get; set; } = new();
 

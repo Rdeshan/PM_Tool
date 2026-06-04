@@ -141,14 +141,9 @@ else
             <p class="text-muted mb-0" style="font-size:.85rem;">Welcome back, @userName</p>
         </div>
         <div class="topbar-right">
-            <a asp-page="/Account/Settings" class="btn btn-sm btn-outline-secondary">
-                <i class="bi bi-gear me-1"></i>Settings
-            </a>
-            <form method="post" style="display:inline;">
-                <button type="submit" asp-page-handler="Logout" class="btn btn-sm btn-outline-danger">
-                    <i class="bi bi-box-arrow-left me-1"></i>Logout
-                </button>
-            </form>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
+    <i class="bi bi-plus-circle me-1"></i>Add Daily Task +
+</button>
         </div>
     </div>
 
@@ -377,6 +372,34 @@ else
             </div>
 
         </div>
+        <div class="modal fade" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+
+            <div class="modal-header">
+                <h5 class="modal-title" id="addTaskModalLabel">Add Daily Task</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+        <!--add task modal -->
+            <div class="modal-body">
+                <form method="post">
+                    <div class="mb-3">
+                        <label class="form-label">Task Name</label>
+                        <input type="text" class="form-control" name="TaskName" />
+                    </div>
+                
+                    <div class="mb-3">
+                        <label class="form-label">Description</label>
+                        <textarea class="form-control" name="Description"></textarea>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Send</button>
+                </form>
+            </div>
+
+        </div>
+    </div>
+</div>
     </div>
 </div>
 
