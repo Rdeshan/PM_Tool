@@ -141,8 +141,8 @@ else
             <p class="text-muted mb-0" style="font-size:.85rem;">Welcome back, @userName</p>
         </div>
         <div class="topbar-right">
-          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#addTaskModal">
-    <i class="bi bi-plus-circle me-1"></i>Add Daily Task +
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="offcanvas" data-bs-target="#taskOffcanvas">
+    <i class="bi bi-layout-sidebar-reverse me-1"></i> Daily Tasks
 </button>
         </div>
     </div>
@@ -372,34 +372,62 @@ else
             </div>
 
         </div>
-        <div class="modal fade" id="addTaskModal" tabindex="-1" aria-labelledby="addTaskModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-
-            <div class="modal-header">
-                <h5 class="modal-title" id="addTaskModalLabel">Add Daily Task</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="offcanvas offcanvas-end shadow" tabindex="-1" id="taskOffcanvas" aria-labelledby="taskOffcanvasLabel" style="width: 450px;">
+            <div class="offcanvas-header border-bottom">
+                <h5 class="offcanvas-title fw-bold" id="taskOffcanvasLabel">Daily Tasks</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
             </div>
-        <!--add task modal -->
-            <div class="modal-body">
-                <form method="post">
-                    <div class="mb-3">
-                        <label class="form-label">Task Name</label>
-                        <input type="text" class="form-control" name="TaskName" />
-                    </div>
-                
-                    <div class="mb-3">
-                        <label class="form-label">Description</label>
-                        <textarea class="form-control" name="Description"></textarea>
-                    </div>
+            <div class="offcanvas-body p-0">
+                <!-- Tabs -->
+                <ul class="nav nav-tabs px-3 pt-3" id="taskTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active fw-semibold" id="add-task-tab" data-bs-toggle="tab" data-bs-target="#addTaskPane" type="button" role="tab" aria-controls="addTaskPane" aria-selected="true">Add Task</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link fw-semibold" id="task-list-tab" data-bs-toggle="tab" data-bs-target="#taskListPane" type="button" role="tab" aria-controls="taskListPane" aria-selected="false">Task List</button>
+                    </li>
+                </ul>
 
-                    <button type="submit" class="btn btn-primary">Send</button>
-                </form>
+                <div class="tab-content p-3" id="taskTabsContent">
+                    <!-- Add Task Tab -->
+                    <div class="tab-pane fade show active" id="addTaskPane" role="tabpanel" aria-labelledby="add-task-tab">
+                        <form method="post">
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold text-uppercase">Task Name</label>
+                                <input type="text" class="form-control" name="TaskName" placeholder="Enter task name" required />
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label text-muted small fw-bold text-uppercase">Description</label>
+                                <textarea class="form-control" name="Description" rows="4" placeholder="Enter task details..."></textarea>
+                            </div>
+
+                            <div class="mb-4">
+                                <label class="form-label text-muted small fw-bold text-uppercase">Link Backlog Item</label>
+                                <select class="form-select" name="BacklogItemId">
+                                    <option value="">-- Select Backlog Item --</option>
+                                    @foreach (var item in Model.BacklogItems)
+                                    {
+                                        <option value="@item.Id">@item.Title</option>
+                                    }
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 fw-semibold">Save Task</button>
+                        </form>
+                    </div>
+                    
+                    <!-- Task List Tab -->
+                    <div class="tab-pane fade" id="taskListPane" role="tabpanel" aria-labelledby="task-list-tab">
+                        <div class="text-center text-muted mt-5">
+                            <i class="bi bi-list-task fs-1 mb-2 d-block"></i>
+                            <p>No daily tasks added yet.</p>
+                        </div>
+                        <!-- Future task list can go here -->
+                    </div>
+                </div>
             </div>
-
         </div>
-    </div>
-</div>
     </div>
 </div>
 

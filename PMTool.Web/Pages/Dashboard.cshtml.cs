@@ -3,8 +3,11 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.EntityFrameworkCore;
 using PMTool.Application.DTOs.Dashboard;
 using PMTool.Application.Interfaces;
+using PMTool.Domain.Entities;
+using PMTool.Infrastructure.Data;
 
 namespace PMTool.Web.Pages;
 
@@ -12,13 +15,16 @@ namespace PMTool.Web.Pages;
 public class DashboardModel : PageModel
 {
     private readonly IDashboardService _dashboardService;
-    
+    private readonly AppDbContext _context;
+
+    public IEnumerable<ProductBacklog> BacklogItems { get; set; } = new List<ProductBacklog>();
 
     public PersonalDashboardDto Dashboard { get; set; } = new();
 
-    public DashboardModel(IDashboardService dashboardService)
+    public DashboardModel(IDashboardService dashboardService, AppDbContext context)
     {
         _dashboardService = dashboardService;
+        _context = context;
     }
 
     public async Task<IActionResult> OnGetAsync()
@@ -34,6 +40,7 @@ public class DashboardModel : PageModel
 
         var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "";
         Dashboard = await _dashboardService.GetPersonalDashboardAsync(userId);
+        BacklogItems = await _context.ProductBacklogs.ToListAsync();
         return Page();
     }
 
