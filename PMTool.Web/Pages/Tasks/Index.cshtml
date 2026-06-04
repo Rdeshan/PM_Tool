@@ -1,0 +1,30 @@
+@page
+@model PMTool.Web.Pages.Tasks.IndexModel
+@{
+    ViewData["Title"] = "All Tasks";
+}
+
+<h3>Daily Tasks</h3>
+
+<div class="search-bar">
+    <form method="get">
+  <div class="mb-3">
+    <label for="byDate" class="form-label">By Date</label>
+
+    <div class="input-group">
+        <input type="date"
+               id="byDate"
+               name="byDate"
+               class="form-control"
+               value="@Request.Query["byDate"]" />
+
+        <button type="submit" class="btn btn-primary">Search</button>
+
+        @if (!string.IsNullOrEmpty(Request.Query["byDate"]))
+        {
+            <a href="@Url.Page("./Index")" class="btn btn-secondary">Clear</a>
+        }
+    </div>
+</div>
+    </form>
+</div>
