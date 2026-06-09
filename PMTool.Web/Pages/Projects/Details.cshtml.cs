@@ -9,6 +9,7 @@ using PMTool.Application.Services.Team;
 using PMTool.Domain.Enums;
 using PMTool.Infrastructure.Data;
 using PMTool.Infrastructure.Repositories.Interfaces;
+using PMTool.Infrastructure.Services.Interfaces;
 using System.ComponentModel.DataAnnotations;
 using System.Security.Claims;
 
@@ -23,6 +24,7 @@ public class DetailsModel : PageModel
     private readonly AppDbContext _context;
     private readonly IWebHostEnvironment _environment;
     private readonly ITeamService _teamService;
+    private readonly IAuditService _auditService;
 
     public ProjectDTO? Project { get; set; }
     public IEnumerable<Domain.Entities.User> TeamMembers { get; set; } = new List<Domain.Entities.User>();
@@ -35,12 +37,13 @@ public class DetailsModel : PageModel
     [BindProperty]
     public UploadDocumentInput UploadDocument { get; set; } = new();
 
-    public DetailsModel(IProjectService projectService, AppDbContext context, IWebHostEnvironment environment , ITeamService teamService)
+    public DetailsModel(IProjectService projectService, AppDbContext context, IWebHostEnvironment environment, ITeamService teamService, IAuditService auditService)
     {
         _projectService = projectService;
         _context = context;
         _environment = environment;
         _teamService = teamService;
+        _auditService = auditService;
     }
 
     public async Task<IActionResult> OnGetAsync(Guid id)
@@ -107,6 +110,9 @@ public class DetailsModel : PageModel
 
         _context.ProjectDocuments.Add(document);
         await _context.SaveChangesAsync();
+
+        await _auditService.LogAsync(userId, "Project.DocumentAdded", "Project", id.ToString(),
+            newValue: new { documentName = document.DocumentName, fileName = document.OriginalFileName });
 
         return RedirectToPage(new { id });
     }
@@ -200,6 +206,10 @@ public class DetailsModel : PageModel
         {
             _context.UserRoles.AddRange(userRolesToAdd);
             await _context.SaveChangesAsync();
+
+            foreach (var ur in userRolesToAdd)
+                await _auditService.LogAsync(Guid.Empty, "Project.TeamMemberAdded", "Project", id.ToString(),
+                    newValue: new { userId = ur.UserId, roleId = ur.RoleId, teamId });
         }
 
         return RedirectToPage(new { id });
@@ -251,6 +261,9 @@ public class DetailsModel : PageModel
 
         _context.ProjectDocuments.Remove(document);
         await _context.SaveChangesAsync();
+
+        await _auditService.LogAsync(Guid.Empty, "Project.DocumentRemoved", "Project", id.ToString(),
+            oldValue: new { documentName = document.DocumentName, fileName = document.OriginalFileName });
 
         return RedirectToPage(new { id });
     }

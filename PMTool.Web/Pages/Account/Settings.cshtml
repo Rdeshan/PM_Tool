@@ -21,6 +21,12 @@ else
                     <a class="list-group-item list-group-item-action active" asp-page="./Settings">Account Settings</a>
                     <a class="list-group-item list-group-item-action" asp-page="./Security">Security</a>
                     <a class="list-group-item list-group-item-action" asp-page="./TwoFactor">Two-Factor Auth</a>
+                    @if (User.IsInRole("Administrator"))
+                    {
+                        <a class="list-group-item list-group-item-action" asp-page="/Admin/AuditLog/Index">
+                            <i class="bi bi-journal-text me-2"></i>Audit Log
+                        </a>
+                    }
                 </div>
             </div>
             <div class="col-md-9">

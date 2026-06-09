@@ -3,6 +3,7 @@ using PMTool.Application.Interfaces;
 using PMTool.Domain.Entities;
 using PMTool.Domain.Enums;
 using PMTool.Infrastructure.Repositories.Interfaces;
+using PMTool.Infrastructure.Services.Interfaces;
 
 namespace PMTool.Application.Services.Backlog;
 
@@ -11,15 +12,18 @@ public class ProductBacklogService : IProductBacklogService
     private readonly IProductBacklogRepository _backlogRepository;
     private readonly IBacklogSubtaskRepository _subtaskRepository;
     private readonly IUserRepository _userRepository;
+    private readonly IAuditService _auditService;
 
     public ProductBacklogService(
         IProductBacklogRepository backlogRepository,
         IBacklogSubtaskRepository subtaskRepository,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        IAuditService auditService)
     {
         _backlogRepository = backlogRepository;
         _subtaskRepository = subtaskRepository;
         _userRepository = userRepository;
+        _auditService = auditService;
     }
 
     public async Task<ProductBacklogItemDTO?> GetItemByIdAsync(Guid itemId)
@@ -40,9 +44,7 @@ public class ProductBacklogService : IProductBacklogService
     public async Task<ProductBacklogItemDTO?> CreateBacklogItemAsync(CreateProductBacklogItemRequest request)
     {
         if (request.ProductId == Guid.Empty || string.IsNullOrWhiteSpace(request.Title))
-        {
             return null;
-        }
 
         var nextPriority = await _backlogRepository.GetNextPriorityAsync(request.ProductId);
 
@@ -67,9 +69,10 @@ public class ProductBacklogService : IProductBacklogService
 
         var created = await _backlogRepository.CreateAsync(item);
         if (!created)
-        {
             return null;
-        }
+
+        await _auditService.LogAsync(Guid.Empty, "ProductBacklog.Created", "ProductBacklog", item.Id.ToString(),
+            newValue: new { item.Title, type = GetWorkItemTypeName(item.Type), productId = item.ProductId });
 
         return MapToDto(item);
     }
@@ -78,9 +81,10 @@ public class ProductBacklogService : IProductBacklogService
     {
         var item = await _backlogRepository.GetByIdAsync(request.ItemId);
         if (item == null)
-        {
             return null;
-        }
+
+        // Capture old value before mutation
+        var oldValue = GetFieldValue(item, request.Field);
 
         switch (request.Field.ToLowerInvariant())
         {
@@ -92,15 +96,11 @@ public class ProductBacklogService : IProductBacklogService
                 break;
             case "type":
                 if (int.TryParse(request.Value, out var type))
-                {
                     item.Type = type;
-                }
                 break;
             case "status":
                 if (int.TryParse(request.Value, out var status))
-                {
                     item.Status = status;
-                }
                 break;
             case "owner":
                 item.OwnerId = Guid.TryParse(request.Value, out var ownerId) ? ownerId : null;
@@ -110,9 +110,7 @@ public class ProductBacklogService : IProductBacklogService
                 break;
             case "priority":
                 if (int.TryParse(request.Value, out var priority))
-                {
                     item.Priority = priority;
-                }
                 break;
             case "startdate":
                 item.StartDate = DateTime.TryParse(request.Value, out var startDate) ? startDate : null;
@@ -122,9 +120,7 @@ public class ProductBacklogService : IProductBacklogService
                 break;
             case "storypoints":
                 if (int.TryParse(request.Value, out var storyPoints) && storyPoints >= 0)
-                {
                     item.StoryPoints = storyPoints;
-                }
                 break;
             case "subproject":
                 item.SubProjectId = Guid.TryParse(request.Value, out var subProjId) ? subProjId : null;
@@ -135,14 +131,14 @@ public class ProductBacklogService : IProductBacklogService
 
         var updated = await _backlogRepository.UpdateAsync(item);
         if (!updated)
-        {
             return null;
-        }
+
+        await _auditService.LogAsync(Guid.Empty, "ProductBacklog.FieldChanged", "ProductBacklog", item.Id.ToString(),
+            oldValue: new { field = request.Field, value = oldValue },
+            newValue: new { field = request.Field, value = request.Value });
 
         if (item.OwnerId.HasValue)
-        {
             item.Owner = await _userRepository.GetByIdAsync(item.OwnerId.Value);
-        }
 
         return MapToDto(item);
     }
@@ -167,15 +163,11 @@ public class ProductBacklogService : IProductBacklogService
     public async Task<BacklogSubtaskDto?> CreateSubtaskAsync(Guid parentId, CreateBacklogSubtaskDto request)
     {
         if (parentId == Guid.Empty || string.IsNullOrWhiteSpace(request.Title))
-        {
             return null;
-        }
 
         var parent = await _backlogRepository.GetByIdAsync(parentId);
         if (parent == null)
-        {
             return null;
-        }
 
         var subtask = new BacklogSubtask
         {
@@ -192,14 +184,10 @@ public class ProductBacklogService : IProductBacklogService
 
         var created = await _subtaskRepository.CreateAsync(subtask);
         if (!created)
-        {
             return null;
-        }
 
         if (subtask.AssigneeId.HasValue)
-        {
             subtask.Assignee = await _userRepository.GetByIdAsync(subtask.AssigneeId.Value);
-        }
 
         return MapSubtaskToDto(subtask);
     }
@@ -208,9 +196,7 @@ public class ProductBacklogService : IProductBacklogService
     {
         var subtask = await _subtaskRepository.GetByIdAsync(subtaskId);
         if (subtask == null)
-        {
             return false;
-        }
 
         subtask.Status = status;
         subtask.UpdatedAt = DateTime.UtcNow;
@@ -237,10 +223,33 @@ public class ProductBacklogService : IProductBacklogService
         return await _subtaskRepository.DeleteAsync(subtaskId);
     }
 
-    public Task<bool> DeleteItemAsync(Guid itemId)
+    public async Task<bool> DeleteItemAsync(Guid itemId)
     {
-        return _backlogRepository.DeleteAsync(itemId);
+        var item = await _backlogRepository.GetByIdAsync(itemId);
+        var result = await _backlogRepository.DeleteAsync(itemId);
+        if (result && item != null)
+            await _auditService.LogAsync(Guid.Empty, "ProductBacklog.Deleted", "ProductBacklog", itemId.ToString(),
+                oldValue: new { item.Title, productId = item.ProductId });
+        return result;
     }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private static string? GetFieldValue(ProductBacklog item, string field) => field.ToLowerInvariant() switch
+    {
+        "title"              => item.Title,
+        "description"        => item.Description,
+        "type"               => item.Type.ToString(),
+        "status"             => item.Status.ToString(),
+        "owner"              => item.OwnerId?.ToString(),
+        "parentbacklogitemid"=> item.ParentBacklogItemId?.ToString(),
+        "priority"           => item.Priority.ToString(),
+        "startdate"          => item.StartDate?.ToString("O"),
+        "duedate"            => item.DueDate?.ToString("O"),
+        "storypoints"        => item.StoryPoints.ToString(),
+        "subproject"         => item.SubProjectId?.ToString(),
+        _                    => null
+    };
 
     private static ProductBacklogItemDTO MapToDto(ProductBacklog item)
     {
@@ -286,36 +295,22 @@ public class ProductBacklogService : IProductBacklogService
             Priority = subtask.Priority,
             PriorityName = subtask.Priority switch
             {
-                1 => "Highest",
-                2 => "High",
-                3 => "Medium",
-                4 => "Low",
-                _ => "Medium"
+                1 => "Highest", 2 => "High", 3 => "Medium", 4 => "Low", _ => "Medium"
             },
             AssigneeId = subtask.AssigneeId,
             AssigneeName = subtask.Assignee == null ? null : $"{subtask.Assignee.FirstName} {subtask.Assignee.LastName}".Trim(),
             Status = subtask.Status,
             StatusName = subtask.Status switch
             {
-                1 => "To Do",
-                2 => "In Progress",
-                3 => "Done",
-                _ => "To Do"
+                1 => "To Do", 2 => "In Progress", 3 => "Done", _ => "To Do"
             },
             CreatedAt = subtask.CreatedAt,
             UpdatedAt = subtask.UpdatedAt
         };
     }
 
-    private static string GetWorkItemTypeName(int type)
-    {
-        return ((BacklogItemType)type).ToString();
-    }
-
-    private static string GetStatusName(int status)
-    {
-        return ((BacklogItemStatus)status).ToString();
-    }
+    private static string GetWorkItemTypeName(int type) => ((BacklogItemType)type).ToString();
+    private static string GetStatusName(int status) => ((BacklogItemStatus)status).ToString();
 
     public List<BacklogItemTypeDTO> GetBacklogItemTypes()
     {
@@ -327,12 +322,12 @@ public class ProductBacklogService : IProductBacklogService
                 Name = x.ToString(),
                 Label = x switch
                 {
-                    BacklogItemType.BRD => "Business Requirement",
-                    BacklogItemType.UserStory => "User Story",
-                    BacklogItemType.UseCase => "Use Case",
-                    BacklogItemType.Epic => "Epic",
-                    BacklogItemType.ChangeRequest => "Change Request",
-                    _ => x.ToString()
+                    BacklogItemType.BRD           => "Business Requirement",
+                    BacklogItemType.UserStory      => "User Story",
+                    BacklogItemType.UseCase        => "Use Case",
+                    BacklogItemType.Epic           => "Epic",
+                    BacklogItemType.ChangeRequest  => "Change Request",
+                    _                             => x.ToString()
                 }
             })
             .ToList();
@@ -348,11 +343,11 @@ public class ProductBacklogService : IProductBacklogService
                 Name = x.ToString(),
                 Label = x switch
                 {
-                    BacklogItemStatus.Draft => "Draft",
-                    BacklogItemStatus.Approved => "Approved",
+                    BacklogItemStatus.Draft      => "Draft",
+                    BacklogItemStatus.Approved   => "Approved",
                     BacklogItemStatus.InProgress => "In Progress",
-                    BacklogItemStatus.Done => "Done",
-                    _ => x.ToString()
+                    BacklogItemStatus.Done       => "Done",
+                    _                           => x.ToString()
                 }
             })
             .ToList();

@@ -39,6 +39,7 @@ public class AppDbContext : DbContext
     public DbSet<SubTask> SubTasks { get; set; } = null!;
     public DbSet<WorkComment> WorkComments { get; set; } = null!;
     public DbSet<WorkStatus> WorkStatuses { get; set; } = null!;
+    public DbSet<AuditLog> AuditLogs { get; set; } = null!;
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -790,6 +791,35 @@ public class AppDbContext : DbContext
             entity.HasOne(c => c.User)
                 .WithMany()
                 .HasForeignKey(c => c.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // AuditLog configuration
+        modelBuilder.Entity<AuditLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Action)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.EntityType)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.EntityId)
+                .IsRequired()
+                .HasMaxLength(100);
+
+            entity.Property(e => e.CreatedAt)
+                .HasDefaultValueSql("GETUTCDATE()");
+
+            entity.HasIndex(e => new { e.UserId, e.CreatedAt });
+            entity.HasIndex(e => new { e.EntityType, e.EntityId });
+
+            entity.HasOne(a => a.User)
+                .WithMany()
+                .HasForeignKey(a => a.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
         });
     }

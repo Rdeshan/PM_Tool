@@ -107,6 +107,11 @@ builder.Services.AddScoped<IWorkItemService, WorkItemService>();
 builder.Services.AddScoped<ISubTaskService, SubTaskService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 
+// Audit
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<PMTool.Infrastructure.Repositories.Interfaces.IAuditRepository, PMTool.Infrastructure.Repositories.AuditRepository>();
+builder.Services.AddScoped<PMTool.Infrastructure.Services.Interfaces.IAuditService, PMTool.Infrastructure.Services.AuditService>();
+
 var app = builder.Build();
 
 using (var scope = app.Services.CreateScope())
