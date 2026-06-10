@@ -105,6 +105,14 @@ else
     .badge-inprogress { background: #fff3cd; color: #856404; }
     .badge-pending    { background: #f8d7da; color: #842029; }
 
+    /* ── Daily Task Approval ── */
+    .daily-task-row {
+        background: #fff;
+        transition: box-shadow .15s;
+    }
+    .daily-task-row:hover { box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+    .badge-status.badge-task-pending { background: #fff3cd; color: #856404; }
+
     .collab-project-row {
         border-bottom: 1px solid #f0f0f0;
         padding-bottom: .2rem;
@@ -236,6 +244,13 @@ else
             <p class="text-muted mb-0" style="font-size:.85rem;">Welcome back, @userName</p>
         </div>
         <div class="topbar-right">
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#approveTasksModal">
+                <i class="bi bi-check2-square me-1"></i>Approve Tasks
+                @if (Model.PendingDailyTasks.Any())
+                {
+                    <span class="badge rounded-pill bg-danger ms-1">@Model.PendingDailyTasks.Count</span>
+                }
+            </button>
             <a asp-page="/Account/Settings" class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-gear me-1"></i>Settings
             </a>
@@ -575,6 +590,95 @@ else
     })();
     </script>
 </div>
+
+<!-- ── Approve Daily Tasks Modal ── -->
+<div class="modal fade" id="approveTasksModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="border-radius:16px; border:none; box-shadow:0 8px 32px rgba(0,0,0,.14);">
+            <div class="modal-header" style="border-bottom:1px solid #f0f0f0; padding:1.25rem 1.5rem;">
+                <div class="d-flex align-items-center gap-2">
+                    <h5 class="modal-title mb-0 fw-bold" style="color:var(--pm-text);">Approve Daily Tasks</h5>
+                    <span class="badge rounded-pill" style="background:var(--pm-green); font-size:.73rem; padding:4px 10px;">@Model.PendingDailyTasks.Count</span>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" style="padding:1.25rem 1.5rem;">
+                @if (!Model.PendingDailyTasks.Any())
+                {
+                    <div class="text-center text-muted py-4">
+                        <i class="bi bi-check2-circle" style="font-size:2.2rem; opacity:.35;"></i>
+                        <p class="mt-2 mb-0 small">No pending daily tasks to review.</p>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var task in Model.PendingDailyTasks)
+                    {
+                        var submittedBy = task.User != null
+                            ? (!string.IsNullOrWhiteSpace(task.User.DisplayName) ? task.User.DisplayName : $"{task.User.FirstName} {task.User.LastName}".Trim())
+                            : "Unknown User";
+                        <div class="daily-task-row mb-3 p-3" style="border:1px solid #f0f0f0; border-radius:12px;">
+                            <div class="d-flex justify-content-between align-items-start mb-2 gap-2">
+                                <div class="overflow-hidden">
+                                    <div class="fw-semibold text-truncate" style="font-size:.95rem; color:var(--pm-text);">@task.TaskName</div>
+                                    <div class="text-muted" style="font-size:.78rem;">
+                                        <i class="bi bi-person me-1"></i>@submittedBy
+                                        &nbsp;&middot;&nbsp;
+                                        <i class="bi bi-clock me-1"></i>@task.CreatedAt.ToString("MMM d, yyyy h:mm tt")
+                                    </div>
+                                    @if (task.ProductBacklog != null)
+                                    {
+                                        <div class="text-muted" style="font-size:.78rem;">
+                                            <i class="bi bi-link-45deg me-1"></i>@task.ProductBacklog.Title
+                                        </div>
+                                    }
+                                </div>
+                                <span class="badge-status badge-task-pending">Pending</span>
+                            </div>
+                            @if (!string.IsNullOrWhiteSpace(task.Description))
+                            {
+                                <p class="text-muted mb-2" style="font-size:.85rem;">@task.Description</p>
+                            }
+                            <div class="d-flex gap-2 align-items-center">
+                                <form method="post" asp-page="/PM/Dashboard" asp-page-handler="ApproveDailyTask" class="m-0">
+                                    <input type="hidden" name="taskId" value="@task.Id" />
+                                    <button type="submit" class="btn btn-sm btn-success">
+                                        <i class="bi bi-check-lg me-1"></i>Approve
+                                    </button>
+                                </form>
+                                <button type="button" class="btn btn-sm btn-outline-warning" onclick="toggleClarifyForm('@task.Id')">
+                                    <i class="bi bi-question-circle me-1"></i>Need Clarification
+                                </button>
+                            </div>
+                            <form method="post" asp-page="/PM/Dashboard" asp-page-handler="ClarifyDailyTask" class="mt-2 d-none" id="clarify-form-@task.Id">
+                                <input type="hidden" name="taskId" value="@task.Id" />
+                                <textarea name="comment" class="form-control form-control-sm mb-2" rows="2" placeholder="What needs clarification?" required></textarea>
+                                <button type="submit" class="btn btn-sm btn-warning">Send Back to User</button>
+                                <button type="button" class="btn btn-sm btn-link text-muted" onclick="toggleClarifyForm('@task.Id')">Cancel</button>
+                            </form>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function toggleClarifyForm(id) {
+        var form = document.getElementById('clarify-form-' + id);
+        if (form) form.classList.toggle('d-none');
+    }
+
+    @if (TempData["OpenApproveTasksModal"] != null)
+    {
+        <text>
+        document.addEventListener('DOMContentLoaded', function () {
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('approveTasksModal')).show();
+        });
+        </text>
+    }
+</script>
 
 <script>
 // Track which items are manually expanded (clicked)

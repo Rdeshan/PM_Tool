@@ -8,12 +8,20 @@ public interface IDailyTaskService
     // BASIC USER OPERATIONS
     // =========================
 
+    Task<List<DailyTask>> GetAllTasksAsync();
     Task<List<DailyTask>> GetUserTasksAsync(Guid userId);
     Task<DailyTask?> GetByIdAsync(Guid id);
 
     Task<DailyTask?> CreateAsync(DailyTask task);
     Task<bool> UpdateAsync(DailyTask task);
     Task<bool> DeleteAsync(Guid id);
+
+    Task<bool> EditAndResubmitAsync(
+        Guid taskId,
+        Guid userId,
+        string taskName,
+        string? description,
+        Guid? backlogItemId);
 
     // =========================
     // PM WORKFLOW OPERATIONS

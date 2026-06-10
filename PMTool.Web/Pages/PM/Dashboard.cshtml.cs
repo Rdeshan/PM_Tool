@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using PMTool.Application.DTOs.Dashboard;
 using PMTool.Application.DTOs.Project;
 using PMTool.Application.Interfaces;
+using PMTool.Domain.Entities;
 
 namespace PMTool.Web.Pages.PM;
 
@@ -13,16 +14,19 @@ public class DashboardModel : PageModel
 {
     private readonly IProjectService _projectService;
     private readonly IDashboardService _dashboardService;
+    private readonly IDailyTaskService _dailyTaskService;
 
     public List<ProjectDTO> RecentProjects { get; set; } = new();
     public List<ProjectDTO> AllProjects { get; set; } = new();
     public DashboardDto Dashboard { get; set; } = new();
     public List<CollabProjectDto> CollabData { get; set; } = new();
+    public List<DailyTask> PendingDailyTasks { get; set; } = new();
 
-    public DashboardModel(IProjectService projectService, IDashboardService dashboardService)
+    public DashboardModel(IProjectService projectService, IDashboardService dashboardService, IDailyTaskService dailyTaskService)
     {
         _projectService = projectService;
         _dashboardService = dashboardService;
+        _dailyTaskService = dailyTaskService;
     }
 
     public async Task<IActionResult> OnGetAsync()
@@ -70,6 +74,15 @@ public class DashboardModel : PageModel
             CollabData = new List<CollabProjectDto>();
         }
 
+        try
+        {
+            PendingDailyTasks = await _dailyTaskService.GetPendingTasksForPMAsync();
+        }
+        catch
+        {
+            PendingDailyTasks = new List<DailyTask>();
+        }
+
         return Page();
     }
 
@@ -95,6 +108,47 @@ public class DashboardModel : PageModel
         {
             TempData["ErrorMessage"] = $"Failed to delete project: {ex.Message}";
         }
+
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostApproveDailyTaskAsync(Guid taskId)
+    {
+        if (!User.IsInRole("Project Manager"))
+        {
+            return Unauthorized();
+        }
+
+        var pmUserId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+
+        var success = await _dailyTaskService.AcceptTaskAsync(taskId, pmUserId);
+        TempData[success ? "SuccessMessage" : "ErrorMessage"] =
+            success ? "Daily task approved." : "Failed to approve the daily task.";
+        TempData["OpenApproveTasksModal"] = true;
+
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostClarifyDailyTaskAsync(Guid taskId, string comment)
+    {
+        if (!User.IsInRole("Project Manager"))
+        {
+            return Unauthorized();
+        }
+
+        if (string.IsNullOrWhiteSpace(comment))
+        {
+            TempData["ErrorMessage"] = "Please describe what needs clarification.";
+            TempData["OpenApproveTasksModal"] = true;
+            return RedirectToPage();
+        }
+
+        var pmUserId = Guid.Parse(User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value);
+
+        var success = await _dailyTaskService.SendForClarificationAsync(taskId, pmUserId, comment);
+        TempData[success ? "SuccessMessage" : "ErrorMessage"] =
+            success ? "Clarification requested from the user." : "Failed to update the daily task.";
+        TempData["OpenApproveTasksModal"] = true;
 
         return RedirectToPage();
     }

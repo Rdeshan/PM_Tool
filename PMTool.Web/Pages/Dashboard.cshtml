@@ -140,12 +140,39 @@ else
             <h4>My Dashboard</h4>
             <p class="text-muted mb-0" style="font-size:.85rem;">Welcome back, @userName</p>
         </div>
-        <div class="topbar-right">
-          <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="offcanvas" data-bs-target="#taskOffcanvas">
-    <i class="bi bi-layout-sidebar-reverse me-1"></i> Daily Tasks
-</button>
-        </div>
     </div>
+
+    @if (TempData["SuccessMessage"] != null || TempData["ErrorMessage"] != null)
+    {
+        <div class="position-fixed bottom-0 end-0 p-3" style="z-index:1090;">
+            @if (TempData["SuccessMessage"] != null)
+            {
+                <div id="dashToastSuccess" class="toast align-items-center text-bg-success border-0 show" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body"><i class="bi bi-check-circle me-2"></i>@TempData["SuccessMessage"]</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            }
+            @if (TempData["ErrorMessage"] != null)
+            {
+                <div id="dashToastError" class="toast align-items-center text-bg-danger border-0 show" role="alert">
+                    <div class="d-flex">
+                        <div class="toast-body"><i class="bi bi-exclamation-circle me-2"></i>@TempData["ErrorMessage"]</div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                </div>
+            }
+        </div>
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                ['dashToastSuccess', 'dashToastError'].forEach(function (id) {
+                    var el = document.getElementById(id);
+                    if (el) setTimeout(function () { bootstrap.Toast.getOrCreateInstance(el).hide(); }, 3000);
+                });
+            });
+        </script>
+    }
 
     <!-- Stat Cards -->
     <div class="row g-3 mb-4">
@@ -371,62 +398,6 @@ else
                 }
             </div>
 
-        </div>
-        <div class="offcanvas offcanvas-end shadow" tabindex="-1" id="taskOffcanvas" aria-labelledby="taskOffcanvasLabel" style="width: 450px;">
-            <div class="offcanvas-header border-bottom">
-                <h5 class="offcanvas-title fw-bold" id="taskOffcanvasLabel">Daily Tasks</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-            </div>
-            <div class="offcanvas-body p-0">
-                <!-- Tabs -->
-                <ul class="nav nav-tabs px-3 pt-3" id="taskTabs" role="tablist">
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link active fw-semibold" id="add-task-tab" data-bs-toggle="tab" data-bs-target="#addTaskPane" type="button" role="tab" aria-controls="addTaskPane" aria-selected="true">Add Task</button>
-                    </li>
-                    <li class="nav-item" role="presentation">
-                        <button class="nav-link fw-semibold" id="task-list-tab" data-bs-toggle="tab" data-bs-target="#taskListPane" type="button" role="tab" aria-controls="taskListPane" aria-selected="false">Task List</button>
-                    </li>
-                </ul>
-
-                <div class="tab-content p-3" id="taskTabsContent">
-                    <!-- Add Task Tab -->
-                    <div class="tab-pane fade show active" id="addTaskPane" role="tabpanel" aria-labelledby="add-task-tab">
-                        <form method="post">
-                            <div class="mb-3">
-                                <label class="form-label text-muted small fw-bold text-uppercase">Task Name</label>
-                                <input type="text" class="form-control" name="TaskName" placeholder="Enter task name" required />
-                            </div>
-
-                            <div class="mb-3">
-                                <label class="form-label text-muted small fw-bold text-uppercase">Description</label>
-                                <textarea class="form-control" name="Description" rows="4" placeholder="Enter task details..."></textarea>
-                            </div>
-
-                            <div class="mb-4">
-                                <label class="form-label text-muted small fw-bold text-uppercase">Link Backlog Item</label>
-                                <select class="form-select" name="BacklogItemId">
-                                    <option value="">-- Select Backlog Item --</option>
-                                    @foreach (var item in Model.BacklogItems)
-                                    {
-                                        <option value="@item.Id">@item.Title</option>
-                                    }
-                                </select>
-                            </div>
-
-                            <button type="submit" class="btn btn-primary w-100 fw-semibold">Save Task</button>
-                        </form>
-                    </div>
-                    
-                    <!-- Task List Tab -->
-                    <div class="tab-pane fade" id="taskListPane" role="tabpanel" aria-labelledby="task-list-tab">
-                        <div class="text-center text-muted mt-5">
-                            <i class="bi bi-list-task fs-1 mb-2 d-block"></i>
-                            <p>No daily tasks added yet.</p>
-                        </div>
-                        <!-- Future task list can go here -->
-                    </div>
-                </div>
-            </div>
         </div>
     </div>
 </div>

@@ -27,8 +27,23 @@ public class AuditRepository : IAuditRepository
             .Include(a => a.User)
             .AsQueryable();
 
-        if (request.UserId.HasValue)
-            query = query.Where(a => a.UserId == request.UserId.Value);
+        if (!string.IsNullOrWhiteSpace(request.UserFilter))
+        {
+            var filter = request.UserFilter.Trim();
+            if (Guid.TryParse(filter, out var userId))
+            {
+                query = query.Where(a => a.UserId == userId);
+            }
+            else
+            {
+                var likeFilter = $"%{filter}%";
+                query = query.Where(a => a.User != null && (
+                    EF.Functions.Like(a.User.DisplayName ?? string.Empty, likeFilter) ||
+                    EF.Functions.Like(a.User.FirstName, likeFilter) ||
+                    EF.Functions.Like(a.User.LastName, likeFilter) ||
+                    EF.Functions.Like(a.User.Email, likeFilter)));
+            }
+        }
 
         if (!string.IsNullOrWhiteSpace(request.EntityType))
             query = query.Where(a => a.EntityType == request.EntityType);
@@ -57,6 +72,11 @@ public class AuditRepository : IAuditRepository
                 EntityId = a.EntityId,
                 OldValue = a.OldValue,
                 NewValue = a.NewValue,
+                Description = !string.IsNullOrWhiteSpace(a.NewValue)
+                    ? a.NewValue
+                    : !string.IsNullOrWhiteSpace(a.OldValue)
+                        ? a.OldValue
+                        : string.Empty,
                 CreatedAt = a.CreatedAt
             })
             .ToListAsync();
@@ -83,6 +103,11 @@ public class AuditRepository : IAuditRepository
                 EntityId = a.EntityId,
                 OldValue = a.OldValue,
                 NewValue = a.NewValue,
+                Description = !string.IsNullOrWhiteSpace(a.NewValue)
+                    ? a.NewValue
+                    : !string.IsNullOrWhiteSpace(a.OldValue)
+                        ? a.OldValue
+                        : string.Empty,
                 CreatedAt = a.CreatedAt
             })
             .ToListAsync();

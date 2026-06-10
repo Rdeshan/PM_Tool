@@ -19,10 +19,21 @@ public class DailyTaskRepository : IDailyTaskRepository
     // BASIC CRUD
     // =========================
 
+    public async Task<List<DailyTask>> GetAllAsync()
+    {
+        return await _context.DailyTasks
+            .Include(x => x.User)
+            .Include(x => x.ProductBacklog)
+            .OrderByDescending(x => x.CreatedAt)
+            .ToListAsync();
+    }
+
     public async Task<List<DailyTask>> GetByUserIdAsync(Guid userId)
     {
         return await _context.DailyTasks
             .Where(x => x.UserId == userId)
+            .Include(x => x.ProductBacklog)
+            .OrderByDescending(x => x.CreatedAt)
             .ToListAsync();
     }
 
@@ -45,7 +56,7 @@ public class DailyTaskRepository : IDailyTaskRepository
             return null;
         }
     }
-
+                        
     public async Task<bool> UpdateAsync(DailyTask task)
     {
         try
@@ -86,6 +97,8 @@ public class DailyTaskRepository : IDailyTaskRepository
         return await _context.DailyTasks
             .Where(x => x.Status == DailyTaskStatus.Pending)
             .Include(x => x.User)
+            .Include(x => x.ProductBacklog)
+            .OrderBy(x => x.CreatedAt)
             .ToListAsync();
     }
 

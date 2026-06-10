@@ -2,7 +2,7 @@ namespace PMTool.Infrastructure.DTOs.Audit;
 
 public class AuditQueryRequest
 {
-    public Guid? UserId { get; set; }
+    public string? UserFilter { get; set; }
     public string? EntityType { get; set; }
     public DateTime? DateFrom { get; set; }
     public DateTime? DateTo { get; set; }

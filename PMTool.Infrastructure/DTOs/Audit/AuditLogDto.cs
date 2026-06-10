@@ -10,5 +10,6 @@ public class AuditLogDto
     public string EntityId { get; set; } = string.Empty;
     public string? OldValue { get; set; }
     public string? NewValue { get; set; }
+    public string Description { get; set; } = string.Empty;
     public DateTime CreatedAt { get; set; }
 }
