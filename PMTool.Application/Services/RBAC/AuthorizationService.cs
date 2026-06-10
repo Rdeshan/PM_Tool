@@ -2,6 +2,7 @@ using PMTool.Application.Interfaces;
 using PMTool.Domain.Entities;
 using PMTool.Domain.Enums;
 using PMTool.Infrastructure.Repositories.Interfaces;
+using PMTool.Infrastructure.Services.Interfaces;
 
 namespace PMTool.Application.Services.RBAC;
 
@@ -10,15 +11,18 @@ public class AuthorizationService : IAuthorizationService
     private readonly IUserRoleRepository _userRoleRepository;
     private readonly IRoleRepository _roleRepository;
     private readonly IPermissionRepository _permissionRepository;
+    private readonly IAuditService _auditService;
 
     public AuthorizationService(
         IUserRoleRepository userRoleRepository,
         IRoleRepository roleRepository,
-        IPermissionRepository permissionRepository)
+        IPermissionRepository permissionRepository,
+        IAuditService auditService)
     {
         _userRoleRepository = userRoleRepository;
         _roleRepository = roleRepository;
         _permissionRepository = permissionRepository;
+        _auditService = auditService;
     }
 
     public async Task<bool> HasRoleAsync(Guid userId, RoleType roleType, Guid? projectId = null)
@@ -72,7 +76,12 @@ public class AuthorizationService : IAuthorizationService
             IsActive = true
         };
 
-        return await _userRoleRepository.AssignRoleAsync(userRole);
+        var result = await _userRoleRepository.AssignRoleAsync(userRole);
+        if (result)
+            await _auditService.LogAsync(Guid.Empty, "Role.Assigned", "User", userId.ToString(),
+                newValue: new { roleType = roleType.ToString(), projectId });
+
+        return result;
     }
 
     public async Task<bool> RemoveRoleFromUserAsync(Guid userId, Guid roleId)
@@ -83,6 +92,11 @@ public class AuthorizationService : IAuthorizationService
         if (userRole == null)
             return false;
 
-        return await _userRoleRepository.RemoveRoleAsync(userRole.Id);
+        var result = await _userRoleRepository.RemoveRoleAsync(userRole.Id);
+        if (result)
+            await _auditService.LogAsync(Guid.Empty, "Role.Revoked", "User", userId.ToString(),
+                oldValue: new { roleId });
+
+        return result;
     }
 }

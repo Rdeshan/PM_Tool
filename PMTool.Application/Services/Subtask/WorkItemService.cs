@@ -3,22 +3,21 @@ using PMTool.Application.DTOs.WorkItems;
 using PMTool.Application.Interfaces;
 using PMTool.Domain.Entities;
 using PMTool.Infrastructure.Data;
+using PMTool.Infrastructure.Services.Interfaces;
 
 namespace PMTool.Application.Services.Subtask
 {
-    // NEW: Work item service
     public class WorkItemService : IWorkItemService
     {
-        // NEW: Database context
         private readonly AppDbContext _context;
+        private readonly IAuditService _auditService;
 
-        // NEW: Constructor
-        public WorkItemService(AppDbContext context)
+        public WorkItemService(AppDbContext context, IAuditService auditService)
         {
             _context = context;
+            _auditService = auditService;
         }
 
-        // NEW: Get all work items
         public async Task<List<WorkItemDto>> GetAllAsync()
         {
             return await _context.WorkItems
@@ -42,7 +41,6 @@ namespace PMTool.Application.Services.Subtask
                 .ToListAsync();
         }
 
-        // NEW: Get by ID
         public async Task<WorkItemDto?> GetByIdAsync(int id)
         {
             return await _context.WorkItems
@@ -67,7 +65,6 @@ namespace PMTool.Application.Services.Subtask
                 .FirstOrDefaultAsync();
         }
 
-        // NEW: Create work item
         public async Task CreateAsync(CreateWorkItemDto dto)
         {
             var item = new WorkItem
@@ -84,17 +81,18 @@ namespace PMTool.Application.Services.Subtask
             };
 
             _context.WorkItems.Add(item);
-
             await _context.SaveChangesAsync();
         }
 
-        // NEW: Update work item
         public async Task UpdateAsync(UpdateWorkItemDto dto)
         {
             var item = await _context.WorkItems.FindAsync(dto.Id);
 
             if (item == null)
                 return;
+
+            var oldStatusId = item.WorkStatusId;
+            var oldAssigneeId = item.AssigneeId;
 
             item.Title = dto.Title;
             item.Description = dto.Description;
@@ -106,9 +104,18 @@ namespace PMTool.Application.Services.Subtask
             item.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync();
+
+            if (oldStatusId != dto.WorkStatusId)
+                await _auditService.LogAsync(Guid.Empty, "WorkItem.StatusChanged", "WorkItem", dto.Id.ToString(),
+                    oldValue: new { statusId = oldStatusId },
+                    newValue: new { statusId = dto.WorkStatusId });
+
+            if (oldAssigneeId != dto.AssigneeId)
+                await _auditService.LogAsync(Guid.Empty, "WorkItem.AssigneeChanged", "WorkItem", dto.Id.ToString(),
+                    oldValue: new { assigneeId = oldAssigneeId },
+                    newValue: new { assigneeId = dto.AssigneeId });
         }
 
-        // NEW: Delete work item
         public async Task DeleteAsync(int id)
         {
             var item = await _context.WorkItems.FindAsync(id);
@@ -117,7 +124,6 @@ namespace PMTool.Application.Services.Subtask
                 return;
 
             _context.WorkItems.Remove(item);
-
             await _context.SaveChangesAsync();
         }
     }

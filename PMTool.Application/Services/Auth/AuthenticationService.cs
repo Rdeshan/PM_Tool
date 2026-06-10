@@ -1,11 +1,11 @@
 using PMTool.Application.DTOs.Auth;
+using PMTool.Application.Interfaces;
 using PMTool.Domain.Entities;
 using PMTool.Domain.Enums;
 using PMTool.Infrastructure.Repositories.Interfaces;
 using PMTool.Infrastructure.Services.Interfaces;
 using Microsoft.Extensions.Configuration;
 using System.Web;
-using PMTool.Application.Interfaces;
 
 namespace PMTool.Application.Services.Auth;
 
@@ -15,6 +15,7 @@ public class AuthenticationService : IAuthenticationService
     private readonly ITokenService _tokenService;
     private readonly IEmailService _emailService;
     private readonly IConfiguration _configuration;
+    private readonly IAuditService _auditService;
     private const int MaxFailedAttempts = 5;
     private const int LockoutMinutes = 15;
     private const int SessionTimeoutMinutes = 30;
@@ -23,12 +24,14 @@ public class AuthenticationService : IAuthenticationService
         IUserRepository userRepository,
         ITokenService tokenService,
         IEmailService emailService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        IAuditService auditService)
     {
         _userRepository = userRepository;
         _tokenService = tokenService;
         _emailService = emailService;
         _configuration = configuration;
+        _auditService = auditService;
     }
 
     public async Task<LoginResponse> LoginAsync(LoginRequest request)
@@ -42,10 +45,10 @@ public class AuthenticationService : IAuthenticationService
             return new LoginResponse { Success = false, Message = "Account is inactive" };
 
         if (user.IsLockedOut)
-            return new LoginResponse 
-            { 
-                Success = false, 
-                Message = $"Account is locked. Try again after {user.LockoutEnd:HH:mm} UTC" 
+            return new LoginResponse
+            {
+                Success = false,
+                Message = $"Account is locked. Try again after {user.LockoutEnd:HH:mm} UTC"
             };
 
         if (!_tokenService.VerifyPassword(request.Password, user.PasswordHash))
@@ -57,10 +60,12 @@ public class AuthenticationService : IAuthenticationService
                 user.LockoutEnd = DateTime.UtcNow.AddMinutes(LockoutMinutes);
                 await _userRepository.UpdateAsync(user);
                 await _emailService.SendAccountLockedAsync(user.Email);
+                await _auditService.LogAsync(user.Id, "Login.Lockout", "User", user.Id.ToString());
                 return new LoginResponse { Success = false, Message = "Account locked due to too many failed attempts" };
             }
 
             await _userRepository.UpdateAsync(user);
+            await _auditService.LogAsync(user.Id, "Login.Failed", "User", user.Id.ToString());
             return new LoginResponse { Success = false, Message = "Invalid email or password" };
         }
 
@@ -93,6 +98,8 @@ public class AuthenticationService : IAuthenticationService
         user.SessionExpiresAt = DateTime.UtcNow.AddMinutes(SessionTimeoutMinutes);
         await _userRepository.UpdateAsync(user);
 
+        await _auditService.LogAsync(user.Id, "Login.Success", "User", user.Id.ToString());
+
         var roles = user.UserRoles?.Select(ur => ur.Role?.Name ?? "User").ToList() ?? new List<string> { "User" };
 
         return new LoginResponse
@@ -122,6 +129,9 @@ public class AuthenticationService : IAuthenticationService
         user.TwoFactorCode = null;
         user.TwoFactorCodeExpiry = null;
         await _userRepository.UpdateAsync(user);
+
+        await _auditService.LogAsync(user.Id, "Login.Success", "User", user.Id.ToString(),
+            newValue: new { via = "TwoFactor" });
 
         var roles = user.UserRoles?.Select(ur => ur.Role?.Name ?? "User").ToList() ?? new List<string> { "User" };
 
@@ -224,7 +234,11 @@ public class AuthenticationService : IAuthenticationService
         user.FailedLoginAttempts = 0;
         user.LockoutEnd = null;
 
-        return await _userRepository.UpdateAsync(user);
+        var result = await _userRepository.UpdateAsync(user);
+        if (result)
+            await _auditService.LogAsync(user.Id, "Password.Reset", "User", user.Id.ToString());
+
+        return result;
     }
 
     public async Task<bool> EnableTwoFactorAsync(string email)
@@ -235,7 +249,11 @@ public class AuthenticationService : IAuthenticationService
             return false;
 
         user.TwoFactorEnabled = true;
-        return await _userRepository.UpdateAsync(user);
+        var result = await _userRepository.UpdateAsync(user);
+        if (result)
+            await _auditService.LogAsync(user.Id, "TwoFactor.Enabled", "User", user.Id.ToString());
+
+        return result;
     }
 
     public async Task<bool> DisableTwoFactorAsync(string email)

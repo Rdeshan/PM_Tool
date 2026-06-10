@@ -37,7 +37,7 @@
                         </button>
                     </li>
                     <li class="nav-item">
-                        <button class="nav-link text-dark rounded-0 px-2" id="products-tab" data-bs-toggle="tab" data-bs-target="#products-pane" type="button" role="tab" aria-controls="products-pane" aria-selected="false">
+                        <button class="nav-link text-dark rounded-0 px-2 me-3" id="products-tab" data-bs-toggle="tab" data-bs-target="#products-pane" type="button" role="tab" aria-controls="products-pane" aria-selected="false">
                             Products
                         </button>
                     </li>
@@ -81,6 +81,7 @@
             <div class="tab-pane fade" id="products-pane" role="tabpanel" aria-labelledby="products-tab" tabindex="0">
                 <iframe src="@Url.Page("/Products/Index", new { projectId = Model.Project.Id, embedded = true })" title="Project Products" style="width:100%; height:900px; border:0;"></iframe>
             </div>
+
         </div>
     }
     else

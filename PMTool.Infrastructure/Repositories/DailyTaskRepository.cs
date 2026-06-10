@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PMTool.Domain.Entities;
+using PMTool.Domain.Enums;
 using PMTool.Infrastructure.Data;
 using PMTool.Infrastructure.Repositories.Interfaces;
 

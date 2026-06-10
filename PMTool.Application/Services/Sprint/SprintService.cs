@@ -7,6 +7,7 @@ using PMTool.Application.DTOs.Sprint;
 using PMTool.Application.Interfaces;
 using PMTool.Domain.Entities;
 using PMTool.Infrastructure.Repositories.Interfaces;
+using PMTool.Infrastructure.Services.Interfaces;
 
 namespace PMTool.Application.Services.Sprint;
 
@@ -14,11 +15,16 @@ public class SprintService : ISprintService
 {
     private readonly ISprintRepository _sprintRepository;
     private readonly IProductBacklogRepository _backlogRepository;
+    private readonly IAuditService _auditService;
 
-    public SprintService(ISprintRepository sprintRepository, IProductBacklogRepository backlogRepository)
+    public SprintService(
+        ISprintRepository sprintRepository,
+        IProductBacklogRepository backlogRepository,
+        IAuditService auditService)
     {
         _sprintRepository = sprintRepository;
         _backlogRepository = backlogRepository;
+        _auditService = auditService;
     }
 
     public async Task<List<SprintDTO>> GetSprintsByProductAsync(Guid productId)
@@ -101,6 +107,8 @@ public class SprintService : ISprintService
                 ChangeType    = "Removed",
                 ChangedById   = userId
             });
+            await _auditService.LogAsync(userId, "Sprint.ItemRemoved", "Sprint", oldSprintId.Value.ToString(),
+                oldValue: new { backlogItemId = itemId });
         }
 
         if (sprintId.HasValue)
@@ -113,6 +121,8 @@ public class SprintService : ISprintService
                 ChangeType    = "Added",
                 ChangedById   = userId
             });
+            await _auditService.LogAsync(userId, "Sprint.ItemAdded", "Sprint", sprintId.Value.ToString(),
+                newValue: new { backlogItemId = itemId });
         }
 
         return true;
@@ -130,6 +140,8 @@ public class SprintService : ISprintService
         sprint.EndDate   = endDate;
 
         await _sprintRepository.UpdateAsync(sprint);
+        await _auditService.LogAsync(Guid.Empty, "Sprint.Activated", "Sprint", sprintId.ToString(),
+            newValue: new { startDate, endDate });
 
         // Reload with items so the Board URL can be returned together with full data
         var refreshed = await _sprintRepository.GetByIdAsync(sprintId);
@@ -143,6 +155,8 @@ public class SprintService : ISprintService
 
         sprint.Status = 3; // Completed
         await _sprintRepository.UpdateAsync(sprint);
+        await _auditService.LogAsync(Guid.Empty, "Sprint.Completed", "Sprint", sprintId.ToString());
+
         return true;
     }
 
