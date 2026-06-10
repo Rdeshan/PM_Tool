@@ -32,6 +32,8 @@ public class ProductRepository : IProductRepository
     public async Task<IEnumerable<Product>> GetByProjectAsync(Guid projectId)
     {
         return await _context.Products
+            .Include(p => p.ReleaseNotes)
+            .Include(p => p.ProductBacklogs)
             .Where(p => p.ProjectId == projectId)
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
@@ -40,6 +42,8 @@ public class ProductRepository : IProductRepository
     public async Task<IEnumerable<Product>> GetActiveByProjectAsync(Guid projectId)
     {
         return await _context.Products
+            .Include(p => p.ReleaseNotes)
+            .Include(p => p.ProductBacklogs)
             .Where(p => p.ProjectId == projectId && p.Status != 5) // Not Deprecated
             .OrderByDescending(p => p.PlannedReleaseDate)
             .ToListAsync();
@@ -48,6 +52,8 @@ public class ProductRepository : IProductRepository
     public async Task<IEnumerable<Product>> GetReleasedByProjectAsync(Guid projectId)
     {
         return await _context.Products
+            .Include(p => p.ReleaseNotes)
+            .Include(p => p.ProductBacklogs)
             .Where(p => p.ProjectId == projectId && p.Status == 4) // Released
             .OrderByDescending(p => p.ActualReleaseDate)
             .ToListAsync();
@@ -56,6 +62,8 @@ public class ProductRepository : IProductRepository
     public async Task<IEnumerable<Product>> GetAllAsync()
     {
         return await _context.Products
+            .Include(p => p.ReleaseNotes)
+            .Include(p => p.ProductBacklogs)
             .OrderByDescending(p => p.CreatedAt)
             .ToListAsync();
     }

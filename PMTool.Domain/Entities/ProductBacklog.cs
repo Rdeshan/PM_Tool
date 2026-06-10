@@ -24,6 +24,8 @@ public class ProductBacklog
     public Product? Product { get; set; }
     public ProductBacklog? ParentBacklogItem { get; set; }
     public ICollection<ProductBacklog> ChildBacklogItems { get; set; } = new List<ProductBacklog>();
+
+    public ICollection<DailyTask> DailyTasks { get; set; } = new List<DailyTask>();  
     public ICollection<BacklogSubtask> Subtasks { get; set; } = new List<BacklogSubtask>();
     public ICollection<BacklogItemComment> Comments { get; set; } = new List<BacklogItemComment>();
     public User? Owner { get; set; }

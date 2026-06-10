@@ -34,6 +34,7 @@ public class AppDbContext : DbContext
     public DbSet<WorkType> WorkTypes { get; set; } = null!;
     public DbSet<BoardColumn> BoardColumns { get; set; } = null!;
     public DbSet<Notification> Notifications { get; set; } = null!;
+    public DbSet<DailyTask> DailyTasks { get; set; } = null!;
     //sub task
     public DbSet<WorkItem> WorkItems { get; set; } = null!;
     public DbSet<SubTask> SubTasks { get; set; } = null!;

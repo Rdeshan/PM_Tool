@@ -291,8 +291,10 @@
                                             }
                                         </div>
                                         @if (Model.CanEditProduct)
+                                        
                                         {
-                                            <div>
+                                            
+                                          <div class="d-flex gap-2">
                                                 @if (!notes.IsPublished)
                                                 {
                                                    
@@ -300,7 +302,7 @@
       asp-route-projectId="@Model.ProjectId"
       asp-route-id="@Model.Product.Id">
     <input type="hidden" name="releaseNotesId" value="@notes.Id" />
-    <button type="submit" class="btn btn-sm btn-success"
+    <button type="submit" class="btn btn-sm btn-outline-secondary"
             onclick="return confirm('Publish these release notes?')">
         <i class="bi bi-check"></i> Publish
     </button>
@@ -313,12 +315,13 @@
       asp-route-projectId="@Model.ProjectId"
       asp-route-id="@Model.Product.Id">
     <input type="hidden" name="releaseNotesId" value="@notes.Id" />
-    <button type="submit" class="btn btn-sm btn-danger"
+    <button type="submit" class="btn btn-sm btn-outline-secondary"
             onclick="return confirm('Delete these release notes?')">
-        <i class="bi bi-trash"></i> Delete
+        <i class="bi bi-trash"></i> 
     </button>
 </form>
-                                 </div>
+</div>
+                              
                                         }
                                     </div>
                                     <p class="mt-2 mb-0 text-wrap">@Html.Raw(System.Net.WebUtility.HtmlEncode(notes.Content).Replace("\n", "<br>"))</p>
