@@ -2,8 +2,9 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
-using PMTool.Application.Interfaces;
+using PMTool.Application.DTOs.Dashboard;
 using PMTool.Application.DTOs.Project;
+using PMTool.Application.Interfaces;
 
 namespace PMTool.Web.Pages.PM;
 
@@ -11,14 +12,17 @@ namespace PMTool.Web.Pages.PM;
 public class DashboardModel : PageModel
 {
     private readonly IProjectService _projectService;
+    private readonly IDashboardService _dashboardService;
 
     public List<ProjectDTO> RecentProjects { get; set; } = new();
-    public int ActiveProjectCount { get; set; }
-    public int TeamMemberCount { get; set; }
+    public List<ProjectDTO> AllProjects { get; set; } = new();
+    public DashboardDto Dashboard { get; set; } = new();
+    public List<CollabProjectDto> CollabData { get; set; } = new();
 
-    public DashboardModel(IProjectService projectService)
+    public DashboardModel(IProjectService projectService, IDashboardService dashboardService)
     {
         _projectService = projectService;
+        _dashboardService = dashboardService;
     }
 
     public async Task<IActionResult> OnGetAsync()
@@ -33,23 +37,37 @@ public class DashboardModel : PageModel
             return RedirectToPage("/Dashboard");
         }
 
-        // Get recent projects (last 6)
+        // Load dashboard stats
         try
         {
-            var allProjects = await _projectService.GetAllProjectsAsync();
-            RecentProjects = allProjects
-                .OrderByDescending(p => p.UpdatedAt)
-                .Take(6)
-                .ToList();
-
-            ActiveProjectCount = allProjects.Count(p => p.Status == 1);
-            TeamMemberCount = 0; // TODO: Implement team member count from team members
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
+            Dashboard = await _dashboardService.GetDashboardDataAsync(userId);
         }
         catch
         {
+            Dashboard = new DashboardDto();
+        }
+
+        // Load all projects; recent = latest 6
+        try
+        {
+            var allProjects = await _projectService.GetAllProjectsAsync();
+            AllProjects = allProjects.OrderByDescending(p => p.UpdatedAt).ToList();
+            RecentProjects = AllProjects.Take(6).ToList();
+        }
+        catch
+        {
+            AllProjects = new List<ProjectDTO>();
             RecentProjects = new List<ProjectDTO>();
-            ActiveProjectCount = 0;
-            TeamMemberCount = 0;
+        }
+
+        try
+        {
+            CollabData = await _dashboardService.GetCollabDataAsync();
+        }
+        catch
+        {
+            CollabData = new List<CollabProjectDto>();
         }
 
         return Page();
