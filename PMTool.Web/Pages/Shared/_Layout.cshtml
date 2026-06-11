@@ -28,10 +28,10 @@
                 <a asp-page="/Dashboard" class="nav-link"><i class="bi bi-speedometer2"></i> <span class="nav-text">Dashboard</span></a>
                 <a asp-page="/Projects/Index" class="nav-link"><i class="bi bi-folder2"></i> <span class="nav-text">Projects</span></a>
                 <a asp-page="/Tasks/Index" class="nav-link"><i class="bi bi-list-task"></i> <span class="nav-text">Tasks</span></a>
-                @if (User.IsInRole("Project Manager"))
+                @* @if (User.IsInRole("Project Manager"))
                 {
                     <a asp-page="/PM/Dashboard" class="nav-link"><i class="bi bi-kanban"></i> <span class="nav-text">PM Dashboard</span></a>
-                }
+                } *@
                 @if (User.IsInRole("Administrator"))
                 {
                     <a asp-page="/Admin/Users/Index" class="nav-link"><i class="bi bi-person-badge"></i> <span class="nav-text">Users</span></a>
@@ -199,7 +199,7 @@
         border-color: #dee2e6 !important;
     }
 
-    .hover-header {
+    @* .hover-header {
         position: fixed;
         top: 0;
         left: 0;
@@ -220,6 +220,6 @@
     .hover-header:focus-within .navbar {
         transform: translateY(0);
         opacity: 1;
-    }
+    } *@
 
 </style>
