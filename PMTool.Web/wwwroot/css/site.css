@@ -227,20 +227,9 @@ body.sidebar-collapsed.with-sidebar .navbar.fixed-top {
     padding: 0 4px;
 }
 
-/* Shift content down when hover header reveals the navbar */
+/* Static top navbar spacing */
 .pm-global-content {
-    transition: margin-top 0.25s ease;
-    margin-top: 0;
-}
-
-.hover-header:hover ~ .pm-global-main .pm-global-content,
-.hover-header:focus-within ~ .pm-global-main .pm-global-content {
-    margin-top: 70px;
-}
-
-/* Adjust content padding under top navbar */
-.pm-global-content {
-    padding-top: 70px; /* Space for the top navbar */
+    padding-top: 70px !important; /* Override Bootstrap pt-4 utility */
     flex: 1;
     display: flex;
     flex-direction: column;
@@ -264,3 +253,4 @@ body.sidebar-collapsed.with-sidebar .navbar.fixed-top {
         left: 0 !important;
         width: 100% !important;
     }
+}

@@ -4,7 +4,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - PMTool</title>
+    <title>@ViewData["Title"] - OPMS</title>
     <script type="importmap"></script>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" />
@@ -22,7 +22,7 @@
         <div id="pm-global-sidebar" class="pm-global-sidebar">
             <a asp-area="" asp-page="/Dashboard" class="brand">
                 <i class="bi bi-kanban me-2"></i>
-                <span class="brand-text">PMTool</span>
+                <span class="brand-text">OPMS</span>
             </a>
             <nav class="d-flex flex-column gap-1">
                 <a asp-page="/Dashboard" class="nav-link"><i class="bi bi-speedometer2"></i> <span class="nav-text">Dashboard</span></a>
@@ -40,8 +40,8 @@
             </nav>
             <div class="mt-auto">
                 <a asp-page="/Account/Settings" class="nav-link"><i class="bi bi-gear"></i> <span class="nav-text">Settings</span></a>
-                <form method="post" asp-page="/Dashboard" asp-page-handler="Logout" class="m-0">
-                    <button type="submit" class="nav-link border-0 bg-transparent w-100 text-start">
+                <form method="post" asp-page="/Dashboard" asp-page-handler="Logout" class="m-0" id="logoutFormSidebar">
+                    <button type="button" class="nav-link border-0 bg-transparent w-100 text-start" onclick="confirmLogout('logoutFormSidebar')">
                         <i class="bi bi-box-arrow-left"></i> <span class="nav-text">Logout</span>
                     </button>
                 </form>
@@ -49,10 +49,10 @@
         </div>
     }
     <header class="hover-header">
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-black fixed-top">
+        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark fixed-top" style="background-color: #0f172a;">
             @* <div class="container">
                 <a class="navbar-brand" asp-area="" asp-page="/Dashboard">
-                    <i class="bi bi-kanban"></i> PMTool
+                    <i class="bi bi-kanban"></i> OPMS
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent" *@
                       
@@ -66,7 +66,7 @@
                 else
                 {
                     <a class="navbar-brand" asp-area="" asp-page="/Dashboard">
-                        <i class="bi bi-kanban"></i> PMTool
+                        <i class="bi bi-kanban"></i> OPMS
                     </a>
                 }
                 
@@ -133,8 +133,8 @@
                                     <li><a class="dropdown-item" asp-page="/Account/TwoFactor"><i class="bi bi-lock-fill"></i> Two-Factor Auth</a></li> *@
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <form method="post" asp-page="/Dashboard" asp-page-handler="Logout" style="display:inline;">
-                                            <button type="submit" class="dropdown-item text-danger"><i class="bi bi-box-arrow-right"></i> Logout</button>
+                                        <form method="post" asp-page="/Dashboard" asp-page-handler="Logout" style="display:inline;" id="logoutFormNavbar">
+                                            <button type="button" class="dropdown-item text-danger" onclick="confirmLogout('logoutFormNavbar')"><i class="bi bi-box-arrow-right"></i> Logout</button>
                                         </form>
                                     </li>
                                 </ul>
@@ -174,7 +174,7 @@
     @* </footer> *@
         <footer class="border-top footer text-muted mt-auto">
             <div class="container-fluid px-4 py-3">
-                &copy; 2026 - PMTool - <a asp-area="" asp-page="/Privacy">Privacy</a>
+                &copy; 2026 - OPMS - <a asp-area="" asp-page="/Privacy">Privacy</a>
             </div>
         </footer>
     </div>
@@ -187,6 +187,14 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@@microsoft/signalr@8.0.5/dist/browser/signalr.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <script>
+        function confirmLogout(formId) {
+            if (confirm('Are you sure you want to logout?')) {
+                document.getElementById(formId).submit();
+            }
+        }
+    </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
