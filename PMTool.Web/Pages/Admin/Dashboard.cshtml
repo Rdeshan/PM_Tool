@@ -1,5 +1,6 @@
 @page
 @using System.Security.Claims
+@using PMTool.Domain.Enums
 @model PMTool.Web.Pages.Admin.DashboardModel
 @{
     ViewData["Title"] = "Admin Dashboard";
@@ -101,7 +102,7 @@ else
         padding: 1.5rem;
         box-shadow: 0 2px 8px rgba(0,0,0,.06);
         border: none;
-        height: 100%;
+        height: auto;
     }
     .section-card .section-title { font-size: 1rem; font-weight: 600; color: var(--pm-text); margin-bottom: 1rem; }
 
@@ -375,6 +376,35 @@ else
         transition: width .6s ease;
     }
     .collab-prog-pct { font-size: .69rem; color: var(--pm-muted); white-space: nowrap; }
+
+    /* ── Upcoming Deadlines ── */
+    .deadline-item {
+        display: flex;
+        align-items: center;
+        gap: .65rem;
+        padding: .55rem 0;
+        border-bottom: 1px solid #f0f0f0;
+    }
+    .deadline-item:last-child { border-bottom: none; }
+    .deadline-dot {
+        width: 10px; height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+    .deadline-name {
+        font-size: .85rem;
+        font-weight: 600;
+        color: var(--pm-text);
+        flex: 1;
+        overflow: hidden;
+    }
+    .deadline-date {
+        font-size: .75rem;
+        color: var(--pm-muted);
+        white-space: nowrap;
+        flex-shrink: 0;
+        margin-left: .75rem;
+    }
 </style>
 @* 
 <!-- Sidebar -->
@@ -530,7 +560,7 @@ else
     <div class="row g-3 mb-4">
 
         <!-- Team Collaboration (hierarchical: Project → Team → Member) -->
-        <div class="col-lg-8">
+        <div class="col-lg-5">
             <div class="section-card">
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="section-title mb-0">Team Collaboration</span>
@@ -652,6 +682,36 @@ else
                         <div style="font-size:.72rem; color:var(--pm-muted)">Pending</div>
                     </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Deadlines -->
+        <div class="col-lg-3">
+            <div class="section-card">
+                <div class="section-title">Upcoming Deadlines</div>
+                @{
+                    var upcomingDeadlines = Model.AllProjects
+                        .Where(p => p.Status == (int)ProjectStatus.Active)
+                        .OrderBy(p => p.ExpectedEndDate)
+                        .ToList();
+                }
+                @if (upcomingDeadlines.Any())
+                {
+                    @foreach (var project in upcomingDeadlines)
+                    {
+                        var daysLeft = (project.ExpectedEndDate.Date - DateTime.Today).Days;
+                        var dotColor = daysLeft <= 30 ? "#dc3545" : daysLeft <= 90 ? "#ffc107" : "#198754";
+                        <div class="deadline-item">
+                            <span class="deadline-dot" style="background:@dotColor"></span>
+                            <span class="deadline-name text-truncate">@project.Name</span>
+                            <span class="deadline-date">@project.ExpectedEndDate.ToString("MMM d, yyyy")</span>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <p class="text-muted small mb-0">No active projects.</p>
+                }
             </div>
         </div>
     </div>
