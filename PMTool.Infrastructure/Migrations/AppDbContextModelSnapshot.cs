@@ -215,6 +215,56 @@ namespace PMTool.Infrastructure.Migrations
                     b.ToTable("BoardColumns");
                 });
 
+            modelBuilder.Entity("PMTool.Domain.Entities.DailyTask", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsCompleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PMComment")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid?>("ProductBacklogId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ReviewedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
+                    b.Property<string>("TaskName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductBacklogId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("DailyTasks");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.Notification", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1399,6 +1449,21 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("Product");
                 });
 
+            modelBuilder.Entity("PMTool.Domain.Entities.DailyTask", b =>
+                {
+                    b.HasOne("PMTool.Domain.Entities.ProductBacklog", "ProductBacklog")
+                        .WithMany("DailyTasks")
+                        .HasForeignKey("ProductBacklogId");
+
+                    b.HasOne("PMTool.Domain.Entities.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("ProductBacklog");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.Notification", b =>
                 {
                     b.HasOne("PMTool.Domain.Entities.User", "User")
@@ -1788,6 +1853,8 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("ChildBacklogItems");
 
                     b.Navigation("Comments");
+
+                    b.Navigation("DailyTasks");
 
                     b.Navigation("Subtasks");
                 });

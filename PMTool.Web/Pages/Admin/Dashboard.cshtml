@@ -91,21 +91,8 @@ else
     .stat-card.dark .stat-value { color: #fff; }
     .stat-card .stat-sub { font-size: .78rem; color: var(--pm-green-mid); }
     .stat-card.dark .stat-sub { color: var(--pm-green-pale); }
-    .stat-card .arrow-btn {
-        width: 30px; height: 30px;
-        border-radius: 50%;
-        border: 1.5px solid #dee2e6;
-        display: flex; align-items: center; justify-content: center;
-        color: var(--pm-muted);
-        font-size: .75rem;
-        text-decoration: none;
-        background: none;
-        padding: 0;
-        cursor: pointer;
-        transition: border-color .15s, color .15s;
-    }
-    .stat-card.dark .arrow-btn { border-color: rgba(255,255,255,.3); color: rgba(255,255,255,.7); }
-    .stat-card .arrow-btn:hover { border-color: var(--pm-green-light); color: var(--pm-green-mid); }
+    .stat-card.clickable { cursor: pointer; transition: box-shadow .15s, transform .15s; }
+    .stat-card.clickable:hover { box-shadow: 0 4px 14px rgba(0,0,0,.1); transform: translateY(-2px); }
 
     /* ── Section Cards ── */
     .section-card {
@@ -459,41 +446,29 @@ else
     <!-- ── Stat Cards Row ── -->
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-3">
-            <div class="stat-card dark">
-                <div class="d-flex justify-content-between align-items-start">
-                    <span class="stat-label">Total Projects</span>
-                    <button type="button" class="arrow-btn" onclick="openProjectModal('total')"><i class="bi bi-arrow-up-right"></i></button>
-                </div>
+            <div class="stat-card dark clickable" onclick="openProjectModal('total')">
+                <span class="stat-label">Total Projects</span>
                 <div class="stat-value">@Model.Dashboard.TotalProjects</div>
                 <div class="stat-sub"><i class="bi bi-graph-up me-1"></i>Increased from last month</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
-            <div class="stat-card">
-                <div class="d-flex justify-content-between align-items-start">
-                    <span class="stat-label">Ended Projects</span>
-                    <button type="button" class="arrow-btn" onclick="openProjectModal('ended')"><i class="bi bi-arrow-up-right"></i></button>
-                </div>
+            <div class="stat-card clickable" onclick="openProjectModal('ended')">
+                <span class="stat-label">Ended Projects</span>
                 <div class="stat-value">@Model.Dashboard.CompletedProjects</div>
                 <div class="stat-sub"><i class="bi bi-graph-up me-1"></i>Increased from last month</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
-            <div class="stat-card">
-                <div class="d-flex justify-content-between align-items-start">
-                    <span class="stat-label">Running Projects</span>
-                    <button type="button" class="arrow-btn" onclick="openProjectModal('running')"><i class="bi bi-arrow-up-right"></i></button>
-                </div>
+            <div class="stat-card clickable" onclick="openProjectModal('running')">
+                <span class="stat-label">Running Projects</span>
                 <div class="stat-value">@Model.Dashboard.RunningProjects</div>
                 <div class="stat-sub"><i class="bi bi-graph-up me-1"></i>Increased from last month</div>
             </div>
         </div>
         <div class="col-6 col-lg-3">
-            <div class="stat-card">
-                <div class="d-flex justify-content-between align-items-start">
-                    <span class="stat-label">Pending Project</span>
-                    <button type="button" class="arrow-btn" onclick="openProjectModal('pending')"><i class="bi bi-arrow-up-right"></i></button>
-                </div>
+            <div class="stat-card clickable" onclick="openProjectModal('pending')">
+                <span class="stat-label">Pending Project</span>
                 <div class="stat-value">@Model.Dashboard.PendingProjects</div>
                 <div class="stat-sub text-muted">On Discuss</div>
             </div>

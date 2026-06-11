@@ -17,8 +17,14 @@
         <div class="card-body">
             <form method="get" class="row g-2 align-items-end">
                 <div class="col-md-2">
-                    <label class="form-label fw-semibold">User ID</label>
-                    <input type="text" name="FilterUserId" value="@Model.FilterUserId" class="form-control form-control-sm" placeholder="User GUID…" />
+                    <label class="form-label fw-semibold">User</label>
+                    <select name="FilterUser" class="form-select form-select-sm">
+                        <option value="">All users</option>
+                        @foreach (var user in Model.UserOptions)
+                        {
+                            <option value="@user.Value" selected="@(Model.FilterUser == user.Value)">@user.Text</option>
+                        }
+                    </select>
                 </div>
                 <div class="col-md-2">
                     <label class="form-label fw-semibold">Entity Type</label>
@@ -76,36 +82,27 @@
                     <table class="table table-hover table-sm mb-0">
                         <thead class="table-light">
                             <tr>
-                                <th>Timestamp (UTC)</th>
+                                <th>Timestamp</th>
                                 <th>User</th>
                                 <th>Action</th>
                                 <th>Entity Type</th>
-                                <th>Entity ID</th>
-                                <th>Old Value</th>
-                                <th>New Value</th>
+                                <th>Description</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach (var log in Model.Logs)
                             {
                                 <tr>
-                                    <td class="text-nowrap small">@log.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss")</td>
+                                    <td class="text-nowrap small">@log.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm:ss")</td>
                                     <td class="small">@log.UserName</td>
                                     <td>
                                         <span class="badge @GetActionBadgeClass(log.Action)">@log.Action</span>
                                     </td>
                                     <td class="small">@log.EntityType</td>
-                                    <td class="small font-monospace">@log.EntityId</td>
                                     <td class="small">
-                                        @if (!string.IsNullOrEmpty(log.OldValue))
+                                        @if (!string.IsNullOrEmpty(log.Description))
                                         {
-                                            <code class="text-danger" title="@log.OldValue">@TruncateJson(log.OldValue)</code>
-                                        }
-                                    </td>
-                                    <td class="small">
-                                        @if (!string.IsNullOrEmpty(log.NewValue))
-                                        {
-                                            <code class="text-success" title="@log.NewValue">@TruncateJson(log.NewValue)</code>
+                                            <span title="@log.Description">@TruncateJson(log.Description)</span>
                                         }
                                     </td>
                                 </tr>
@@ -128,7 +125,7 @@
                                     <li class="page-item">
                                         <a class="page-link" asp-page="./Index"
                                            asp-route-CurrentPage="@(Model.CurrentPage - 1)"
-                                           asp-route-FilterUserId="@Model.FilterUserId"
+                                           asp-route-FilterUser="@Model.FilterUser"
                                            asp-route-FilterEntityType="@Model.FilterEntityType"
                                            asp-route-FilterDateFrom="@Model.FilterDateFrom?.ToString("yyyy-MM-dd")"
                                            asp-route-FilterDateTo="@Model.FilterDateTo?.ToString("yyyy-MM-dd")">
@@ -141,7 +138,7 @@
                                     <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
                                         <a class="page-link" asp-page="./Index"
                                            asp-route-CurrentPage="@p"
-                                           asp-route-FilterUserId="@Model.FilterUserId"
+                                           asp-route-FilterUser="@Model.FilterUser"
                                            asp-route-FilterEntityType="@Model.FilterEntityType"
                                            asp-route-FilterDateFrom="@Model.FilterDateFrom?.ToString("yyyy-MM-dd")"
                                            asp-route-FilterDateTo="@Model.FilterDateTo?.ToString("yyyy-MM-dd")">
@@ -154,7 +151,7 @@
                                     <li class="page-item">
                                         <a class="page-link" asp-page="./Index"
                                            asp-route-CurrentPage="@(Model.CurrentPage + 1)"
-                                           asp-route-FilterUserId="@Model.FilterUserId"
+                                           asp-route-FilterUser="@Model.FilterUser"
                                            asp-route-FilterEntityType="@Model.FilterEntityType"
                                            asp-route-FilterDateFrom="@Model.FilterDateFrom?.ToString("yyyy-MM-dd")"
                                            asp-route-FilterDateTo="@Model.FilterDateTo?.ToString("yyyy-MM-dd")">

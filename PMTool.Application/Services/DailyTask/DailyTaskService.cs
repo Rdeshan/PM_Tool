@@ -18,6 +18,9 @@ public class DailyTaskService : IDailyTaskService
     // BASIC USER OPERATIONS
     // =========================
 
+    public Task<List<DailyTask>> GetAllTasksAsync()
+        => _repository.GetAllAsync();
+
     public Task<List<DailyTask>> GetUserTasksAsync(Guid userId)
         => _repository.GetByUserIdAsync(userId);
 
@@ -29,6 +32,7 @@ public class DailyTaskService : IDailyTaskService
         // default workflow state
         task.Status = DailyTaskStatus.Pending;
         task.CreatedAt = DateTime.UtcNow;
+        task.UpdatedAt = DateTime.UtcNow;
 
         return _repository.AddAsync(task);
     }
@@ -41,6 +45,31 @@ public class DailyTaskService : IDailyTaskService
 
     public Task<bool> DeleteAsync(Guid id)
         => _repository.DeleteAsync(id);
+
+    public async Task<bool> EditAndResubmitAsync(
+        Guid taskId,
+        Guid userId,
+        string taskName,
+        string? description,
+        Guid? backlogItemId)
+    {
+        var task = await _repository.GetByIdAsync(taskId);
+        if (task == null || task.UserId != userId) return false;
+
+        if (task.Status != DailyTaskStatus.Pending && task.Status != DailyTaskStatus.NeedsClarification)
+            return false;
+
+        task.TaskName = taskName.Trim();
+        task.Description = description?.Trim() ?? string.Empty;
+        task.ProductBacklogId = backlogItemId;
+        task.Status = DailyTaskStatus.Pending;
+        task.PMComment = null;
+        task.ReviewedBy = null;
+        task.ReviewedAt = null;
+        task.UpdatedAt = DateTime.UtcNow;
+
+        return await _repository.UpdateAsync(task);
+    }
 
     // =========================
     // PM WORKFLOW OPERATIONS

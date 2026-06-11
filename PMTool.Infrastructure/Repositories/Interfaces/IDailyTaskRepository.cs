@@ -5,6 +5,7 @@ namespace PMTool.Infrastructure.Repositories.Interfaces;
 
 public interface IDailyTaskRepository
 {
+    Task<List<DailyTask>> GetAllAsync();
     Task<List<DailyTask>> GetByUserIdAsync(Guid userId);
     Task<DailyTask?> GetByIdAsync(Guid id);
     Task<DailyTask?> AddAsync(DailyTask task);

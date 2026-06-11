@@ -83,6 +83,7 @@ builder.Services.AddScoped<INotificationRepository, NotificationRepository>();
 builder.Services.AddScoped<IUserAdminRepository, UserAdminRepository>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 builder.Services.AddScoped<ISprintRepository, SprintRepository>();
+builder.Services.AddScoped<IDailyTaskRepository, DailyTaskRepository>();
 builder.Services.AddScoped<DataSeedingService>();
 
 // Application Services
@@ -106,6 +107,7 @@ builder.Services.AddScoped<ISprintService, SprintService>();
 builder.Services.AddScoped<IWorkItemService, WorkItemService>();
 builder.Services.AddScoped<ISubTaskService, SubTaskService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
+builder.Services.AddScoped<IDailyTaskService, PMTool.Application.Services.DailyTaskService>();
 
 // Audit
 builder.Services.AddHttpContextAccessor();
