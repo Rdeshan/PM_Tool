@@ -300,7 +300,7 @@ public class SubProjectRepository : ISubProjectRepository
             if (await WouldCreateCircularDependencyAsync(subProjectId, depId))
                 return true;
         }
-
+        
         return false;
     }
 }

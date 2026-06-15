@@ -98,10 +98,18 @@ public class ProductBacklogService : IProductBacklogService
                 if (int.TryParse(request.Value, out var type))
                     item.Type = type;
                 break;
-            case "status":
-                if (int.TryParse(request.Value, out var status))
-                    item.Status = status;
-                break;
+  case "status":
+    if (int.TryParse(request.Value, out var status))
+    {
+        if (status == (int)BacklogItemStatus.Done &&
+            item.Subtasks.Any(s => s.Status != 3))
+        {
+            throw new InvalidOperationException("Cannot mark item as Done while subtasks are incomplete.");
+        }
+
+        item.Status = status;
+    }
+    break;
             case "owner":
                 item.OwnerId = Guid.TryParse(request.Value, out var ownerId) ? ownerId : null;
                 break;

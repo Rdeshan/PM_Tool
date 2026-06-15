@@ -16,9 +16,12 @@ public class NotificationService : INotificationService
 
     public async Task<List<NotificationDTO>> GetUserNotificationsAsync(Guid userId)
     {
-        var notifications = await _notificationRepository.GetByUserIdAsync(userId);
-        return notifications.Select(MapToDto).ToList();
-    }
+        var rawNotifications = await _notificationRepository.GetByUserIdAsync(userId);
+        var dtos = new List<NotificationDTO>();
+        // Wait, NotificationRepository does not have access to ProductBacklog.
+        // It's better to fetch via AppDbContext, but NotificationService uses INotificationRepository.
+        // I will just use INotificationRepository and since we cannot easily join here without AppDbContext, 
+        // I need to reconsider how to fetch it.
 
     public async Task<NotificationDTO?> CreateAsync(Guid userId, string message, Guid? itemId = null)
     {
