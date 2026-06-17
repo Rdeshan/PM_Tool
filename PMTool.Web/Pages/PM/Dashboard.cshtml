@@ -59,6 +59,8 @@ else
     .stat-card.dark .stat-sub { color: var(--pm-green-pale); }
     .stat-card.clickable { cursor: pointer; transition: box-shadow .15s, transform .15s; }
     .stat-card.clickable:hover { box-shadow: 0 4px 14px rgba(0,0,0,.1); transform: translateY(-2px); }
+    .clickable-card { transition: box-shadow .15s, transform .15s; }
+    .clickable-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.12); transform: translateY(-2px); }
 
     /* ── Section Cards ── */
     .section-card {
@@ -411,8 +413,13 @@ else
 
         <!-- Project Progress -->
         <div class="col-lg-4">
-            <div class="section-card">
-                <div class="section-title">Project Progress</div>
+            <div class="section-card clickable-card" onclick="location.href='/Progress'" style="cursor:pointer" title="View full progress overview">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <div class="section-title mb-0">Project Progress</div>
+                    <a href="/Progress" class="text-decoration-none small" style="color:var(--pm-green);font-size:.8rem;" onclick="event.stopPropagation()">
+                        View details <i class="bi bi-arrow-right"></i>
+                    </a>
+                </div>
                 @{
                     int total = Model.Dashboard.TotalProjects > 0 ? Model.Dashboard.TotalProjects : 1;
                     int completed = Model.Dashboard.CompletedProjects;
@@ -420,7 +427,7 @@ else
                     double circumference = 2 * Math.PI * 45;
                     double offset = circumference * (1 - pct / 100.0);
                 }
-                <div class="donut-wrap mx-auto mb-3">
+                <div class="donut-wrap mx-auto mb-3 mt-2">
                     <svg width="120" height="120" viewBox="0 0 100 100">
                         <circle cx="50" cy="50" r="45" fill="none" stroke="var(--pm-muted-light)" stroke-width="10"/>
                         <circle cx="50" cy="50" r="45" fill="none" stroke="var(--pm-green)" stroke-width="10"

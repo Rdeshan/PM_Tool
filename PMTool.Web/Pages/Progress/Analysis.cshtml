@@ -1,0 +1,600 @@
+@page
+@model PMTool.Web.Pages.Progress.AnalysisModel
+@{
+    ViewData["Title"] = "Product Analysis";
+    Layout = "_Layout";
+    var d = Model.Data;
+    var color = "#0d6efd";
+}
+
+<div class="container-fluid px-4 py-3">
+
+    @* ── Header ────────────────────────────────────────────────────── *@
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="/Progress" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <p class="text-uppercase text-muted small fw-semibold mb-0" style="letter-spacing:.05em">Product Analysis</p>
+            <h4 class="fw-bold mb-0">@d.ProductName</h4>
+        </div>
+    </div>
+
+    @* ── Hero card ─────────────────────────────────────────────────── *@
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row align-items-center g-4">
+
+                @* Progress ring *@
+                <div class="col-auto">
+                    <div class="position-relative d-flex align-items-center justify-content-center"
+                         style="width:96px;height:96px">
+                        @Html.Raw(AnalysisModel.ProgressRingHtml(d.OverallProgressPct, 96, 8, color))
+                        <span class="position-absolute fw-bold fs-5">@d.OverallProgressPct%</span>
+                    </div>
+                </div>
+
+                @* Product info *@
+                <div class="col">
+                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                        <h5 class="fw-bold mb-0">@d.ProductName</h5>
+                        <span class="badge bg-light text-dark border">v@d.Version</span>
+                        <span class="badge @AnalysisModel.ProductStatusBadgeClass(d.ProductStatus)">
+                            @AnalysisModel.ProductStatusLabel(d.ProductStatus)
+                        </span>
+                        <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle">
+                            <i class="bi bi-lightning me-1"></i>@d.SprintLabel
+                        </span>
+                    </div>
+                    <p class="text-muted small mb-0">@d.ProjectName · @d.ClientName</p>
+                </div>
+
+                @* Stat cards *@
+                <div class="col-12 col-lg-auto">
+                    <div class="row g-2">
+                        <div class="col-6 col-md-3 col-lg-auto">
+                            <div class="text-center px-3 py-2 rounded-3 bg-light">
+                                <div class="fw-bold fs-5">@d.TotalWorkItems</div>
+                                <div class="text-muted small">Total</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 col-lg-auto">
+                            <div class="text-center px-3 py-2 rounded-3 bg-success bg-opacity-10">
+                                <div class="fw-bold fs-5 text-success">@d.CompletedWorkItems</div>
+                                <div class="text-muted small">Done</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 col-lg-auto">
+                            <div class="text-center px-3 py-2 rounded-3 bg-warning bg-opacity-10">
+                                <div class="fw-bold fs-5 text-warning">@d.InProgressWorkItems</div>
+                                <div class="text-muted small">In Progress</div>
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-3 col-lg-auto">
+                            <div class="text-center px-3 py-2 rounded-3 bg-danger bg-opacity-10">
+                                <div class="fw-bold fs-5 text-danger">@d.BlockedWorkItems</div>
+                                <div class="text-muted small">Overdue</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ── Burndown + Forecast row ────────────────────────────────────── *@
+    @if (d.ActiveSprint == null)
+    {
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-body text-center py-4 text-muted">
+                <i class="bi bi-calendar-x fs-2 opacity-50"></i>
+                <p class="mt-2 mb-0">No active sprint for this product — burndown and forecast unavailable.</p>
+            </div>
+        </div>
+    }
+    else
+    {
+        var sprint = d.ActiveSprint;
+        var forecast = d.Forecast;
+
+        <div class="row g-4 mb-4">
+
+            @* Burndown chart *@
+            <div class="col-lg-8">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                        <div class="d-flex align-items-start justify-content-between flex-wrap gap-2">
+                            <div>
+                                <h6 class="fw-semibold mb-1">Sprint Burndown</h6>
+                                <small class="text-muted">
+                                    @sprint.Name &nbsp;·&nbsp;
+                                    @sprint.StartDate.ToString("MMM d") – @sprint.EndDate.ToString("MMM d yyyy") &nbsp;·&nbsp;
+                                    <strong>@sprint.DaysLeft</strong> day@(sprint.DaysLeft != 1 ? "s" : "") left
+                                </small>
+                            </div>
+                            @if (forecast != null)
+                            {
+                                var badgeClass = forecast.IsOverrun ? "bg-danger" : "bg-success";
+                                var iconClass = forecast.IsOverrun ? "bi-exclamation-circle" : "bi-check-circle";
+                                <span class="badge @badgeClass rounded-pill px-3 py-2">
+                                    <i class="bi @iconClass me-1"></i>
+                                    @if (forecast.ProjectedCompletionDate.HasValue)
+                                    {
+                                        @:Projected: @forecast.ProjectedCompletionDate.Value.ToString("MMM d")
+                                        if (forecast.IsOverrun)
+                                        {
+                                            @: · ~@forecast.ProjectedOverrunDays day@(forecast.ProjectedOverrunDays != 1 ? "s" : "") over
+                                        }
+                                        else if (forecast.ProjectedOverrunDays < 0)
+                                        {
+                                            @: · @(-forecast.ProjectedOverrunDays) day@((-forecast.ProjectedOverrunDays) != 1 ? "s" : "") early
+                                        }
+                                    }
+                                    else
+                                    {
+                                        @:On track
+                                    }
+                                </span>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-body pt-2">
+                        <canvas id="burndownChart" style="height:432px;max-height:432px"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            @* Forecast + risks *@
+            <div class="col-lg-4">
+                <div class="card border-0 shadow-sm h-100">
+                    <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                        <h6 class="fw-semibold mb-0">Forecast &amp; Risks</h6>
+                    </div>
+                    <div class="card-body">
+                        @if (forecast != null)
+                        {
+                            <div class="row g-2 mb-3 text-center">
+                                <div class="col-4">
+                                    <div class="fw-bold fs-5">@forecast.Velocity.ToString("F1")</div>
+                                    <div class="text-muted small">items/day</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="fw-bold fs-5">@forecast.RemainingItems<span class="text-muted fs-6">/@forecast.TotalItems</span></div>
+                                    <div class="text-muted small">remaining</div>
+                                </div>
+                                <div class="col-4">
+                                    @{
+                                        var projClass = forecast.IsOverrun ? "text-danger" : "text-success";
+                                    }
+                                    @if (forecast.ProjectedCompletionDate.HasValue)
+                                    {
+                                        <div class="fw-bold fs-6 @projClass">@forecast.ProjectedCompletionDate.Value.ToString("MMM d")</div>
+                                    }
+                                    else
+                                    {
+                                        <div class="fw-bold fs-5 text-muted">—</div>
+                                    }
+                                    <div class="text-muted small">projected</div>
+                                </div>
+                            </div>
+
+                            @if (forecast.Risks.Any())
+                            {
+                                <h6 class="small fw-semibold text-muted text-uppercase mb-2" style="letter-spacing:.05em">Risks</h6>
+                                <div class="d-flex flex-column gap-2">
+                                    @foreach (var risk in forecast.Risks)
+                                    {
+                                        <div class="d-flex gap-2 rounded-2 overflow-hidden border">
+                                            <div class="@AnalysisModel.SeverityBarClass(risk.Severity) flex-shrink-0" style="width:4px"></div>
+                                            <div class="py-2 pe-2">
+                                                <div class="fw-medium small">@risk.Title</div>
+                                                <div class="text-muted" style="font-size:.78rem">@risk.Detail</div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            }
+                            else
+                            {
+                                <p class="text-muted small text-center mt-3 mb-0">No risks identified</p>
+                            }
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @* ── Task Progress ──────────────────────────────────────────────── *@
+    <div class="row g-4 mb-4">
+
+        @* Sub-card 1: Overall task progress *@
+        <div class="col-lg-4">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                    <h6 class="fw-semibold mb-0">Overall Task Progress</h6>
+                </div>
+                <div class="card-body d-flex flex-column justify-content-center">
+                    @{
+                        var subPct2 = d.TaskProgress.TotalSubTasks > 0
+                            ? (int)Math.Round(100.0 * d.TaskProgress.CompletedSubTasks / d.TaskProgress.TotalSubTasks, MidpointRounding.AwayFromZero)
+                            : 0;
+                    }
+                    <div class="d-flex align-items-center justify-content-center mb-3">
+                        <div class="position-relative d-flex align-items-center justify-content-center"
+                             style="width:88px;height:88px">
+                            @Html.Raw(AnalysisModel.ProgressRingHtml(subPct2, 88, 8, "#0d6efd"))
+                            <span class="position-absolute fw-bold" style="font-size:1.1rem">@subPct2%</span>
+                        </div>
+                    </div>
+                    <div class="progress mb-2" style="height:8px;border-radius:4px">
+                        <div class="progress-bar bg-primary" style="width:@subPct2%;border-radius:4px"></div>
+                    </div>
+                    <div class="d-flex justify-content-between text-muted small mt-1">
+                        <span><strong class="text-body">@d.TaskProgress.CompletedSubTasks</strong> subtasks done</span>
+                        <span>of <strong class="text-body">@d.TaskProgress.TotalSubTasks</strong></span>
+                    </div>
+                    <hr class="my-3">
+                    <div class="row g-2 text-center">
+                        <div class="col-4">
+                            <div class="fw-bold">@d.TotalWorkItems</div>
+                            <div class="text-muted" style="font-size:.75rem">Total Items</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="fw-bold text-warning">@d.InProgressWorkItems</div>
+                            <div class="text-muted" style="font-size:.75rem">In Progress</div>
+                        </div>
+                        <div class="col-4">
+                            <div class="fw-bold text-success">@d.CompletedWorkItems</div>
+                            <div class="text-muted" style="font-size:.75rem">Done</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @* Sub-card 2: Individual task progress *@
+        <div class="col-lg-8">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <h6 class="fw-semibold mb-0">Individual Task Progress</h6>
+                        <span class="badge bg-warning bg-opacity-25 text-warning-emphasis border border-warning-subtle">
+                            @d.TaskProgress.InProgressItems.Count in progress
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    @if (!d.TaskProgress.InProgressItems.Any())
+                    {
+                        <div class="text-center py-4 text-muted">
+                            <i class="bi bi-check2-all fs-2 opacity-40"></i>
+                            <p class="small mt-2 mb-0">No items currently in progress</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="row g-3">
+                            @foreach (var item in d.TaskProgress.InProgressItems)
+                            {
+                                var itemOverdue = item.DueDate.HasValue && item.DueDate.Value.Date < DateTime.Today;
+                                var dueCss = itemOverdue ? "text-danger" : "text-muted";
+                                var dueLabel = item.DueDate.HasValue ? item.DueDate.Value.ToString("MMM d, yyyy") : "No due date";
+
+                                <div class="col-sm-6">
+                                    <div class="border rounded-3 p-3 h-100">
+
+                                        @* Title + ring *@
+                                        <div class="d-flex align-items-start justify-content-between gap-2 mb-2">
+                                            <span class="fw-medium small" style="line-height:1.35">@item.Title</span>
+                                            <div class="position-relative flex-shrink-0 d-flex align-items-center justify-content-center"
+                                                 style="width:38px;height:38px">
+                                                @Html.Raw(AnalysisModel.ProgressRingHtml(item.ProgressPct, 38, 4, color))
+                                                <span class="position-absolute" style="font-size:.55rem;font-weight:700">@item.ProgressPct%</span>
+                                            </div>
+                                        </div>
+
+                                        @* Progress bar *@
+                                        <div class="progress mb-2" style="height:5px;border-radius:3px">
+                                            <div class="progress-bar" style="width:@item.ProgressPct%;background:@color;border-radius:3px"></div>
+                                        </div>
+
+                                        @* Type badge *@
+                                        <div class="mb-2">
+                                            <span class="badge bg-light text-secondary border" style="font-size:.7rem">@item.WorkType</span>
+                                        </div>
+
+                                        @* Due date *@
+                                        <div class="d-flex align-items-center gap-1 mb-2 @dueCss" style="font-size:.78rem">
+                                            <i class="bi bi-calendar-event"></i>
+                                            <span>@dueLabel</span>
+                                            @if (itemOverdue)
+                                            {
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle ms-1" style="font-size:.65rem">Overdue</span>
+                                            }
+                                        </div>
+
+                                        @* Assignee *@
+                                        <div class="d-flex align-items-center gap-2 mb-2">
+                                            <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 fw-bold text-white"
+                                                 style="width:24px;height:24px;background:@item.AssigneeColorHex;font-size:.6rem">
+                                                @item.AssigneeInitials
+                                            </div>
+                                            <span class="small text-muted text-truncate">
+                                                @(string.IsNullOrWhiteSpace(item.AssigneeName) ? "Unassigned" : item.AssigneeName)
+                                            </span>
+                                        </div>
+
+                                        @* Subtask pips *@
+                                        @if (item.SubTaskCount > 0)
+                                        {
+                                            <div class="d-flex gap-1 flex-wrap mb-1">
+                                                @for (int pip = 0; pip < Math.Min(item.SubTaskCount, 20); pip++)
+                                                {
+                                                    <div class="rounded-1 flex-shrink-0"
+                                                         style="width:12px;height:5px;background:@(pip < item.CompletedSubTaskCount ? "#198754" : "#dee2e6")"></div>
+                                                }
+                                            </div>
+                                            <small class="text-muted">@item.CompletedSubTaskCount / @item.SubTaskCount subtasks</small>
+                                        }
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ── Backlog breakdown + Sub-projects ──────────────────────────── *@
+    <div class="row g-4 mb-4">
+
+        @* Backlog breakdown *@
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                    <h6 class="fw-semibold mb-0">Backlog Breakdown</h6>
+                </div>
+                <div class="card-body">
+
+                    @* Stacked status bar *@
+                    @if (d.BacklogByStatus.Any() && d.TotalWorkItems > 0)
+                    {
+                        <div class="d-flex rounded-2 overflow-hidden mb-2" style="height:20px">
+                            @foreach (var seg in d.BacklogByStatus)
+                            {
+                                var w = (100.0 * seg.Count / d.TotalWorkItems).ToString("F1", System.Globalization.CultureInfo.InvariantCulture);
+                                <div title="@seg.Name: @seg.Count"
+                                     style="width:@(w)%;background:@seg.ColourHex;min-width:@(seg.Count > 0 ? "3px" : "0")"></div>
+                            }
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 mb-4">
+                            @foreach (var seg in d.BacklogByStatus)
+                            {
+                                <span class="d-flex align-items-center gap-1 small">
+                                    <span class="rounded-circle d-inline-block" style="width:10px;height:10px;background:@seg.ColourHex"></span>
+                                    @seg.Name <strong class="ms-1">@seg.Count</strong>
+                                </span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted small mb-4">No backlog items</p>
+                    }
+
+                    @* Work type breakdown *@
+                    <h6 class="small fw-semibold text-muted text-uppercase mb-2" style="letter-spacing:.05em">By Type</h6>
+                    @if (d.WorkItemsByType.Any())
+                    {
+                        <div class="d-flex flex-column gap-2">
+                            @foreach (var t in d.WorkItemsByType)
+                            {
+                                var tpct = d.TotalWorkItems > 0
+                                    ? (int)Math.Round(100.0 * t.Count / d.TotalWorkItems, MidpointRounding.AwayFromZero)
+                                    : 0;
+                                <div class="d-flex align-items-center gap-2">
+                                    <span class="small text-muted" style="min-width:110px">@t.Name</span>
+                                    <div class="progress flex-grow-1" style="height:8px">
+                                        <div class="progress-bar" style="width:@tpct%;background:@color"></div>
+                                    </div>
+                                    <span class="small fw-medium" style="min-width:28px;text-align:right">@t.Count</span>
+                                </div>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-muted small">No items</p>
+                    }
+                </div>
+            </div>
+        </div>
+
+        @* Sub-projects *@
+        <div class="col-lg-6">
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-header bg-transparent border-0 pt-3 pb-0">
+                    <h6 class="fw-semibold mb-0">Sub-Projects</h6>
+                </div>
+                <div class="card-body p-0">
+                    @if (!d.SubProjects.Any())
+                    {
+                        <p class="text-muted small text-center py-4 mb-0">No sub-projects</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr class="text-muted small">
+                                        <th class="ps-3 fw-medium">Module</th>
+                                        <th class="fw-medium" style="width:110px">Progress</th>
+                                        <th class="fw-medium text-center" style="width:44px">%</th>
+                                        <th class="fw-medium pe-3">Health</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var sp in d.SubProjects)
+                                    {
+                                        <tr>
+                                            <td class="ps-3 fw-medium small text-truncate" style="max-width:150px">@sp.Name</td>
+                                            <td>
+                                                <div class="progress" style="height:6px">
+                                                    <div class="progress-bar" style="width:@sp.ProgressPct%;background:@color"></div>
+                                                </div>
+                                            </td>
+                                            <td class="small text-center">@sp.ProgressPct%</td>
+                                            <td class="pe-3">
+                                                <span class="badge @AnalysisModel.HealthBadgeClass(sp.HealthStatus) rounded-pill">
+                                                    @sp.HealthStatus
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* ── Team members ──────────────────────────────────────────────── *@
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-header bg-transparent border-0 pt-3 pb-0">
+            <h6 class="fw-semibold mb-0">Team</h6>
+        </div>
+        <div class="card-body">
+            @if (!d.TeamMembers.Any())
+            {
+                <p class="text-muted small text-center py-3 mb-0">No team members assigned</p>
+            }
+            else
+            {
+                <div class="row g-3">
+                    @foreach (var member in d.TeamMembers)
+                    {
+                        <div class="col-sm-6 col-md-4 col-xl-3">
+                            <div class="d-flex align-items-center gap-3 p-3 border rounded-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0 fw-bold text-white"
+                                     style="width:40px;height:40px;background:@member.AvatarColorHex;font-size:.85rem">
+                                    @member.Initials
+                                </div>
+                                <div class="min-w-0">
+                                    <div class="fw-medium small text-truncate">@member.FullName</div>
+                                    <div class="text-muted" style="font-size:.78rem">@member.Role</div>
+                                    <div class="text-muted" style="font-size:.78rem">
+                                        <i class="bi bi-check2-square me-1"></i>@member.OpenTaskCount open
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@3.0.1/dist/chartjs-plugin-annotation.min.js"></script>
+<script>
+(function () {
+    var canvas = document.getElementById('burndownChart');
+    if (!canvas) return;
+
+    var labels   = @Html.Raw(Model.BurndownLabelsJson);
+    var ideal    = @Html.Raw(Model.BurndownIdealJson);
+    var actual   = @Html.Raw(Model.BurndownActualJson);
+    var forecast = @Html.Raw(Model.BurndownForecastJson);
+
+    var sprintEndLabel = '@(d.ActiveSprint?.EndDate.ToString("MMM d") ?? "")';
+    var todayLabel     = '@DateTime.UtcNow.ToString("MMM d")';
+    var todayIdx       = labels.indexOf(todayLabel);
+    var endIdx         = labels.indexOf(sprintEndLabel);
+
+    var annotations = {};
+    if (todayIdx >= 0) {
+        annotations.todayLine = {
+            type: 'line', scaleID: 'x', value: todayIdx,
+            borderColor: '#6c757d', borderWidth: 1, borderDash: [4, 4],
+            label: { content: 'Today', display: true, position: 'start', font: { size: 11 } }
+        };
+    }
+    if (endIdx >= 0 && endIdx !== todayIdx) {
+        annotations.endLine = {
+            type: 'line', scaleID: 'x', value: endIdx,
+            borderColor: '#dc3545', borderWidth: 1, borderDash: [4, 4],
+            label: { content: 'Sprint end', display: true, position: 'start', font: { size: 11 } }
+        };
+    }
+
+    new Chart(canvas, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'Ideal',
+                    data: ideal,
+                    borderColor: '#adb5bd',
+                    borderDash: [6, 4],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0,
+                    spanGaps: false
+                },
+                {
+                    label: 'Actual remaining',
+                    data: actual,
+                    borderColor: '#0d6efd',
+                    backgroundColor: 'rgba(13,110,253,.08)',
+                    borderWidth: 2,
+                    pointRadius: 2,
+                    fill: true,
+                    tension: 0.2,
+                    spanGaps: false
+                },
+                {
+                    label: 'Forecast',
+                    data: forecast,
+                    borderColor: '#dc3545',
+                    borderDash: [5, 5],
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0.2,
+                    spanGaps: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 12 } } },
+                annotation: { annotations: annotations },
+                tooltip: { mode: 'index', intersect: false }
+            },
+            scales: {
+                x: {
+                    ticks: { maxTicksLimit: 10, font: { size: 11 } },
+                    grid: { display: false }
+                },
+                y: {
+                    beginAtZero: true,
+                    title: { display: true, text: 'Remaining items', font: { size: 11 } },
+                    ticks: { font: { size: 11 }, stepSize: 1 }
+                }
+            }
+        }
+    });
+})();
+</script>
+}
