@@ -69,22 +69,23 @@ public class UserAdminRepository : IUserAdminRepository
             .ToListAsync();
     }
 
-    public async Task<bool> CreateAsync(User user)
+   public async Task<bool> CreateAsync(User user)
+{
+    try
     {
-        try
-        {
-            user.Id = Guid.NewGuid();
-            user.CreatedAt = DateTime.UtcNow;
-            user.UpdatedAt = DateTime.UtcNow;
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
+        user.Id = Guid.NewGuid();
+        user.CreatedAt = DateTime.UtcNow;
+        user.UpdatedAt = DateTime.UtcNow;
+        _context.Users.Add(user);
+        await _context.SaveChangesAsync();
+        return true;
     }
+    catch (Exception ex)
+    {
+        Console.WriteLine("CREATE USER FAILED: " + ex.ToString());
+    return false;
+    }
+}
 
     public async Task<bool> UpdateAsync(User user)
     {

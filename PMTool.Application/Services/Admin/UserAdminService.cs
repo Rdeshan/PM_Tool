@@ -67,7 +67,7 @@ public class UserAdminService : IUserAdminService
         var existingUser = await _userRepository.GetByEmailAsync(request.Email);
         if (existingUser != null)
             return false;
-
+        
         var invitationToken = _tokenService.GenerateRandomToken();
         var user = new Domain.Entities.User
         {

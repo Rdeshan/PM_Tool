@@ -43,28 +43,53 @@ public class InviteModel : PageModel
             .ToList();
     }
 
-    public async Task<IActionResult> OnPostAsync()
-    {
-        if (!ModelState.IsValid)
-        {
-            await OnGetAsync();
-            ErrorMessage = "Please fill in all required fields correctly.";
-            return Page();
-        }
+    // public async Task<IActionResult> OnPostAsync()
+    // {
+    //     if (!ModelState.IsValid)
+    //     {
+    //         await OnGetAsync();
+    //         ErrorMessage = "Please fill in all required fields correctly.";
+    //         return Page();
+    //     }
 
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+    //     var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+    //     var result = await _userAdminService.InviteUserAsync(Input, userId);
+
+    //     if (!result)
+    //     {
+    //         await OnGetAsync();
+    //         ErrorMessage = "Failed to invite user. Email may already exist or an error occurred.";
+    //         return Page();
+    //     }
+
+    //     SuccessMessage = $"Invitation sent to {Input.Email}. User will receive an email with account setup instructions.";
+    //     Input = new InviteUserRequest();
+    //     await OnGetAsync();
+    //     return Page();
+    // }
+    public async Task<IActionResult> OnPostAsync()
+{
+    try
+    {
+        var userId = Guid.Parse(
+            User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? Guid.Empty.ToString());
+
         var result = await _userAdminService.InviteUserAsync(Input, userId);
 
         if (!result)
         {
-            await OnGetAsync();
-            ErrorMessage = "Failed to invite user. Email may already exist or an error occurred.";
+            ErrorMessage = "InviteUserAsync returned false";
             return Page();
         }
 
-        SuccessMessage = $"Invitation sent to {Input.Email}. User will receive an email with account setup instructions.";
-        Input = new InviteUserRequest();
-        await OnGetAsync();
+        SuccessMessage = "Success";
         return Page();
     }
+    catch (Exception ex)
+    {
+        ErrorMessage = ex.ToString();
+        return Page();
+    }
+}
 }

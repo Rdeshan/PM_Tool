@@ -29,7 +29,7 @@ public class EmailService : IEmailService
                 return true;
             }
 
-            var subject = "Password Reset Request - PMTool";
+            var subject = "Password Reset Request - OPMS";
             var body = $@"
                 <h2>Password Reset Request</h2>
                 <p>You requested a password reset for your PMTool account.</p>
@@ -59,9 +59,9 @@ public class EmailService : IEmailService
                 return true;
             }
 
-            var subject = "Confirm Your Email - PMTool";
+            var subject = "Confirm Your Email - OPMS";
             var body = $@"
-                <h2>Welcome to PMTool!</h2>
+                <h2>Welcome to OPMS!</h2>
                 <p>Thank you for registering. Please confirm your email address to complete your registration.</p>
                 <p>Click the link below to confirm your email (valid for 24 hours):</p>
                 <p><a href='{confirmationLink}'>Confirm Email</a></p>
@@ -89,10 +89,10 @@ public class EmailService : IEmailService
                 return true;
             }
 
-            var subject = "Your Two-Factor Authentication Code - PMTool";
+            var subject = "Your Two-Factor Authentication Code - OPMS";
             var body = $@"
                 <h2>Two-Factor Authentication</h2>
-                <p>You're signing in to your PMTool account.</p>
+                <p>You're signing in to your OPMS account.</p>
                 <p>Your authentication code is:</p>
                 <h1 style='font-size: 32px; letter-spacing: 5px; font-family: monospace;'>{code}</h1>
                 <p>This code is valid for 5 minutes.</p>
@@ -150,10 +150,10 @@ public class EmailService : IEmailService
                 return true;
             }
 
-            var subject = "You're Invited to PMTool!";
+            var subject = "You're Invited to OPMS!";
             var body = $@"
-                <h2>Welcome to PMTool!</h2>
-                <p>You've been invited to join PMTool as a team member.</p>
+                <h2>Welcome to OPMS!</h2>
+                <p>You've been invited to join OPMS as a team member.</p>
                 <p>Click the link below to complete your account setup (valid for 7 days):</p>
                 <p><a href='{setupLink}'>Complete Account Setup</a></p>
                 <p>After setup, you'll be able to collaborate with your team on projects and tasks.</p>
