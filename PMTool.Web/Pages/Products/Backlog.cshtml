@@ -835,15 +835,8 @@ async function submitCreateSprint() {
         const result = await resp.json();
         if(result.success) {
             showToast('Sprint created successfully');
-            appendSprintCard(result.sprint);
             closeCreateSprintModal();
-            // Reset modal fields for next use
-            document.getElementById('sprintName').value  = '';
-            document.getElementById('sprintGoal').value  = '';
-            const today = new Date().toISOString().substring(0, 10);
-            const twoWeeks = new Date(Date.now() + 14 * 86400000).toISOString().substring(0, 10);
-            document.getElementById('sprintStart').value = today;
-            document.getElementById('sprintEnd').value   = twoWeeks;
+            setTimeout(() => location.reload(), 400);
         } else {
             showToast(result.message || 'Failed to create sprint', 'danger');
         }
@@ -915,9 +908,7 @@ async function completeSprint(id) {
         const result = await resp.json();
         if (result.success) {
             showToast('Sprint completed!');
-            const card = document.getElementById('sprint_' + id);
-            card?.querySelectorAll('.badge.bg-success').forEach(x => x.remove());
-            document.getElementById('completeSprintBtn_' + id)?.remove();
+            setTimeout(() => location.reload(), 400);
         } else {
             showToast('Failed to complete sprint', 'danger');
         }
@@ -934,12 +925,7 @@ async function deleteSprint(id) {
         headers: { 'RequestVerificationToken': getToken() }
     });
     if((await resp.json()).success) {
-        const card = document.getElementById('sprint_' + id);
-        const backlog = document.getElementById('backlogTableBody');
-        card?.querySelectorAll('tbody tr[data-item-id]').forEach(row => backlog?.appendChild(row));
-        card?.remove();
-        updateBacklogStats();
-        updateDropPlaceholders();
+        location.reload();
     }
 }
 
@@ -1151,17 +1137,18 @@ document.addEventListener('DOMContentLoaded', function() {
     updateBacklogStats();
     updateDropPlaceholders();
     initMentionPicker();
+    initCustomStatuses();
 });
 
 function updatePoints(container) {
     if(!container) return;
     let total = 0;
-    container.querySelectorAll('tr').forEach(tr => {
-        const pts = parseInt(tr.querySelector('.pts-pill')?.textContent) || 0;
+    container.querySelectorAll('tr[data-item-id]').forEach(tr => {
+        const pts = parseInt(tr.dataset.itemStoryPoints) || 0;
         total += pts;
     });
-    
-    // Find parent sprint-card and updatepts-sum
+
+    // Find parent sprint-card and update pts-sum
     const card = container.closest('.sprint-card');
     if(card) {
         const ptsSpan = card.querySelector('.pts-sum');
@@ -1410,13 +1397,8 @@ function saveTitle(itemId, val, original) {
         body: `itemId=${itemId}&title=${encodeURIComponent(title)}`
     }).then(r => {
         if (r.ok) {
-            renderTitleCell(itemId, title);
-            const row = document.getElementById('row-' + itemId);
-            if (row) row.dataset.itemTitle = title;
-            if (currentBacklogId === itemId) {
-                document.getElementById('sidebarTaskTitle').textContent = title;
-            }
-            showToast('Title updated', 'Item title has been changed.');
+            showToast('Title updated');
+            setTimeout(() => location.reload(), 400);
         } else {
             renderTitleCell(itemId, original);
         }
@@ -1498,12 +1480,8 @@ async function createSubtask(itemId, e) {
         return;
     }
 
-    appendSubtaskToRow(itemId, result.subtask);
-
-    updateSubtaskCount(itemId);
-    if (currentBacklogId === itemId) renderSidebarSubtasks(itemId);
-    toggleSubtaskForm(itemId, e, true);
     showToast('Subtask added', 'success');
+    setTimeout(() => location.reload(), 400);
 }
 
 async function updateProductSubtaskStatus(subtaskId, status, e) {
@@ -1543,15 +1521,7 @@ async function updateProductSubtaskStatus(subtaskId, status, e) {
         return false;
     }
 
-    document.querySelectorAll(`select.subtask-status-select[data-subtask-id="${subtaskId}"]`).forEach(sel => {
-        sel.value = status.toString();
-        applyStatusSelectStyle(sel, status);
-        const subtaskEl = sel.closest('.product-subtask, .sidebar-subtask');
-        if (subtaskEl) {
-            subtaskEl.classList.toggle('done', status === 3);
-            subtaskEl.dataset.subtaskStatus = status.toString();
-        }
-    });
+    setTimeout(() => location.reload(), 400);
     return true;
 }
 
@@ -2098,10 +2068,9 @@ async function submitEditSubtask() {
 
         const result = await resp.json();
         if (result.success) {
-            updateSubtaskInRow(id, { title, priority, assigneeId, assigneeName, status });
-            renderSidebarSubtasks(currentBacklogId);
-            closeEditSubtaskModal();
             showToast('Subtask updated', 'success');
+            closeEditSubtaskModal();
+            setTimeout(() => location.reload(), 400);
         } else {
             showToast('Failed to update subtask', 'danger');
         }
@@ -2135,11 +2104,8 @@ async function deleteSubtaskInSidebar(id, e) {
 
         const result = await resp.json();
         if (result.success) {
-            const subtaskEl = document.querySelector(`.product-subtask[data-subtask-id="${id}"]`);
-            if (subtaskEl) subtaskEl.remove();
-            renderSidebarSubtasks(currentBacklogId);
-            updateSubtaskCount(currentBacklogId);
             showToast('Subtask deleted', 'success');
+            setTimeout(() => location.reload(), 400);
         } else {
             showToast('Failed to delete subtask', 'danger');
         }
@@ -2181,11 +2147,8 @@ async function createSidebarSubtask(e) {
         return;
     }
 
-    appendSubtaskToRow(currentBacklogId, result.subtask);
-    renderSidebarSubtasks(currentBacklogId);
-    updateSubtaskCount(currentBacklogId);
-    hideSubtaskInput();
     showToast('Subtask added', 'success');
+    setTimeout(() => location.reload(), 400);
 }
 
 function appendSubtaskToRow(itemId, subtask) {
@@ -2551,14 +2514,7 @@ document.getElementById('createBacklogForm').addEventListener('submit', async fu
 
         if (result.success) {
             showToast('Item created!', 'success');
-            signalChange();
-            appendCreatedBacklogItem(result.item, capturedTypeIconHtml);
-            document.getElementById('newItemTitle').value = '';
-            document.getElementById('hiddenOwner').value = '';
-            document.getElementById('hiddenDueDate').value = '';
-            createDate = null;
-            document.getElementById('createDateLabel').textContent = '';
-            document.getElementById('createAssignIcon').innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>`;
+            setTimeout(() => location.reload(), 400);
         } else {
             showToast(result.message || 'Failed to create item', 'danger');
         }
@@ -2739,6 +2695,7 @@ function getToken() {
 
 function signalChange() {
     window.dispatchEvent(new CustomEvent('backlog:updated', { detail: { at: Date.now() } }));
+    setTimeout(() => location.reload(), 400);
 }
 
 // ─── Select all checkbox ──────────────────────────────────────────────────────
