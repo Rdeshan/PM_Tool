@@ -350,7 +350,9 @@
                                 ["WorkTypes"] = Model.WorkTypes,
                                 ["ActiveUsers"] = Model.ActiveUsers,
                                 ["CustomStatuses"] = Model.CustomBoardColumns,
-                                ["SubtasksByItem"] = Model.SubtasksByItem
+                                ["SubtasksByItem"] = Model.SubtasksByItem,
+                                ["IsAdminOrPM"] = Model.CanEditBacklog,
+                                ["CurrentUserId"] = Model.CurrentUserId.ToString()
                             })
                         }
                         @if (!sprintItems.Any())
@@ -583,13 +585,18 @@
             <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="fw-bold mb-0">Subtasks</h6>
-                    <button type="button" class="btn btn-sm btn-primary" onclick="showSubtaskInput()">
-                        <i class="bi bi-plus"></i>
-                    </button>
+                    @if (Model.CanEditBacklog)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" onclick="showSubtaskInput()">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                    }
                 </div>
 
                 <div id="sidebarSubtaskList" class="sidebar-subtask-list"></div>
 
+                @if (Model.CanEditBacklog)
+                {
                 <div id="newSubtaskWrap" class="d-none mt-2">
                     <div class="d-flex flex-column gap-2">
                         <input type="text"
@@ -629,6 +636,7 @@
                         </div>
                     </div>
                 </div>
+                }
             </div>
 
             <div style="font-size:13px;font-weight:600;color:#172b4d;margin:16px 0 8px;padding-top:4px;border-top:1px solid #f0f0f0;">
@@ -782,6 +790,10 @@
 const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 const SMON   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const WDAYS  = ['Su','Mo','Tu','We','Th','Fr','Sa'];
+
+// Current user context (used for client-side permission checks)
+const CURRENT_USER_ID  = '@Model.CurrentUserId';
+const IS_ADMIN_OR_PM   = @Model.CanEditBacklog.ToString().ToLower();
 
 function toggleBacklog() {
     const wrap = document.querySelector('.backlog-wrap');
@@ -1132,8 +1144,9 @@ function initDropZone(zone) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.sprint-drop-zone').forEach(initDropZone);
-
+    if (IS_ADMIN_OR_PM) {
+        document.querySelectorAll('.sprint-drop-zone').forEach(initDropZone);
+    }
     updateBacklogStats();
     updateDropPlaceholders();
     initMentionPicker();
@@ -1555,7 +1568,14 @@ function openProductSidebar(id, title, key, focusNewSubtask, e) {
 
     document.getElementById('sidebarTaskTitle').textContent = currentBacklogTitle || 'Subtask';
     document.getElementById('sidebarTaskKey').textContent = currentBacklogKey ? `PB-${currentBacklogKey}` : 'PB';
-    document.getElementById('sidebarStatus').value = ds.itemStatus || '1';
+
+    const sidebarStatusEl = document.getElementById('sidebarStatus');
+    sidebarStatusEl.value = ds.itemStatus || '1';
+    const isAssignedToItem = (ds.itemAssigneeId || '') === CURRENT_USER_ID && CURRENT_USER_ID !== '';
+    const canChangeStatus  = IS_ADMIN_OR_PM || isAssignedToItem;
+    sidebarStatusEl.disabled = !canChangeStatus;
+    sidebarStatusEl.style.opacity = canChangeStatus ? '1' : '0.6';
+    sidebarStatusEl.style.cursor  = canChangeStatus ? 'pointer' : 'default';
     document.getElementById('sidebarDescription').value = ds.itemDescription || '';
     document.getElementById('sidebarAssignee').innerHTML = renderAssigneeValue(ds.itemAssignee || 'Unassigned', ds.itemAssigneeId || '');
     document.getElementById('sidebarDueDate').textContent = formatDate(ds.itemDueDate);
@@ -1989,34 +2009,29 @@ function renderSidebarSubtasks(itemId) {
         return;
     }
 
+    const parentRow = document.getElementById('row-' + itemId);
+    const parentAssigneeId = parentRow?.dataset.itemAssigneeId || '';
+
     subtasks.forEach(subtask => {
-        const subtaskId = subtask.dataset.subtaskId;
-        const title = subtask.dataset.subtaskTitle || subtask.querySelector('span')?.textContent || '';
-        const status = parseInt(subtask.dataset.subtaskStatus);
-        const priority = parseInt(subtask.dataset.subtaskPriority);
-        const assigneeId = subtask.dataset.subtaskAssigneeId || '';
+        const subtaskId    = subtask.dataset.subtaskId;
+        const title        = subtask.dataset.subtaskTitle || subtask.querySelector('span')?.textContent || '';
+        const status       = parseInt(subtask.dataset.subtaskStatus);
+        const priority     = parseInt(subtask.dataset.subtaskPriority);
+        const assigneeId   = subtask.dataset.subtaskAssigneeId || '';
         const assigneeName = subtask.dataset.subtaskAssigneeName || '';
-        const doneClass = status === 3 ? ' done' : '';
-        const statusBg = status === 1 ? '#dbeafe' : status === 2 ? '#fef3c7' : '#dcfce7';
-        const statusFg = status === 1 ? '#1d4ed8' : status === 2 ? '#92400e' : '#166534';
+        const doneClass    = status === 3 ? ' done' : '';
+        const statusBg     = status === 1 ? '#dbeafe' : status === 2 ? '#fef3c7' : '#dcfce7';
+        const statusFg     = status === 1 ? '#1d4ed8' : status === 2 ? '#92400e' : '#166534';
+
+        // Status can be changed by admin/PM, the subtask's assignee, or the parent task's assignee
+        const canChangeSubStatus = IS_ADMIN_OR_PM
+            || (CURRENT_USER_ID !== '' && (assigneeId === CURRENT_USER_ID || parentAssigneeId === CURRENT_USER_ID));
 
         const assigneeHtml = assigneeName
             ? `<div class="avatar-circle" style="${avatarStyle(assigneeId || assigneeName)};width:20px;height:20px;font-size:8px;flex-shrink:0;" title="${escapeHtml(assigneeName)}">${getInitials(assigneeName)}</div><span style="font-size:11px;color:#172b4d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;">${escapeHtml(assigneeName)}</span>`
             : `<span style="font-size:11px;color:#aaa;">—</span>`;
 
-        const item = document.createElement('div');
-        item.className = `sidebar-subtask product-subtask${doneClass}`;
-        item.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;';
-        item.innerHTML = `
-            <select class="subtask-status-select" data-subtask-id="${subtaskId}"
-                style="flex-shrink:0;border:none;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;font-weight:600;background:${statusBg};color:${statusFg};outline:none;appearance:none;-webkit-appearance:none;"
-                onchange="updateProductSubtaskStatus('${subtaskId}', parseInt(this.value), event)">
-                <option value="1" ${status===1?'selected':''}>To Do</option>
-                <option value="2" ${status===2?'selected':''}>In Progress</option>
-                <option value="3" ${status===3?'selected':''}>Done</option>
-            </select>
-            <span style="flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(title)}</span>
-            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">${assigneeHtml}</div>
+        const editDeleteHtml = IS_ADMIN_OR_PM ? `
             <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;margin-left:4px;">
                 <button type="button" class="ib" onclick="openEditSubtaskModal('${subtaskId}', '${escapeJs(title)}', ${priority}, '${assigneeId}', ${status}, event)" title="Edit">
                     <i class="bi bi-pencil"></i>
@@ -2024,7 +2039,23 @@ function renderSidebarSubtasks(itemId) {
                 <button type="button" class="ib text-danger" onclick="deleteSubtaskInSidebar('${subtaskId}', event)" title="Delete">
                     <i class="bi bi-trash"></i>
                 </button>
-            </div>
+            </div>` : '';
+
+        const item = document.createElement('div');
+        item.className = `sidebar-subtask product-subtask${doneClass}`;
+        item.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;';
+        item.innerHTML = `
+            <select class="subtask-status-select" data-subtask-id="${subtaskId}"
+                style="flex-shrink:0;border:none;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600;background:${statusBg};color:${statusFg};outline:none;appearance:none;-webkit-appearance:none;${canChangeSubStatus ? 'cursor:pointer;' : 'cursor:default;opacity:0.7;'}"
+                ${canChangeSubStatus ? '' : 'disabled'}
+                onchange="updateProductSubtaskStatus('${subtaskId}', parseInt(this.value), event)">
+                <option value="1" ${status===1?'selected':''}>To Do</option>
+                <option value="2" ${status===2?'selected':''}>In Progress</option>
+                <option value="3" ${status===3?'selected':''}>Done</option>
+            </select>
+            <span style="flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(title)}</span>
+            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">${assigneeHtml}</div>
+            ${editDeleteHtml}
         `;
         sidebarList.appendChild(item);
     });
