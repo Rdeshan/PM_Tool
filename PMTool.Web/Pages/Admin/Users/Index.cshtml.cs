@@ -61,4 +61,20 @@ public class IndexModel : PageModel
 
         return RedirectToPage();
     }
+
+    public async Task<IActionResult> OnPostDeleteAsync(Guid userId)
+    {
+        var result = await _userAdminService.DeleteUserAsync(userId);
+        if (result)
+        {
+            TempData["SuccessMessage"] = "User permanently deleted.";
+        }
+        else
+        {
+            TempData["ErrorMessage"] = "Failed to delete user. Ensure the user is deactivated before deleting.";
+        }
+
+        // Redirect back to the inactive tab since we deleted from there
+        return RedirectToPage(new { inactive = true });
+    }
 }

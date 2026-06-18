@@ -16,9 +16,10 @@ public class NotificationService : INotificationService
 
     public async Task<List<NotificationDTO>> GetUserNotificationsAsync(Guid userId)
     {
-        var rawNotifications = await _notificationRepository.GetByUserIdAsync(userId);
-        return rawNotifications.Select(MapToDto).ToList();
+        var notifications = await _notificationRepository.GetByUserIdAsync(userId);
+        return notifications.Select(MapToDto).ToList();
     }
+   
 
     public async Task<NotificationDTO?> CreateAsync(Guid userId, string message, Guid? itemId = null)
     {

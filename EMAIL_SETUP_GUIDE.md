@@ -136,7 +136,7 @@ public class SendGridEmailService : IEmailService
             return false;
         }
     }
-}
+} 
 ```
 
 **Pros:**

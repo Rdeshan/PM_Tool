@@ -67,7 +67,7 @@ public class UserAdminService : IUserAdminService
         var existingUser = await _userRepository.GetByEmailAsync(request.Email);
         if (existingUser != null)
             return false;
-
+        
         var invitationToken = _tokenService.GenerateRandomToken();
         var user = new Domain.Entities.User
         {
@@ -126,6 +126,19 @@ public class UserAdminService : IUserAdminService
     public async Task<bool> ReactivateUserAsync(Guid userId)
     {
         return await _userRepository.ReactivateAsync(userId);
+    }
+
+    public async Task<bool> DeleteUserAsync(Guid userId)
+    {
+        // Guard: user must exist and be inactive before permanent deletion
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null)
+            return false;
+
+        if (user.IsActive)
+            return false; // must be deactivated first
+
+        return await _userRepository.DeleteAsync(userId);
     }
 
     public async Task<bool> UpdateProfileAsync(Guid userId, UpdateProfileRequest request)

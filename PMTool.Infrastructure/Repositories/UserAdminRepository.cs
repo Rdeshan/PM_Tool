@@ -69,22 +69,15 @@ public class UserAdminRepository : IUserAdminRepository
             .ToListAsync();
     }
 
-    public async Task<bool> CreateAsync(User user)
-    {
-        try
-        {
-            user.Id = Guid.NewGuid();
-            user.CreatedAt = DateTime.UtcNow;
-            user.UpdatedAt = DateTime.UtcNow;
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-            return true;
-        }
-        catch
-        {
-            return false;
-        }
-    }
+   public async Task<bool> CreateAsync(User user)
+{
+    user.Id = Guid.NewGuid();
+    user.CreatedAt = DateTime.UtcNow;
+    user.UpdatedAt = DateTime.UtcNow;
+    _context.Users.Add(user);
+    await _context.SaveChangesAsync();
+    return true;
+}
 
     public async Task<bool> UpdateAsync(User user)
     {
@@ -105,14 +98,22 @@ public class UserAdminRepository : IUserAdminRepository
     {
         try
         {
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _context.Users
+                .Include(u => u.TeamMembers)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
             if (user == null)
                 return false;
+
+            // Remove user from all teams atomically with the deactivation
+            if (user.TeamMembers.Any())
+                _context.TeamMembers.RemoveRange(user.TeamMembers);
 
             user.IsActive = false;
             user.DeactivatedAt = DateTime.UtcNow;
             user.UpdatedAt = DateTime.UtcNow;
             _context.Users.Update(user);
+
             await _context.SaveChangesAsync();
             return true;
         }
@@ -134,6 +135,36 @@ public class UserAdminRepository : IUserAdminRepository
             user.DeactivatedAt = null;
             user.UpdatedAt = DateTime.UtcNow;
             _context.Users.Update(user);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    public async Task<bool> DeleteAsync(Guid userId)
+    {
+        try
+        {
+            var user = await _context.Users
+                .Include(u => u.UserRoles)
+                .Include(u => u.TeamMembers)
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+                return false;
+
+            // Only allow deletion of already-deactivated users
+            if (user.IsActive)
+                return false;
+
+            // Remove related records before deleting the user
+            _context.UserRoles.RemoveRange(user.UserRoles);
+            _context.TeamMembers.RemoveRange(user.TeamMembers);
+            _context.Users.Remove(user);
+
             await _context.SaveChangesAsync();
             return true;
         }

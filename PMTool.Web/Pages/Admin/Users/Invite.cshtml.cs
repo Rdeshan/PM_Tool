@@ -43,6 +43,30 @@ public class InviteModel : PageModel
             .ToList();
     }
 
+    // public async Task<IActionResult> OnPostAsync()
+    // {
+    //     if (!ModelState.IsValid)
+    //     {
+    //         await OnGetAsync();
+    //         ErrorMessage = "Please fill in all required fields correctly.";
+    //         return Page();
+    //     }
+
+    //     var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
+    //     var result = await _userAdminService.InviteUserAsync(Input, userId);
+
+    //     if (!result)
+    //     {
+    //         await OnGetAsync();
+    //         ErrorMessage = "Failed to invite user. Email may already exist or an error occurred.";
+    //         return Page();
+    //     }
+
+    //     SuccessMessage = $"Invitation sent to {Input.Email}. User will receive an email with account setup instructions.";
+    //     Input = new InviteUserRequest();
+    //     await OnGetAsync();
+    //     return Page();
+    // }
     public async Task<IActionResult> OnPostAsync()
     {
         if (!ModelState.IsValid)
@@ -52,19 +76,30 @@ public class InviteModel : PageModel
             return Page();
         }
 
-        var userId = Guid.Parse(User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? Guid.Empty.ToString());
-        var result = await _userAdminService.InviteUserAsync(Input, userId);
+        try
+        {
+            var userId = Guid.Parse(
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? Guid.Empty.ToString());
 
-        if (!result)
+            var result = await _userAdminService.InviteUserAsync(Input, userId);
+
+            if (!result)
+            {
+                await OnGetAsync();
+                ErrorMessage = "Failed to invite user. A user with this email may already exist.";
+                return Page();
+            }
+
+            TempData["SuccessMessage"] = $"Invitation sent to {Input.Email} successfully.";
+            return RedirectToPage("./Index");
+        }
+        catch (Exception ex)
         {
             await OnGetAsync();
-            ErrorMessage = "Failed to invite user. Email may already exist or an error occurred.";
+            ErrorMessage = $"An error occurred: {ex.Message}";
             return Page();
         }
-
-        SuccessMessage = $"Invitation sent to {Input.Email}. User will receive an email with account setup instructions.";
-        Input = new InviteUserRequest();
-        await OnGetAsync();
-        return Page();
     }
 }
+

@@ -20,7 +20,7 @@
                     <i class="bi bi-plus-circle"></i> New Project
                 </button>
             }
-            @if (User.IsInRole("Administrator"))
+            <!-- @if (User.IsInRole("Administrator"))
             {
                 <a asp-page="/Admin/Dashboard" class="btn btn-primary">
                     <i class="bi bi-speedometer2"></i> Admin Dashboard
@@ -31,7 +31,7 @@
                 <a asp-page="/PM/Dashboard" class="btn btn-info">
                     <i class="bi bi-speedometer2"></i> PM Dashboard
                 </a>
-            }
+            } -->
         </div>
     </div>
 
@@ -93,7 +93,7 @@
                                 @*
                                 <a asp-page="./Details" asp-route-id="@project.Id" class="btn btn-sm btn-outline-primary">View</a>
                                 *@
-                                <a asp-page="/Products/Index" asp-route-projectId="@project.Id" class="btn btn-sm btn-outline-info">Products</a>
+                                <!-- <a asp-page="/Products/Index" asp-route-projectId="@project.Id" class="btn btn-sm btn-outline-info">Products</a> -->
                                 @if (!Model.ShowArchived && canEditProject)
                                 {
                                     <form method="post" asp-page-handler="Archive" style="display: inline;">

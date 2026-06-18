@@ -13,6 +13,7 @@ public interface IUserAdminService
     Task<bool> CompleteAccountSetupAsync(string token, string password, string firstName, string lastName);
     Task<bool> DeactivateUserAsync(Guid userId);
     Task<bool> ReactivateUserAsync(Guid userId);
+    Task<bool> DeleteUserAsync(Guid userId);
     Task<bool> UpdateProfileAsync(Guid userId, UpdateProfileRequest request);
     Task<bool> AssignRoleToUserAsync(Guid userId, Guid roleId);
     Task<bool> RemoveRoleFromUserAsync(Guid userId, Guid roleId);

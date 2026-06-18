@@ -13,6 +13,7 @@ public interface IUserAdminRepository
     Task<bool> UpdateAsync(User user);
     Task<bool> DeactivateAsync(Guid userId);
     Task<bool> ReactivateAsync(Guid userId);
+    Task<bool> DeleteAsync(Guid userId);
     Task<IEnumerable<User>> GetUsersByTeamAsync(Guid teamId);
     Task<IEnumerable<User>> GetUsersByRoleAsync(Guid roleId);
 }
