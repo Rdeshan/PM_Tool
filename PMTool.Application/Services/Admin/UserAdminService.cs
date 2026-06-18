@@ -128,6 +128,19 @@ public class UserAdminService : IUserAdminService
         return await _userRepository.ReactivateAsync(userId);
     }
 
+    public async Task<bool> DeleteUserAsync(Guid userId)
+    {
+        // Guard: user must exist and be inactive before permanent deletion
+        var user = await _userRepository.GetByIdAsync(userId);
+        if (user == null)
+            return false;
+
+        if (user.IsActive)
+            return false; // must be deactivated first
+
+        return await _userRepository.DeleteAsync(userId);
+    }
+
     public async Task<bool> UpdateProfileAsync(Guid userId, UpdateProfileRequest request)
     {
         var user = await _userRepository.GetByIdAsync(userId);

@@ -68,28 +68,38 @@ public class InviteModel : PageModel
     //     return Page();
     // }
     public async Task<IActionResult> OnPostAsync()
-{
-    try
     {
-        var userId = Guid.Parse(
-            User.FindFirst(ClaimTypes.NameIdentifier)?.Value
-            ?? Guid.Empty.ToString());
-
-        var result = await _userAdminService.InviteUserAsync(Input, userId);
-
-        if (!result)
+        if (!ModelState.IsValid)
         {
-            ErrorMessage = "InviteUserAsync returned false";
+            await OnGetAsync();
+            ErrorMessage = "Please fill in all required fields correctly.";
             return Page();
         }
 
-        SuccessMessage = "Success";
-        return Page();
-    }
-    catch (Exception ex)
-    {
-        ErrorMessage = ex.ToString();
-        return Page();
+        try
+        {
+            var userId = Guid.Parse(
+                User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                ?? Guid.Empty.ToString());
+
+            var result = await _userAdminService.InviteUserAsync(Input, userId);
+
+            if (!result)
+            {
+                await OnGetAsync();
+                ErrorMessage = "Failed to invite user. A user with this email may already exist.";
+                return Page();
+            }
+
+            TempData["SuccessMessage"] = $"Invitation sent to {Input.Email} successfully.";
+            return RedirectToPage("./Index");
+        }
+        catch (Exception ex)
+        {
+            await OnGetAsync();
+            ErrorMessage = $"An error occurred: {ex.Message}";
+            return Page();
+        }
     }
 }
-}
+

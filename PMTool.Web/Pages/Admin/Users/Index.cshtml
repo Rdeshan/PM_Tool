@@ -22,6 +22,21 @@
         </div>
     </div>
 
+    @if (Model.SuccessMessage != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="bi bi-check-circle-fill me-2"></i>@Model.SuccessMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+    @if (Model.ErrorMessage != null)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>@Model.ErrorMessage
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    }
+
     <!-- Filter Tabs -->
     <ul class="nav nav-tabs mb-4" role="tablist">
         <li class="nav-item" role="presentation">
@@ -103,7 +118,7 @@
                                     }
                                 </td>
                                 <td>
-                                    <div class="btn-group btn-group-sm" role="group">
+                                    <div class="btn-group btn-group-sm gap-1" role="group">
                                         <button type="button" class="btn btn-outline-primary" title="View Details">
                                             <i class="bi bi-eye"></i>
                                         </button>
@@ -122,6 +137,15 @@
                                                 <input type="hidden" name="userId" value="@user.Id" />
                                                 <button type="submit" class="btn btn-outline-success" title="Reactivate" onclick="return confirm('Reactivate this user?')">
                                                     <i class="bi bi-unlock"></i>
+                                                </button>
+                                            </form>
+                                            <form method="post" asp-page-handler="Delete" style="display: inline;">
+                                                <input type="hidden" name="userId" value="@user.Id" />
+                                                <button type="submit"
+                                                        class="btn btn-outline-danger"
+                                                        title="Delete permanently"
+                                                        onclick="return confirm('Permanently delete this user? This cannot be undone.')">
+                                                    <i class="bi bi-trash"></i>
                                                 </button>
                                             </form>
                                         }
