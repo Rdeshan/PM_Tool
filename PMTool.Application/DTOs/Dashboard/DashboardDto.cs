@@ -28,8 +28,7 @@ namespace PMTool.Application.DTOs.Dashboard
         public int DoneThisWeek { get; set; }
         public List<PersonalTicketDto> MyTickets { get; set; } = new();
         public List<PersonalActivityDto> RecentActivity { get; set; } = new();
-        public PersonalSprintDto? ActiveSprint { get; set; }
-        public List<PersonalNotificationDto> Notifications { get; set; } = new();
+        public List<PersonalSprintDto> ActiveSprints { get; set; } = new();
     }
 
     public class PersonalTicketDto
