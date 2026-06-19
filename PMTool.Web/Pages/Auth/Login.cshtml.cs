@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -73,7 +73,7 @@ public class LoginModel : PageModel
 
         await HttpContext.SignInAsync("Cookies", claimsPrincipal);
 
-        return RedirectToPage("/Dashboard");
+        return RedirectToPage("/Admin/Users/Dashboard");
     }
 
     public async Task<IActionResult> OnPostQuickLoginAsync(string email, string password)

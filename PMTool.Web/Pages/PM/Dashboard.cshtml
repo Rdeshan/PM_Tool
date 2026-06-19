@@ -1,4 +1,4 @@
-@page
+﻿@page
 @using System.Security.Claims
 @model PMTool.Web.Pages.PM.DashboardModel
 @{
@@ -18,7 +18,7 @@ else if (!User.IsInRole("Project Manager"))
     <div class="alert alert-danger" role="alert">
         <h4 class="alert-heading">Access Denied</h4>
         <p>Only project managers can access this page.</p>
-        <a asp-page="/Dashboard" class="btn btn-sm btn-secondary mt-2">Go to Dashboard</a>
+        <a asp-page="/Admin/Users/Dashboard" class="btn btn-sm btn-secondary mt-2">Go to Dashboard</a>
     </div>
 }
 else

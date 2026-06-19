@@ -1,4 +1,4 @@
-@page
+﻿@page
 @using System.Security.Claims
 @using PMTool.Domain.Enums
 @model PMTool.Web.Pages.Admin.DashboardModel
@@ -19,7 +19,7 @@ else if (!User.IsInRole("Administrator"))
     <div class="alert alert-danger" role="alert">
         <h4 class="alert-heading">Access Denied</h4>
         <p>Only administrators can access this page.</p>
-        <a asp-page="/Dashboard" class="btn btn-sm btn-secondary mt-2">Go to Dashboard</a>
+        <a asp-page="/Admin/Users/Dashboard" class="btn btn-sm btn-secondary mt-2">Go to Dashboard</a>
     </div>
 }
 else
