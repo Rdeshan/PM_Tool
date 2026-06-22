@@ -106,6 +106,7 @@ builder.Services.AddScoped<IDashboardService, DashboardService>();
 builder.Services.AddScoped<ISprintService, SprintService>();
 builder.Services.AddScoped<IWorkItemService, WorkItemService>();
 builder.Services.AddScoped<ISubTaskService, SubTaskService>();
+builder.Services.AddScoped<IProgressService, PMTool.Application.Services.Progress.ProgressService>();
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IDailyTaskService, PMTool.Application.Services.DailyTaskService>();
 

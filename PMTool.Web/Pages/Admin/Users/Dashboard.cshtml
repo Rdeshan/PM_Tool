@@ -123,11 +123,9 @@ else
     .sprint-progress-fill { height:100%; border-radius:4px; background:#fff; }
     .sprint-stats { display:flex; gap:1.25rem; font-size:.78rem; opacity:.85; }
 
-    .notif-row { display:flex; gap:.6rem; padding:.55rem 0; border-bottom:1px solid #f4f4f4; align-items:flex-start; }
-    .notif-row:last-child { border-bottom:none; }
-    .notif-dot { width:8px; height:8px; border-radius:50%; background:var(--pm-green-light); margin-top:5px; flex-shrink:0; }
-    .notif-text { font-size:.82rem; color:var(--pm-text); line-height:1.4; flex:1; }
-    .notif-time { font-size:.72rem; color:var(--pm-muted); display:block; margin-top:2px; }
+    .sprints-scroll { display:flex; flex-direction:column; gap:.75rem; max-height:440px; overflow-y:auto; padding-right:2px; }
+    .sprints-scroll::-webkit-scrollbar { width:4px; }
+    .sprints-scroll::-webkit-scrollbar-thumb { background:rgba(0,0,0,.12); border-radius:4px; }
 
     .empty-state { text-align:center; padding:2rem 1rem; color:var(--pm-muted); font-size:.88rem; }
     .empty-state i { font-size:2rem; display:block; margin-bottom:.5rem; opacity:.4; }
@@ -304,35 +302,55 @@ else
         <!-- Right column -->
         <div class="col-lg-4 d-flex flex-column gap-3">
 
-            <!-- Active Sprint -->
-            @if (d.ActiveSprint != null)
-            {
-                var sprint = d.ActiveSprint;
-                var pct = sprint.TotalItems > 0 ? (int)Math.Round(sprint.DoneItems * 100.0 / sprint.TotalItems) : 0;
-                var daysLeft = (sprint.EndDate.Date - DateTime.Today).Days;
-                <div class="sprint-card">
-                    <div class="d-flex align-items-center justify-content-between mb-1">
-                        <div class="sprint-name"><i class="bi bi-lightning-charge me-1"></i>@sprint.Name</div>
-                        <span style="font-size:.72rem;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:12px;">Active</span>
-                    </div>
-                    <div class="sprint-dates">@sprint.StartDate.ToString("MMM d") – @sprint.EndDate.ToString("MMM d") · @(daysLeft > 0 ? $"{daysLeft}d left" : "ending today")</div>
-                    @if (!string.IsNullOrWhiteSpace(sprint.Goal))
+            <!-- Active Sprints -->
+            <div class="section-card">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="section-title mb-0">My Active Sprints</div>
+                    @if (d.ActiveSprints.Any())
                     {
-                        <div class="sprint-goal">"@sprint.Goal"</div>
+                        <span class="badge rounded-pill" style="background:var(--pm-green);font-size:.72rem;">@d.ActiveSprints.Count</span>
                     }
-                    <div class="sprint-progress-bar">
-                        <div class="sprint-progress-fill" style="width:@pct%"></div>
-                    </div>
-                    <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:.75rem;opacity:.85;">
-                        <span>@pct% complete</span>
-                        <span>@sprint.DoneItems / @sprint.TotalItems done</span>
-                    </div>
-                    <div class="sprint-stats">
-                        <span><i class="bi bi-person me-1"></i>@sprint.MyItems my items</span>
-                        <span><i class="bi bi-list-task me-1"></i>@(sprint.TotalItems - sprint.DoneItems) remaining</span>
-                    </div>
                 </div>
-            }
+                @if (!d.ActiveSprints.Any())
+                {
+                    <div class="empty-state" style="padding:1rem 0;">
+                        <i class="bi bi-lightning-charge" style="font-size:1.5rem;"></i>
+                        No active sprints assigned to you.
+                    </div>
+                }
+                else
+                {
+                    <div class="sprints-scroll">
+                        @foreach (var sprint in d.ActiveSprints)
+                        {
+                            var pct = sprint.TotalItems > 0 ? (int)Math.Round(sprint.DoneItems * 100.0 / sprint.TotalItems) : 0;
+                            var daysLeft = (sprint.EndDate.Date - DateTime.Today).Days;
+                            <div class="sprint-card">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <div class="sprint-name"><i class="bi bi-lightning-charge me-1"></i>@sprint.Name</div>
+                                    <span style="font-size:.72rem;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:12px;">Active</span>
+                                </div>
+                                <div class="sprint-dates">@sprint.StartDate.ToString("MMM d") – @sprint.EndDate.ToString("MMM d") · @(daysLeft >= 0 ? $"{daysLeft}d left" : $"{-daysLeft}d overdue")</div>
+                                @if (!string.IsNullOrWhiteSpace(sprint.Goal))
+                                {
+                                    <div class="sprint-goal">"@sprint.Goal"</div>
+                                }
+                                <div class="sprint-progress-bar">
+                                    <div class="sprint-progress-fill" style="width:@pct%"></div>
+                                </div>
+                                <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:.75rem;opacity:.85;">
+                                    <span>@pct% complete</span>
+                                    <span>@sprint.DoneItems / @sprint.TotalItems done</span>
+                                </div>
+                                <div class="sprint-stats">
+                                    <span><i class="bi bi-person me-1"></i>@sprint.MyItems my items</span>
+                                    <span><i class="bi bi-list-task me-1"></i>@(sprint.TotalItems - sprint.DoneItems) remaining</span>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
 
             <!-- Recent Activity -->
             <div class="section-card" style="flex:1;">
@@ -361,40 +379,6 @@ else
                             </div>
                         </div>
                     }
-                }
-            </div>
-
-            <!-- Notifications -->
-            <div class="section-card" style="flex:1;">
-                <div class="d-flex align-items-center justify-content-between mb-3">
-                    <div class="section-title mb-0">Notifications</div>
-                    @if (d.Notifications.Any())
-                    {
-                        <span class="badge rounded-pill" style="background:var(--pm-green);font-size:.72rem;">@d.Notifications.Count</span>
-                    }
-                </div>
-                @if (!d.Notifications.Any())
-                {
-                    <div class="empty-state" style="padding:1rem 0;">
-                        <i class="bi bi-bell-slash" style="font-size:1.5rem;"></i>
-                        No notifications.
-                    </div>
-                }
-                else
-                {
-                    @foreach (var n in d.Notifications.Take(5))
-                    {
-                        <div class="notif-row">
-                            <div class="notif-dot"></div>
-                            <div class="notif-text">
-                                @n.Message
-                                <span class="notif-time">@TimeAgo(n.CreatedAt)</span>
-                            </div>
-                        </div>
-                    }
-                    <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e9ecef;">
-                        <a asp-page="/Notifications/Index" class="btn btn-sm btn-outline-primary w-100" style="font-size:.75rem;">See all notifications</a>
-                    </div>
                 }
             </div>
 

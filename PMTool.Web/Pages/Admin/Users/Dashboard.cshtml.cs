@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using PMTool.Application.DTOs.Dashboard;
 using PMTool.Application.Interfaces;
 
-namespace PMTool.Web.Pages;
+namespace PMTool.Web.Pages.Admin.Users;
 
 [Authorize]
 public class DashboardModel : PageModel

@@ -1,4 +1,4 @@
-@using System.Security.Claims
+﻿@using System.Security.Claims
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -20,12 +20,12 @@
     {
         <!-- Global Sidebar -->
         <div id="pm-global-sidebar" class="pm-global-sidebar">
-            <a asp-area="" asp-page="/Dashboard" class="brand">
+            <a asp-area="" asp-page="/Admin/Users/Dashboard" class="brand">
                 <i class="bi bi-kanban me-2"></i>
                 <span class="brand-text">OPMS</span>
             </a>
             <nav class="d-flex flex-column gap-1">
-                <a asp-page="/Dashboard" class="nav-link"><i class="bi bi-speedometer2"></i> <span class="nav-text">Dashboard</span></a>
+                <a asp-page="/Admin/Users/Dashboard" class="nav-link"><i class="bi bi-speedometer2"></i> <span class="nav-text">Dashboard</span></a>
                 <a asp-page="/Projects/Index" class="nav-link"><i class="bi bi-folder2"></i> <span class="nav-text">Projects</span></a>
                 <a asp-page="/Tasks/Index" class="nav-link"><i class="bi bi-list-task"></i> <span class="nav-text">Tasks</span></a>
                 @* @if (User.IsInRole("Project Manager"))
@@ -40,7 +40,7 @@
             </nav>
             <div class="mt-auto">
                 <a asp-page="/Account/Settings" class="nav-link"><i class="bi bi-gear"></i> <span class="nav-text">Settings</span></a>
-                <form method="post" asp-page="/Dashboard" asp-page-handler="Logout" class="m-0" id="logoutFormSidebar">
+                <form method="post" asp-page="/Admin/Users/Dashboard" asp-page-handler="Logout" class="m-0" id="logoutFormSidebar">
                     <button type="button" class="nav-link border-0 bg-transparent w-100 text-start" onclick="confirmLogout('logoutFormSidebar')">
                         <i class="bi bi-box-arrow-left"></i> <span class="nav-text">Logout</span>
                     </button>
@@ -51,7 +51,7 @@
     <header class="hover-header">
         <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-dark fixed-top" style="background-color: #0f172a;">
             @* <div class="container">
-                <a class="navbar-brand" asp-area="" asp-page="/Dashboard">
+                <a class="navbar-brand" asp-area="" asp-page="/Admin/Users/Dashboard">
                     <i class="bi bi-kanban"></i> OPMS
                 </a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent" *@
@@ -65,7 +65,7 @@
                 }
                 else
                 {
-                    <a class="navbar-brand" asp-area="" asp-page="/Dashboard">
+                    <a class="navbar-brand" asp-area="" asp-page="/Admin/Users/Dashboard">
                         <i class="bi bi-kanban"></i> OPMS
                     </a>
                 }
@@ -80,7 +80,7 @@
                     {
                         @* <ul class="navbar-nav flex-grow-1">
                             <li class="nav-item">
-                                <a class="nav-link text-light" asp-area="" asp-page="/Dashboard">Dashboard</a>
+                                <a class="nav-link text-light" asp-area="" asp-page="/Admin/Users/Dashboard">Dashboard</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link text-light" asp-area="" asp-page="/Projects/Index">Projects</a>
@@ -133,7 +133,7 @@
                                     <li><a class="dropdown-item" asp-page="/Account/TwoFactor"><i class="bi bi-lock-fill"></i> Two-Factor Auth</a></li> *@
                                     <li><hr class="dropdown-divider"></li>
                                     <li>
-                                        <form method="post" asp-page="/Dashboard" asp-page-handler="Logout" style="display:inline;" id="logoutFormNavbar">
+                                        <form method="post" asp-page="/Admin/Users/Dashboard" asp-page-handler="Logout" style="display:inline;" id="logoutFormNavbar">
                                             <button type="button" class="dropdown-item text-danger" onclick="confirmLogout('logoutFormNavbar')"><i class="bi bi-box-arrow-right"></i> Logout</button>
                                         </form>
                                     </li>
