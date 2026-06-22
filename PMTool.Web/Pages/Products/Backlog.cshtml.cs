@@ -1182,6 +1182,8 @@ public class BacklogModel : PageModel
         SetPermissions();
         if (!CanEditBacklog) return Forbid();
 
+        if (sprintId == Guid.Empty) sprintId = null;
+
         var userIdStr = User.FindFirstValue(ClaimTypes.NameIdentifier);
         if (string.IsNullOrEmpty(userIdStr)) return Forbid();
         var userId = Guid.Parse(userIdStr);

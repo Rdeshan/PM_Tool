@@ -335,7 +335,7 @@
                         <col style="width:95px;" />
                         <col style="width:36px;" />
                     </colgroup>
-                    <tbody class="sprint-drop-zone" data-sprint-id="@sprint.Id">
+                    <tbody class="sprint-drop-zone" data-sprint-id="@sprint.Id" data-is-completed="@(sprint.Status == 3 ? "true" : "false")">
                         @{
                             var sprintItems = Model.BacklogItems
                                 .Where(x => x.SprintId == sprint.Id)
@@ -1098,8 +1098,11 @@ function updateDropPlaceholders() {
 // ── DRAG AND DROP ────────────────────────────────────────────────────────────
 function initDropZone(zone) {
     if (!window.Sortable || !zone) return;
+    
+    const isCompleted = zone.dataset.isCompleted === 'true';
+
     new Sortable(zone, {
-        group: 'backlog',
+        group: isCompleted ? { name: 'backlog', put: false, pull: false } : 'backlog',
         animation: 150,
         ghostClass: 'sortable-ghost',
         chosenClass: 'sortable-chosen',
@@ -1111,7 +1114,12 @@ function initDropZone(zone) {
             const newSprintId = evt.to.dataset.sprintId || '';
 
             try {
-                const resp = await fetch(`?handler=MoveToSprint&itemId=${itemId}&sprintId=${newSprintId}`, {
+                let fetchUrl = `?handler=MoveToSprint&itemId=${itemId}`;
+                if (newSprintId) {
+                    fetchUrl += `&sprintId=${newSprintId}`;
+                }
+
+                const resp = await fetch(fetchUrl, {
                     method: 'POST',
                     headers: {
                         'RequestVerificationToken': getToken(),
