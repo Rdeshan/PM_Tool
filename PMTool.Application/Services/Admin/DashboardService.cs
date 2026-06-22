@@ -174,40 +174,24 @@ public class DashboardService : IDashboardService
         var inProgressCount = myTickets.Count(t => t.Status == 2);
         var doneThisWeek = myTickets.Count(t => t.Status == 4 && t.UpdatedAt >= weekAgo);
 
-        // Active sprint where this user has assigned items
-        var activeSprint = await _context.Sprints
+        // All active sprints where this user has assigned items
+        var activeSprints = await _context.Sprints
             .Include(s => s.BacklogItems)
             .Where(s => s.Status == 2 && s.BacklogItems.Any(b => b.OwnerId == userGuid))
-            .FirstOrDefaultAsync();
-
-        PersonalSprintDto? sprintDto = null;
-        if (activeSprint != null)
-        {
-            sprintDto = new PersonalSprintDto
-            {
-                Id = activeSprint.Id,
-                Name = activeSprint.Name,
-                StartDate = activeSprint.StartDate,
-                EndDate = activeSprint.EndDate,
-                Goal = activeSprint.Goal,
-                TotalItems = activeSprint.BacklogItems.Count,
-                DoneItems = activeSprint.BacklogItems.Count(b => b.Status == 4),
-                MyItems = activeSprint.BacklogItems.Count(b => b.OwnerId == userGuid)
-            };
-        }
-
-        var notifications = await _context.Notifications
-            .Where(n => n.UserId == userGuid)
-            .OrderByDescending(n => n.CreatedAt)
-            .Take(10)
-            .Select(n => new PersonalNotificationDto
-            {
-                Id = n.Id,
-                Message = n.Message,
-                CreatedAt = n.CreatedAt,
-                ItemId = n.ItemId
-            })
+            .OrderBy(s => s.EndDate)
             .ToListAsync();
+
+        var sprintDtos = activeSprints.Select(s => new PersonalSprintDto
+        {
+            Id = s.Id,
+            Name = s.Name,
+            StartDate = s.StartDate,
+            EndDate = s.EndDate,
+            Goal = s.Goal,
+            TotalItems = s.BacklogItems.Count,
+            DoneItems = s.BacklogItems.Count(b => b.Status == 4),
+            MyItems = s.BacklogItems.Count(b => b.OwnerId == userGuid)
+        }).ToList();
 
         // Use recently updated assigned tickets as activity proxy
         // TODO: replace with an audit log table when available
@@ -244,8 +228,7 @@ public class DashboardService : IDashboardService
                 UpdatedAt = t.UpdatedAt
             }).ToList(),
             RecentActivity = recentActivity,
-            ActiveSprint = sprintDto,
-            Notifications = notifications
+            ActiveSprints = sprintDtos
         };
     }
 }

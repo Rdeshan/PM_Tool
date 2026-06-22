@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authentication;
+﻿using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -34,7 +34,7 @@ public class DashboardModel : PageModel
             return RedirectToPage("/Auth/Login");
 
         if (!User.IsInRole("Administrator"))
-            return RedirectToPage("/Dashboard");
+            return RedirectToPage("/Admin/Users/Dashboard");
 
         // Load dashboard stats
         try

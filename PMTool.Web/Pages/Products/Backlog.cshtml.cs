@@ -509,6 +509,7 @@ public class BacklogModel : PageModel
     public List<SprintDTO> Sprints { get; set; } = new();
     public List<BoardColumnDTO> CustomBoardColumns { get; set; } = new();
     public Dictionary<Guid, List<BacklogSubtaskDto>> SubtasksByItem { get; set; } = new();
+    public Guid CurrentUserId { get; private set; }
 
     // Status counts — 1=To do, 2=In progress, 3=In review, 4=Done
     public int TodoCount      => BacklogItems.Count(x => x.Status == 1);
@@ -544,6 +545,7 @@ public class BacklogModel : PageModel
         if (product == null) return NotFound();
         ProductName = product.VersionName;
 
+        CurrentUserId = GetCurrentUserId() ?? Guid.Empty;
         BacklogItems = await _productBacklogService.GetBacklogItemsAsync(ProductId, null);
         SubtasksByItem = BacklogItems.ToDictionary(x => x.Id, x => x.Subtasks);
         ItemTypes = _productBacklogService.GetBacklogItemTypes();
@@ -624,7 +626,17 @@ public class BacklogModel : PageModel
     public async Task<IActionResult> OnPostUpdateStatusAsync(Guid itemId, int status)
     {
         SetPermissions();
-        if (!CanEditBacklog) return Forbid();
+        var currentUserId = GetCurrentUserId();
+
+        // Allow admin/PM or the item's assigned user
+        if (!CanEditBacklog)
+        {
+            if (!currentUserId.HasValue)
+                return new JsonResult(new { success = false }) { StatusCode = 403 };
+            var checkItem = await _productBacklogService.GetItemByIdAsync(itemId);
+            if (checkItem == null || checkItem.OwnerId != currentUserId.Value)
+                return new JsonResult(new { success = false }) { StatusCode = 403 };
+        }
 
         // Fetch item before update to know its sub-project
         var existing = await _productBacklogService.GetItemByIdAsync(itemId);
@@ -872,21 +884,32 @@ public class BacklogModel : PageModel
     public async Task<IActionResult> OnPostUpdateSubtaskStatusAsync([FromBody] UpdateSubtaskStatusRequest request)
     {
         SetPermissions();
-        if (!CanEditBacklog) return Forbid();
+        var currentUserId = GetCurrentUserId();
 
         if (request.SubtaskId == Guid.Empty)
-        {
             return BadJson("Invalid subtask.");
-        }
 
         if (request.Status is < 1 or > 3)
-        {
             return BadJson("Invalid status.");
-        }
 
         if (!await SubtaskBelongsToRouteAsync(request.SubtaskId))
-        {
             return BadJson("Invalid subtask.");
+
+        // Allow admin/PM, or the subtask's own assignee, or the parent task's assignee
+        if (!CanEditBacklog)
+        {
+            if (!currentUserId.HasValue)
+                return BadJson("Forbidden.");
+
+            var subtask = await _db.BacklogSubtasks
+                .Include(s => s.ProductBacklog)
+                .FirstOrDefaultAsync(s => s.Id == request.SubtaskId);
+
+            bool isSubtaskAssignee = subtask?.AssigneeId == currentUserId.Value;
+            bool isParentAssignee  = subtask?.ProductBacklog?.OwnerId == currentUserId.Value;
+
+            if (!isSubtaskAssignee && !isParentAssignee)
+                return BadJson("Forbidden.");
         }
 
         var success = await _productBacklogService.UpdateSubtaskStatusAsync(request.SubtaskId, request.Status);

@@ -350,7 +350,9 @@
                                 ["WorkTypes"] = Model.WorkTypes,
                                 ["ActiveUsers"] = Model.ActiveUsers,
                                 ["CustomStatuses"] = Model.CustomBoardColumns,
-                                ["SubtasksByItem"] = Model.SubtasksByItem
+                                ["SubtasksByItem"] = Model.SubtasksByItem,
+                                ["IsAdminOrPM"] = Model.CanEditBacklog,
+                                ["CurrentUserId"] = Model.CurrentUserId.ToString()
                             })
                         }
                         @if (!sprintItems.Any())
@@ -583,13 +585,18 @@
             <div class="mb-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="fw-bold mb-0">Subtasks</h6>
-                    <button type="button" class="btn btn-sm btn-primary" onclick="showSubtaskInput()">
-                        <i class="bi bi-plus"></i>
-                    </button>
+                    @if (Model.CanEditBacklog)
+                    {
+                        <button type="button" class="btn btn-sm btn-primary" onclick="showSubtaskInput()">
+                            <i class="bi bi-plus"></i>
+                        </button>
+                    }
                 </div>
 
                 <div id="sidebarSubtaskList" class="sidebar-subtask-list"></div>
 
+                @if (Model.CanEditBacklog)
+                {
                 <div id="newSubtaskWrap" class="d-none mt-2">
                     <div class="d-flex flex-column gap-2">
                         <input type="text"
@@ -629,6 +636,7 @@
                         </div>
                     </div>
                 </div>
+                }
             </div>
 
             <div style="font-size:13px;font-weight:600;color:#172b4d;margin:16px 0 8px;padding-top:4px;border-top:1px solid #f0f0f0;">
@@ -783,6 +791,10 @@ const MONTHS = ['January','February','March','April','May','June','July','August
 const SMON   = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const WDAYS  = ['Su','Mo','Tu','We','Th','Fr','Sa'];
 
+// Current user context (used for client-side permission checks)
+const CURRENT_USER_ID  = '@Model.CurrentUserId';
+const IS_ADMIN_OR_PM   = @Model.CanEditBacklog.ToString().ToLower();
+
 function toggleBacklog() {
     const wrap = document.querySelector('.backlog-wrap');
     wrap.classList.toggle('collapsed');
@@ -835,15 +847,8 @@ async function submitCreateSprint() {
         const result = await resp.json();
         if(result.success) {
             showToast('Sprint created successfully');
-            appendSprintCard(result.sprint);
             closeCreateSprintModal();
-            // Reset modal fields for next use
-            document.getElementById('sprintName').value  = '';
-            document.getElementById('sprintGoal').value  = '';
-            const today = new Date().toISOString().substring(0, 10);
-            const twoWeeks = new Date(Date.now() + 14 * 86400000).toISOString().substring(0, 10);
-            document.getElementById('sprintStart').value = today;
-            document.getElementById('sprintEnd').value   = twoWeeks;
+            setTimeout(() => location.reload(), 400);
         } else {
             showToast(result.message || 'Failed to create sprint', 'danger');
         }
@@ -915,9 +920,7 @@ async function completeSprint(id) {
         const result = await resp.json();
         if (result.success) {
             showToast('Sprint completed!');
-            const card = document.getElementById('sprint_' + id);
-            card?.querySelectorAll('.badge.bg-success').forEach(x => x.remove());
-            document.getElementById('completeSprintBtn_' + id)?.remove();
+            setTimeout(() => location.reload(), 400);
         } else {
             showToast('Failed to complete sprint', 'danger');
         }
@@ -934,12 +937,7 @@ async function deleteSprint(id) {
         headers: { 'RequestVerificationToken': getToken() }
     });
     if((await resp.json()).success) {
-        const card = document.getElementById('sprint_' + id);
-        const backlog = document.getElementById('backlogTableBody');
-        card?.querySelectorAll('tbody tr[data-item-id]').forEach(row => backlog?.appendChild(row));
-        card?.remove();
-        updateBacklogStats();
-        updateDropPlaceholders();
+        location.reload();
     }
 }
 
@@ -1146,22 +1144,24 @@ function initDropZone(zone) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('.sprint-drop-zone').forEach(initDropZone);
-
+    if (IS_ADMIN_OR_PM) {
+        document.querySelectorAll('.sprint-drop-zone').forEach(initDropZone);
+    }
     updateBacklogStats();
     updateDropPlaceholders();
     initMentionPicker();
+    initCustomStatuses();
 });
 
 function updatePoints(container) {
     if(!container) return;
     let total = 0;
-    container.querySelectorAll('tr').forEach(tr => {
-        const pts = parseInt(tr.querySelector('.pts-pill')?.textContent) || 0;
+    container.querySelectorAll('tr[data-item-id]').forEach(tr => {
+        const pts = parseInt(tr.dataset.itemStoryPoints) || 0;
         total += pts;
     });
-    
-    // Find parent sprint-card and updatepts-sum
+
+    // Find parent sprint-card and update pts-sum
     const card = container.closest('.sprint-card');
     if(card) {
         const ptsSpan = card.querySelector('.pts-sum');
@@ -1410,13 +1410,8 @@ function saveTitle(itemId, val, original) {
         body: `itemId=${itemId}&title=${encodeURIComponent(title)}`
     }).then(r => {
         if (r.ok) {
-            renderTitleCell(itemId, title);
-            const row = document.getElementById('row-' + itemId);
-            if (row) row.dataset.itemTitle = title;
-            if (currentBacklogId === itemId) {
-                document.getElementById('sidebarTaskTitle').textContent = title;
-            }
-            showToast('Title updated', 'Item title has been changed.');
+            showToast('Title updated');
+            setTimeout(() => location.reload(), 400);
         } else {
             renderTitleCell(itemId, original);
         }
@@ -1498,12 +1493,8 @@ async function createSubtask(itemId, e) {
         return;
     }
 
-    appendSubtaskToRow(itemId, result.subtask);
-
-    updateSubtaskCount(itemId);
-    if (currentBacklogId === itemId) renderSidebarSubtasks(itemId);
-    toggleSubtaskForm(itemId, e, true);
     showToast('Subtask added', 'success');
+    setTimeout(() => location.reload(), 400);
 }
 
 async function updateProductSubtaskStatus(subtaskId, status, e) {
@@ -1543,15 +1534,7 @@ async function updateProductSubtaskStatus(subtaskId, status, e) {
         return false;
     }
 
-    document.querySelectorAll(`select.subtask-status-select[data-subtask-id="${subtaskId}"]`).forEach(sel => {
-        sel.value = status.toString();
-        applyStatusSelectStyle(sel, status);
-        const subtaskEl = sel.closest('.product-subtask, .sidebar-subtask');
-        if (subtaskEl) {
-            subtaskEl.classList.toggle('done', status === 3);
-            subtaskEl.dataset.subtaskStatus = status.toString();
-        }
-    });
+    setTimeout(() => location.reload(), 400);
     return true;
 }
 
@@ -1585,7 +1568,14 @@ function openProductSidebar(id, title, key, focusNewSubtask, e) {
 
     document.getElementById('sidebarTaskTitle').textContent = currentBacklogTitle || 'Subtask';
     document.getElementById('sidebarTaskKey').textContent = currentBacklogKey ? `PB-${currentBacklogKey}` : 'PB';
-    document.getElementById('sidebarStatus').value = ds.itemStatus || '1';
+
+    const sidebarStatusEl = document.getElementById('sidebarStatus');
+    sidebarStatusEl.value = ds.itemStatus || '1';
+    const isAssignedToItem = (ds.itemAssigneeId || '') === CURRENT_USER_ID && CURRENT_USER_ID !== '';
+    const canChangeStatus  = IS_ADMIN_OR_PM || isAssignedToItem;
+    sidebarStatusEl.disabled = !canChangeStatus;
+    sidebarStatusEl.style.opacity = canChangeStatus ? '1' : '0.6';
+    sidebarStatusEl.style.cursor  = canChangeStatus ? 'pointer' : 'default';
     document.getElementById('sidebarDescription').value = ds.itemDescription || '';
     document.getElementById('sidebarAssignee').innerHTML = renderAssigneeValue(ds.itemAssignee || 'Unassigned', ds.itemAssigneeId || '');
     document.getElementById('sidebarDueDate').textContent = formatDate(ds.itemDueDate);
@@ -2019,34 +2009,29 @@ function renderSidebarSubtasks(itemId) {
         return;
     }
 
+    const parentRow = document.getElementById('row-' + itemId);
+    const parentAssigneeId = parentRow?.dataset.itemAssigneeId || '';
+
     subtasks.forEach(subtask => {
-        const subtaskId = subtask.dataset.subtaskId;
-        const title = subtask.dataset.subtaskTitle || subtask.querySelector('span')?.textContent || '';
-        const status = parseInt(subtask.dataset.subtaskStatus);
-        const priority = parseInt(subtask.dataset.subtaskPriority);
-        const assigneeId = subtask.dataset.subtaskAssigneeId || '';
+        const subtaskId    = subtask.dataset.subtaskId;
+        const title        = subtask.dataset.subtaskTitle || subtask.querySelector('span')?.textContent || '';
+        const status       = parseInt(subtask.dataset.subtaskStatus);
+        const priority     = parseInt(subtask.dataset.subtaskPriority);
+        const assigneeId   = subtask.dataset.subtaskAssigneeId || '';
         const assigneeName = subtask.dataset.subtaskAssigneeName || '';
-        const doneClass = status === 3 ? ' done' : '';
-        const statusBg = status === 1 ? '#dbeafe' : status === 2 ? '#fef3c7' : '#dcfce7';
-        const statusFg = status === 1 ? '#1d4ed8' : status === 2 ? '#92400e' : '#166534';
+        const doneClass    = status === 3 ? ' done' : '';
+        const statusBg     = status === 1 ? '#dbeafe' : status === 2 ? '#fef3c7' : '#dcfce7';
+        const statusFg     = status === 1 ? '#1d4ed8' : status === 2 ? '#92400e' : '#166534';
+
+        // Status can be changed by admin/PM, the subtask's assignee, or the parent task's assignee
+        const canChangeSubStatus = IS_ADMIN_OR_PM
+            || (CURRENT_USER_ID !== '' && (assigneeId === CURRENT_USER_ID || parentAssigneeId === CURRENT_USER_ID));
 
         const assigneeHtml = assigneeName
             ? `<div class="avatar-circle" style="${avatarStyle(assigneeId || assigneeName)};width:20px;height:20px;font-size:8px;flex-shrink:0;" title="${escapeHtml(assigneeName)}">${getInitials(assigneeName)}</div><span style="font-size:11px;color:#172b4d;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:80px;">${escapeHtml(assigneeName)}</span>`
             : `<span style="font-size:11px;color:#aaa;">—</span>`;
 
-        const item = document.createElement('div');
-        item.className = `sidebar-subtask product-subtask${doneClass}`;
-        item.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;';
-        item.innerHTML = `
-            <select class="subtask-status-select" data-subtask-id="${subtaskId}"
-                style="flex-shrink:0;border:none;border-radius:4px;padding:2px 6px;font-size:10px;cursor:pointer;font-weight:600;background:${statusBg};color:${statusFg};outline:none;appearance:none;-webkit-appearance:none;"
-                onchange="updateProductSubtaskStatus('${subtaskId}', parseInt(this.value), event)">
-                <option value="1" ${status===1?'selected':''}>To Do</option>
-                <option value="2" ${status===2?'selected':''}>In Progress</option>
-                <option value="3" ${status===3?'selected':''}>Done</option>
-            </select>
-            <span style="flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(title)}</span>
-            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">${assigneeHtml}</div>
+        const editDeleteHtml = IS_ADMIN_OR_PM ? `
             <div style="display:flex;align-items:center;gap:2px;flex-shrink:0;margin-left:4px;">
                 <button type="button" class="ib" onclick="openEditSubtaskModal('${subtaskId}', '${escapeJs(title)}', ${priority}, '${assigneeId}', ${status}, event)" title="Edit">
                     <i class="bi bi-pencil"></i>
@@ -2054,7 +2039,23 @@ function renderSidebarSubtasks(itemId) {
                 <button type="button" class="ib text-danger" onclick="deleteSubtaskInSidebar('${subtaskId}', event)" title="Delete">
                     <i class="bi bi-trash"></i>
                 </button>
-            </div>
+            </div>` : '';
+
+        const item = document.createElement('div');
+        item.className = `sidebar-subtask product-subtask${doneClass}`;
+        item.style.cssText = 'display:flex;align-items:center;gap:8px;width:100%;';
+        item.innerHTML = `
+            <select class="subtask-status-select" data-subtask-id="${subtaskId}"
+                style="flex-shrink:0;border:none;border-radius:4px;padding:2px 6px;font-size:10px;font-weight:600;background:${statusBg};color:${statusFg};outline:none;appearance:none;-webkit-appearance:none;${canChangeSubStatus ? 'cursor:pointer;' : 'cursor:default;opacity:0.7;'}"
+                ${canChangeSubStatus ? '' : 'disabled'}
+                onchange="updateProductSubtaskStatus('${subtaskId}', parseInt(this.value), event)">
+                <option value="1" ${status===1?'selected':''}>To Do</option>
+                <option value="2" ${status===2?'selected':''}>In Progress</option>
+                <option value="3" ${status===3?'selected':''}>Done</option>
+            </select>
+            <span style="flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(title)}</span>
+            <div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">${assigneeHtml}</div>
+            ${editDeleteHtml}
         `;
         sidebarList.appendChild(item);
     });
@@ -2098,10 +2099,9 @@ async function submitEditSubtask() {
 
         const result = await resp.json();
         if (result.success) {
-            updateSubtaskInRow(id, { title, priority, assigneeId, assigneeName, status });
-            renderSidebarSubtasks(currentBacklogId);
-            closeEditSubtaskModal();
             showToast('Subtask updated', 'success');
+            closeEditSubtaskModal();
+            setTimeout(() => location.reload(), 400);
         } else {
             showToast('Failed to update subtask', 'danger');
         }
@@ -2135,11 +2135,8 @@ async function deleteSubtaskInSidebar(id, e) {
 
         const result = await resp.json();
         if (result.success) {
-            const subtaskEl = document.querySelector(`.product-subtask[data-subtask-id="${id}"]`);
-            if (subtaskEl) subtaskEl.remove();
-            renderSidebarSubtasks(currentBacklogId);
-            updateSubtaskCount(currentBacklogId);
             showToast('Subtask deleted', 'success');
+            setTimeout(() => location.reload(), 400);
         } else {
             showToast('Failed to delete subtask', 'danger');
         }
@@ -2181,11 +2178,8 @@ async function createSidebarSubtask(e) {
         return;
     }
 
-    appendSubtaskToRow(currentBacklogId, result.subtask);
-    renderSidebarSubtasks(currentBacklogId);
-    updateSubtaskCount(currentBacklogId);
-    hideSubtaskInput();
     showToast('Subtask added', 'success');
+    setTimeout(() => location.reload(), 400);
 }
 
 function appendSubtaskToRow(itemId, subtask) {
@@ -2551,14 +2545,7 @@ document.getElementById('createBacklogForm').addEventListener('submit', async fu
 
         if (result.success) {
             showToast('Item created!', 'success');
-            signalChange();
-            appendCreatedBacklogItem(result.item, capturedTypeIconHtml);
-            document.getElementById('newItemTitle').value = '';
-            document.getElementById('hiddenOwner').value = '';
-            document.getElementById('hiddenDueDate').value = '';
-            createDate = null;
-            document.getElementById('createDateLabel').textContent = '';
-            document.getElementById('createAssignIcon').innerHTML = `<svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3"><circle cx="8" cy="5" r="3"/><path d="M2 14c0-3.3 2.7-6 6-6s6 2.7 6 6"/></svg>`;
+            setTimeout(() => location.reload(), 400);
         } else {
             showToast(result.message || 'Failed to create item', 'danger');
         }
@@ -2739,6 +2726,7 @@ function getToken() {
 
 function signalChange() {
     window.dispatchEvent(new CustomEvent('backlog:updated', { detail: { at: Date.now() } }));
+    setTimeout(() => location.reload(), 400);
 }
 
 // ─── Select all checkbox ──────────────────────────────────────────────────────
