@@ -1062,7 +1062,7 @@ public class BacklogModel : PageModel
         }
 
         var comment = await _db.BacklogItemComments
-            .Include(c => c.BacklogItem)
+            .Include(c => c.BacklogItem).ThenInclude(bi => bi!.Product)
             .FirstOrDefaultAsync(c => c.Id == request.CommentId);
 
         if (comment == null || comment.AuthorId != userId.Value || !BacklogItemMatchesRoute(comment.BacklogItem))
@@ -1083,7 +1083,7 @@ public class BacklogModel : PageModel
         if (!userId.HasValue) return Forbid();
 
         var comment = await _db.BacklogItemComments
-            .Include(c => c.BacklogItem)
+            .Include(c => c.BacklogItem).ThenInclude(bi => bi!.Product)
             .FirstOrDefaultAsync(c => c.Id == commentId);
 
         if (comment == null || comment.AuthorId != userId.Value || !BacklogItemMatchesRoute(comment.BacklogItem))
