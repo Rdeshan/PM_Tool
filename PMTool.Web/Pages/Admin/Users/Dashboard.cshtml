@@ -10,9 +10,9 @@
     var d = Model.Dashboard;
 
     string StatusLabel(int s) => s switch { 1 => "To Do", 2 => "In Progress", 3 => "In Review", 4 => "Done", _ => "To Do" };
-    string StatusCls(int s) => s switch { 1 => "s-todo", 2 => "s-inprog", 3 => "s-inreview", 4 => "s-done", _ => "s-todo" };
+    string StatusBadge(int s) => s switch { 1 => "neutral", 2 => "info", 3 => "accent", 4 => "success", _ => "neutral" };
     string PriorityLabel(int p) => p switch { 1 => "Highest", 2 => "High", 3 => "Medium", 4 => "Low", _ => "Medium" };
-    string PriorityCls(int p) => p switch { 1 => "prio-highest", 2 => "prio-high", 3 => "prio-medium", 4 => "prio-low", _ => "prio-medium" };
+    string PriorityColor(int p) => p switch { 1 => "var(--danger-text)", 2 => "var(--warning-text)", 3 => "var(--primary-600)", 4 => "var(--text-muted)", _ => "var(--primary-600)" };
     string TimeAgo(DateTime dt) {
         var diff = DateTime.UtcNow - dt;
         if (diff.TotalMinutes < 1) return "just now";
@@ -24,120 +24,89 @@
 
 @if (!User.Identity?.IsAuthenticated ?? true)
 {
-    <div class="alert alert-warning">
-        <p>You must be logged in. <a asp-page="/Auth/Login">Login here</a></p>
+    <div class="alert alert-warning m-4">
+        <p class="mb-0">You must be logged in. <a asp-page="/Auth/Login">Login here</a></p>
     </div>
 }
 else
 {
 <style>
-    :root {
-        --pm-green:       #0D6EFD;
-        --pm-green-mid:   #0056CA;
-        --pm-green-light: #4D94FF;
-        --pm-green-pale:  #E7F1FF;
-        --pm-bg:          #f4f6f5;
-        --pm-card:        #ffffff;
-        --pm-text:        #1b2b23;
-        --pm-muted:       #6c757d;
+    .dash-main { padding: var(--space-6); }
+
+    .dash-header { margin-bottom: var(--space-6); }
+    .dash-header h1 { font-size: 1.5rem; font-weight: var(--fw-bold); color: var(--text-heading); margin: 0; }
+    .dash-header p  { font-size: var(--fs-sm); color: var(--text-muted); margin: var(--space-1) 0 0; }
+
+    /* Stat cards */
+    .stats-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: var(--space-3); margin-bottom: var(--space-6); }
+    @@media (max-width:900px) { .stats-grid { grid-template-columns: repeat(2,1fr); } }
+    @@media (max-width:540px) { .stats-grid { grid-template-columns: 1fr; } }
+
+    /* Section card */
+    .sec-card {
+        background: var(--bg-surface);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-xs);
     }
-    body { background: var(--pm-bg); }
-
-    .pm-main { padding: 2rem; }
-
-    .pm-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.75rem; }
-    .pm-topbar h4 { font-weight:700; color:var(--pm-text); margin:0; }
-    .pm-topbar .topbar-right { display:flex; gap:.75rem; align-items:center; }
-
-    .stat-card {
-        background: var(--pm-card);
-        border-radius: 16px;
-        padding: 1.25rem 1.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,.06);
-        border: none;
-        height: 100%;
+    .sec-card__header {
+        display: flex; align-items: center; justify-content: space-between;
+        padding: var(--space-4) var(--space-5);
+        border-bottom: 1px solid var(--slate-100);
     }
-    .stat-card.dark { background: var(--pm-green); color: #fff; }
-    .stat-card .stat-label { font-size:.85rem; color:var(--pm-muted); font-weight:500; }
-    .stat-card.dark .stat-label { color:rgba(255,255,255,.7); }
-    .stat-card .stat-value { font-size:2.4rem; font-weight:700; line-height:1.1; margin:.3rem 0; color:var(--pm-text); }
-    .stat-card.dark .stat-value { color:#fff; }
-    .stat-card .stat-sub { font-size:.78rem; color:var(--pm-green-mid); }
-    .stat-card.dark .stat-sub { color:var(--pm-green-pale); }
-    .stat-card .stat-icon { font-size:1.6rem; opacity:.15; }
-    .stat-card.dark .stat-icon { opacity:.25; }
-
-    .section-card {
-        background: var(--pm-card);
-        border-radius: 16px;
-        padding: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,.06);
-        border: none;
-        height: 100%;
+    .sec-card__title {
+        font-size: var(--fs-h3); font-weight: var(--fw-semibold);
+        color: var(--text-heading);
     }
-    .section-card .section-title { font-size:1rem; font-weight:600; color:var(--pm-text); margin-bottom:1rem; }
+    .sec-card__body { padding: var(--space-4) var(--space-5); }
 
-    .filter-pills { display:flex; gap:.5rem; flex-wrap:wrap; margin-bottom:1rem; }
-    .filter-pill {
-        padding:4px 14px; border-radius:20px; font-size:.8rem; font-weight:500;
-        border:1.5px solid #dee2e6; background:#fff; color:var(--pm-muted); cursor:pointer;
-        transition:background .15s, color .15s, border-color .15s;
+    /* Tickets table */
+    .tkt-table { width: 100%; border-collapse: collapse; font-size: var(--fs-sm); }
+    .tkt-table th {
+        text-align: left; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+        text-transform: uppercase; letter-spacing: .04em; color: var(--text-muted);
+        padding: var(--space-2) var(--space-3);
+        border-bottom: 1px solid var(--border);
+        background: var(--slate-50);
     }
-    .filter-pill.active, .filter-pill:hover {
-        background:var(--pm-green); color:#fff; border-color:var(--pm-green);
+    .tkt-table td { padding: var(--space-3); border-bottom: 1px solid var(--slate-100); vertical-align: middle; }
+    .tkt-table tr:last-child td { border-bottom: none; }
+    .tkt-table tr:hover td { background: var(--slate-50); }
+    .tkt-table .tkt-title { font-weight: var(--fw-medium); color: var(--text-heading); max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: block; }
+
+    /* Sprint scroll */
+    .sprints-scroll { display: flex; flex-direction: column; gap: var(--space-3); max-height: 460px; overflow-y: auto; padding-right: 2px; }
+    .sprints-scroll::-webkit-scrollbar { width: 4px; }
+    .sprints-scroll::-webkit-scrollbar-thumb { background: var(--slate-200); border-radius: var(--radius-full); }
+
+    /* Sprint card */
+    .sprint-card-opms {
+        background: var(--primary-800); color: var(--white);
+        border-radius: var(--radius-md); padding: var(--space-4) var(--space-5);
     }
+    .sprint-card-opms__name { font-family: var(--font-heading); font-weight: var(--fw-bold); font-size: var(--fs-base); margin-bottom: 2px; }
+    .sprint-card-opms__dates { font-size: var(--fs-xs); opacity: .75; margin-bottom: var(--space-3); }
+    .sprint-card-opms__goal { font-size: var(--fs-xs); opacity: .85; font-style: italic; margin-bottom: var(--space-3); }
+    .sprint-pbar { height: 5px; background: rgba(255,255,255,.2); border-radius: var(--radius-full); overflow: hidden; margin-bottom: var(--space-2); }
+    .sprint-pbar__fill { height: 100%; background: var(--white); border-radius: var(--radius-full); }
+    .sprint-meta { display: flex; justify-content: space-between; align-items: center; font-size: var(--fs-xs); opacity: .8; margin-bottom: var(--space-3); }
+    .sprint-stats { display: flex; gap: var(--space-4); font-size: var(--fs-xs); opacity: .8; }
 
-    .tickets-table { width:100%; border-collapse:collapse; font-size:.85rem; }
-    .tickets-table th { font-weight:600; color:var(--pm-muted); font-size:.78rem; text-transform:uppercase; letter-spacing:.5px; padding:.5rem .75rem; border-bottom:2px solid #f0f0f0; }
-    .tickets-table td { padding:.6rem .75rem; border-bottom:1px solid #f4f4f4; vertical-align:middle; }
-    .tickets-table tr:last-child td { border-bottom:none; }
-    .tickets-table tr:hover td { background:#fafbff; }
-
-    .pill-status { display:inline-block; padding:2px 10px; border-radius:20px; font-size:.72rem; font-weight:600; }
-    .s-todo     { background:#dbeafe; color:#1d4ed8; }
-    .s-inprog   { background:#fef3c7; color:#92400e; }
-    .s-inreview { background:#ede9fe; color:#5b21b6; }
-    .s-done     { background:#dcfce7; color:#166534; }
-
-    .prio-highest { color:#d92d20; }
-    .prio-high    { color:#e07b00; }
-    .prio-medium  { color:#0d6efd; }
-    .prio-low     { color:#6c757d; }
-
-    .due-overdue { color:#d92d20; font-weight:600; }
-    .due-soon    { color:#e07b00; }
-
-    .activity-row { display:flex; gap:.6rem; padding:.55rem 0; border-bottom:1px solid #f4f4f4; align-items:flex-start; }
-    .activity-row:last-child { border-bottom:none; }
-    .activity-dot { width:8px; height:8px; border-radius:50%; background:var(--pm-green); margin-top:5px; flex-shrink:0; }
-    .activity-dot.done  { background:#166534; }
-    .activity-dot.prog  { background:#92400e; }
-    .activity-text { font-size:.82rem; color:var(--pm-text); line-height:1.3; }
-    .activity-time { font-size:.72rem; color:var(--pm-muted); margin-top:2px; }
-
-    .sprint-card { background:var(--pm-green); color:#fff; border-radius:16px; padding:1.25rem 1.5rem; }
-    .sprint-card .sprint-name { font-weight:700; font-size:1rem; }
-    .sprint-card .sprint-dates { font-size:.78rem; opacity:.8; margin-bottom:.75rem; }
-    .sprint-card .sprint-goal { font-size:.82rem; opacity:.9; margin-bottom:1rem; font-style:italic; }
-    .sprint-progress-bar { height:8px; border-radius:4px; background:rgba(255,255,255,.25); overflow:hidden; margin-bottom:.4rem; }
-    .sprint-progress-fill { height:100%; border-radius:4px; background:#fff; }
-    .sprint-stats { display:flex; gap:1.25rem; font-size:.78rem; opacity:.85; }
-
-    .sprints-scroll { display:flex; flex-direction:column; gap:.75rem; max-height:440px; overflow-y:auto; padding-right:2px; }
-    .sprints-scroll::-webkit-scrollbar { width:4px; }
-    .sprints-scroll::-webkit-scrollbar-thumb { background:rgba(0,0,0,.12); border-radius:4px; }
-
-    .empty-state { text-align:center; padding:2rem 1rem; color:var(--pm-muted); font-size:.88rem; }
-    .empty-state i { font-size:2rem; display:block; margin-bottom:.5rem; opacity:.4; }
+    /* Activity */
+    .act-row { display: flex; gap: var(--space-2); padding: var(--space-2) 0; border-bottom: 1px solid var(--slate-100); align-items: flex-start; }
+    .act-row:last-child { border-bottom: none; }
+    .act-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--primary-400); margin-top: 5px; flex-shrink: 0; }
+    .act-dot--done { background: var(--success-solid); }
+    .act-dot--prog { background: var(--warning-solid); }
+    .act-text { font-size: var(--fs-sm); color: var(--text-body); line-height: 1.35; }
+    .act-meta { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
 </style>
 
-<div class="pm-main">
-    <!-- Topbar -->
-    <div class="pm-topbar">
-        <div>
-            <h4>My Dashboard</h4>
-            <p class="text-muted mb-0" style="font-size:.85rem;">Welcome back, @userName</p>
-        </div>
+<div class="dash-main">
+    <!-- Header -->
+    <div class="dash-header">
+        <h1>My Dashboard</h1>
+        <p>Welcome back, <strong>@userName</strong></p>
     </div>
 
     @if (TempData["SuccessMessage"] != null || TempData["ErrorMessage"] != null)
@@ -173,129 +142,119 @@ else
     }
 
     <!-- Stat Cards -->
-    <div class="row g-3 mb-4">
-        <div class="col-6 col-lg-3">
-            <div class="stat-card dark d-flex align-items-center justify-content-between">
-                <div>
-                    <div class="stat-label">Open Tickets</div>
-                    <div class="stat-value">@d.OpenTickets</div>
-                    <div class="stat-sub">assigned to me</div>
-                </div>
-                <i class="bi bi-ticket-perforated stat-icon"></i>
+    <div class="stats-grid">
+        <div class="opms-stat">
+            <div class="opms-stat__top">
+                <span class="opms-stat__label">Open Tickets</span>
+                <span class="opms-stat__icon opms-stat__icon--primary"><i class="bi bi-ticket-perforated"></i></span>
             </div>
+            <div class="opms-stat__value">@d.OpenTickets</div>
+            <div class="opms-stat__sub">assigned to me</div>
         </div>
-        <div class="col-6 col-lg-3">
-            <div class="stat-card d-flex align-items-center justify-content-between">
-                <div>
-                    <div class="stat-label">Overdue</div>
-                    <div class="stat-value" style="color:@(d.OverdueTickets > 0 ? "#d92d20" : "var(--pm-text)")">@d.OverdueTickets</div>
-                    <div class="stat-sub">past due date</div>
-                </div>
-                <i class="bi bi-exclamation-circle stat-icon" style="font-size:1.6rem;opacity:.12;color:#d92d20;"></i>
+        <div class="opms-stat">
+            <div class="opms-stat__top">
+                <span class="opms-stat__label">Overdue</span>
+                <span class="opms-stat__icon opms-stat__icon--danger"><i class="bi bi-exclamation-circle"></i></span>
             </div>
+            <div class="opms-stat__value" style="color:@(d.OverdueTickets > 0 ? "var(--danger-text)" : "var(--text-heading)")">@d.OverdueTickets</div>
+            <div class="opms-stat__sub">past due date</div>
         </div>
-        <div class="col-6 col-lg-3">
-            <div class="stat-card d-flex align-items-center justify-content-between">
-                <div>
-                    <div class="stat-label">In Progress</div>
-                    <div class="stat-value">@d.InProgressTickets</div>
-                    <div class="stat-sub">actively working</div>
-                </div>
-                <i class="bi bi-arrow-repeat stat-icon"></i>
+        <div class="opms-stat">
+            <div class="opms-stat__top">
+                <span class="opms-stat__label">In Progress</span>
+                <span class="opms-stat__icon opms-stat__icon--info"><i class="bi bi-arrow-repeat"></i></span>
             </div>
+            <div class="opms-stat__value">@d.InProgressTickets</div>
+            <div class="opms-stat__sub">actively working</div>
         </div>
-        <div class="col-6 col-lg-3">
-            <div class="stat-card d-flex align-items-center justify-content-between">
-                <div>
-                    <div class="stat-label">Done This Week</div>
-                    <div class="stat-value" style="color:var(--pm-green)">@d.DoneThisWeek</div>
-                    <div class="stat-sub">completed (&lt;7 days)</div>
-                </div>
-                <i class="bi bi-check2-circle stat-icon" style="color:var(--pm-green);opacity:.15;"></i>
+        <div class="opms-stat">
+            <div class="opms-stat__top">
+                <span class="opms-stat__label">Done This Week</span>
+                <span class="opms-stat__icon opms-stat__icon--success"><i class="bi bi-check2-circle"></i></span>
             </div>
+            <div class="opms-stat__value" style="color:var(--success-text)">@d.DoneThisWeek</div>
+            <div class="opms-stat__sub">completed (&lt;7 days)</div>
         </div>
     </div>
 
-    <!-- Main content row -->
+    <!-- Main content -->
     <div class="row g-3">
-        <!-- Left: Tickets table -->
+        <!-- Tickets table -->
         <div class="col-lg-8">
-            <div class="section-card">
-                <div class="d-flex align-items-center justify-content-between mb-3">
-                    <div class="section-title mb-0">My Tickets</div>
-                    <span class="text-muted" style="font-size:.8rem;">@d.MyTickets.Count total</span>
+            <div class="sec-card">
+                <div class="sec-card__header">
+                    <span class="sec-card__title">My Tickets</span>
+                    <span class="eyebrow">@d.MyTickets.Count total</span>
                 </div>
-
-                <!-- Filter pills -->
-                <div class="filter-pills" id="filterPills">
-                    <span class="filter-pill active" data-filter="all">All</span>
-                    <span class="filter-pill" data-filter="todo">To Do</span>
-                    <span class="filter-pill" data-filter="inprog">In Progress</span>
-                    <span class="filter-pill" data-filter="inreview">In Review</span>
-                    <span class="filter-pill" data-filter="done">Done</span>
-                    <span class="filter-pill" data-filter="overdue">Overdue</span>
-                </div>
-
-                @if (!d.MyTickets.Any())
-                {
-                    <div class="empty-state">
-                        <i class="bi bi-inbox"></i>
-                        No tickets assigned to you yet.
+                <div class="sec-card__body">
+                    <!-- Filter pills -->
+                    <div class="opms-filter-bar" id="filterPills">
+                        <span class="opms-pill active" data-filter="all">All</span>
+                        <span class="opms-pill" data-filter="todo">To Do</span>
+                        <span class="opms-pill" data-filter="inprog">In Progress</span>
+                        <span class="opms-pill" data-filter="inreview">In Review</span>
+                        <span class="opms-pill" data-filter="done">Done</span>
+                        <span class="opms-pill" data-filter="overdue">Overdue</span>
                     </div>
-                }
-                else
-                {
-                    <div style="overflow-x:auto;">
-                        <table class="tickets-table" id="ticketsTable">
-                            <thead>
-                                <tr>
-                                    <th>Title</th>
-                                    <th>Status</th>
-                                    <th>Priority</th>
-                                    <th>Due</th>
-                                    <th>Project</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach (var t in d.MyTickets)
-                                {
-                                    var isOverdue = t.DueDate.HasValue && t.DueDate.Value.Date < DateTime.Today && t.Status != 4;
-                                    var isDueSoon = t.DueDate.HasValue && !isOverdue && t.DueDate.Value.Date <= DateTime.Today.AddDays(3) && t.Status != 4;
-                                    var filterAttr = t.Status switch {
-                                        1 => "todo",
-                                        2 => "inprog",
-                                        3 => "inreview",
-                                        4 => "done",
-                                        _ => "todo"
-                                    };
-                                    if (isOverdue) filterAttr += " overdue";
-                                    <tr data-filter="@filterAttr">
-                                        <td style="max-width:260px;">
-                                            <span style="font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;">@t.Title</span>
-                                        </td>
-                                        <td><span class="pill-status @StatusCls(t.Status)">@StatusLabel(t.Status)</span></td>
-                                        <td><span class="@PriorityCls(t.Priority)"><i class="bi bi-flag-fill me-1" style="font-size:.7rem;"></i>@PriorityLabel(t.Priority)</span></td>
-                                        <td>
-                                            @if (t.DueDate.HasValue)
-                                            {
-                                                <span class="@(isOverdue ? "due-overdue" : isDueSoon ? "due-soon" : "")">
-                                                    @t.DueDate.Value.ToString("MMM d")
-                                                </span>
-                                            }
-                                            else
-                                            {
-                                                <span class="text-muted">—</span>
-                                            }
-                                        </td>
-                                        <td style="max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                                            <span class="text-muted">@(t.ProductName ?? "—")</span>
-                                        </td>
+
+                    @if (!d.MyTickets.Any())
+                    {
+                        <div class="opms-empty">
+                            <i class="bi bi-inbox"></i>
+                            No tickets assigned to you yet.
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="overflow-x:auto;">
+                            <table class="tkt-table" id="ticketsTable">
+                                <thead>
+                                    <tr>
+                                        <th>Title</th>
+                                        <th>Status</th>
+                                        <th>Priority</th>
+                                        <th>Due</th>
+                                        <th>Project</th>
                                     </tr>
-                                }
-                            </tbody>
-                        </table>
-                    </div>
-                }
+                                </thead>
+                                <tbody>
+                                    @foreach (var t in d.MyTickets)
+                                    {
+                                        var isOverdue = t.DueDate.HasValue && t.DueDate.Value.Date < DateTime.Today && t.Status != 4;
+                                        var isDueSoon = t.DueDate.HasValue && !isOverdue && t.DueDate.Value.Date <= DateTime.Today.AddDays(3) && t.Status != 4;
+                                        var filterAttr = t.Status switch { 1 => "todo", 2 => "inprog", 3 => "inreview", 4 => "done", _ => "todo" };
+                                        if (isOverdue) filterAttr += " overdue";
+                                        <tr data-filter="@filterAttr">
+                                            <td><span class="tkt-title">@t.Title</span></td>
+                                            <td>
+                                                <span class="badge-opms badge-opms--@StatusBadge(t.Status)">
+                                                    <span class="dot"></span>@StatusLabel(t.Status)
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span style="color:@PriorityColor(t.Priority);font-weight:var(--fw-semibold);font-size:var(--fs-xs);">
+                                                    <i class="bi bi-flag-fill me-1" style="font-size:.65rem;"></i>@PriorityLabel(t.Priority)
+                                                </span>
+                                            </td>
+                                            <td>
+                                                @if (t.DueDate.HasValue)
+                                                {
+                                                    <span style="color:@(isOverdue ? "var(--danger-text)" : isDueSoon ? "var(--warning-text)" : "var(--text-body)");font-weight:@(isOverdue ? "var(--fw-semibold)" : "normal");">
+                                                        @t.DueDate.Value.ToString("MMM d")
+                                                    </span>
+                                                }
+                                                else { <span class="text-muted">—</span> }
+                                            </td>
+                                            <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                                                <span style="font-size:var(--fs-xs);color:var(--text-muted);">@(t.ProductName ?? "—")</span>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
             </div>
         </div>
 
@@ -303,83 +262,92 @@ else
         <div class="col-lg-4 d-flex flex-column gap-3">
 
             <!-- Active Sprints -->
-            <div class="section-card">
-                <div class="d-flex align-items-center justify-content-between mb-3">
-                    <div class="section-title mb-0">My Active Sprints</div>
+            <div class="sec-card">
+                <div class="sec-card__header">
+                    <span class="sec-card__title">My Active Sprints</span>
                     @if (d.ActiveSprints.Any())
                     {
-                        <span class="badge rounded-pill" style="background:var(--pm-green);font-size:.72rem;">@d.ActiveSprints.Count</span>
+                        <span class="badge-opms badge-opms--info">@d.ActiveSprints.Count</span>
                     }
                 </div>
-                @if (!d.ActiveSprints.Any())
-                {
-                    <div class="empty-state" style="padding:1rem 0;">
-                        <i class="bi bi-lightning-charge" style="font-size:1.5rem;"></i>
-                        No active sprints assigned to you.
-                    </div>
-                }
-                else
-                {
-                    <div class="sprints-scroll">
-                        @foreach (var sprint in d.ActiveSprints)
-                        {
-                            var pct = sprint.TotalItems > 0 ? (int)Math.Round(sprint.DoneItems * 100.0 / sprint.TotalItems) : 0;
-                            var daysLeft = (sprint.EndDate.Date - DateTime.Today).Days;
-                            <div class="sprint-card">
-                                <div class="d-flex align-items-center justify-content-between mb-1">
-                                    <div class="sprint-name"><i class="bi bi-lightning-charge me-1"></i>@sprint.Name</div>
-                                    <span style="font-size:.72rem;background:rgba(255,255,255,.2);padding:2px 8px;border-radius:12px;">Active</span>
+                <div class="sec-card__body">
+                    @if (!d.ActiveSprints.Any())
+                    {
+                        <div class="opms-empty" style="padding:var(--space-5) 0;">
+                            <i class="bi bi-lightning-charge" style="font-size:1.5rem;"></i>
+                            No active sprints assigned to you.
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="sprints-scroll">
+                            @foreach (var sprint in d.ActiveSprints)
+                            {
+                                var pct = sprint.TotalItems > 0 ? (int)Math.Round(sprint.DoneItems * 100.0 / sprint.TotalItems) : 0;
+                                var daysLeft = (sprint.EndDate.Date - DateTime.Today).Days;
+                                <div class="sprint-card-opms">
+                                    <div class="d-flex align-items-center justify-content-between mb-1">
+                                        <div class="sprint-card-opms__name"><i class="bi bi-lightning-charge me-1"></i>@sprint.Name</div>
+                                        <span style="font-size:10px;background:rgba(255,255,255,.15);padding:2px 8px;border-radius:var(--radius-full);">Active</span>
+                                    </div>
+                                    <div class="sprint-card-opms__dates">
+                                        @sprint.StartDate.ToString("MMM d") – @sprint.EndDate.ToString("MMM d") ·
+                                        @(daysLeft >= 0 ? $"{daysLeft}d left" : $"{-daysLeft}d overdue")
+                                    </div>
+                                    @if (!string.IsNullOrWhiteSpace(sprint.Goal))
+                                    {
+                                        <div class="sprint-card-opms__goal">"@sprint.Goal"</div>
+                                    }
+                                    <div class="sprint-pbar">
+                                        <div class="sprint-pbar__fill" style="width:@pct%"></div>
+                                    </div>
+                                    <div class="sprint-meta">
+                                        <span>@pct% complete</span>
+                                        <span>@sprint.DoneItems / @sprint.TotalItems done</span>
+                                    </div>
+                                    <div class="sprint-stats">
+                                        <span><i class="bi bi-person me-1"></i>@sprint.MyItems my items</span>
+                                        <span><i class="bi bi-list-task me-1"></i>@(sprint.TotalItems - sprint.DoneItems) remaining</span>
+                                    </div>
                                 </div>
-                                <div class="sprint-dates">@sprint.StartDate.ToString("MMM d") – @sprint.EndDate.ToString("MMM d") · @(daysLeft >= 0 ? $"{daysLeft}d left" : $"{-daysLeft}d overdue")</div>
-                                @if (!string.IsNullOrWhiteSpace(sprint.Goal))
-                                {
-                                    <div class="sprint-goal">"@sprint.Goal"</div>
-                                }
-                                <div class="sprint-progress-bar">
-                                    <div class="sprint-progress-fill" style="width:@pct%"></div>
-                                </div>
-                                <div class="d-flex justify-content-between align-items-center mb-2" style="font-size:.75rem;opacity:.85;">
-                                    <span>@pct% complete</span>
-                                    <span>@sprint.DoneItems / @sprint.TotalItems done</span>
-                                </div>
-                                <div class="sprint-stats">
-                                    <span><i class="bi bi-person me-1"></i>@sprint.MyItems my items</span>
-                                    <span><i class="bi bi-list-task me-1"></i>@(sprint.TotalItems - sprint.DoneItems) remaining</span>
-                                </div>
-                            </div>
-                        }
-                    </div>
-                }
+                            }
+                        </div>
+                    }
+                </div>
             </div>
 
             <!-- Recent Activity -->
-            <div class="section-card" style="flex:1;">
-                <div class="section-title mb-3">Recent Activity</div>
-                @if (!d.RecentActivity.Any())
-                {
-                    <div class="empty-state" style="padding:1rem 0;">
-                        <i class="bi bi-clock-history" style="font-size:1.5rem;"></i>
-                        No recent activity.
-                    </div>
-                }
-                else
-                {
-                    @foreach (var a in d.RecentActivity.Take(5))
+            <div class="sec-card" style="flex:1;">
+                <div class="sec-card__header">
+                    <span class="sec-card__title">Recent Activity</span>
+                </div>
+                <div class="sec-card__body">
+                    @if (!d.RecentActivity.Any())
                     {
-                        var dotCls = a.Status == 4 ? "done" : a.Status == 2 ? "prog" : "";
-                        <div class="activity-row">
-                            <div class="activity-dot @dotCls"></div>
-                            <div>
-                                <div class="activity-text">@a.Title</div>
-                                <div class="activity-time">
-                                    <span class="pill-status @StatusCls(a.Status)" style="font-size:.68rem;padding:1px 7px;">@StatusLabel(a.Status)</span>
-                                    @if (a.ProductName != null) { <span class="ms-1">· @a.ProductName</span> }
-                                    <span class="ms-1">· @TimeAgo(a.UpdatedAt)</span>
-                                </div>
-                            </div>
+                        <div class="opms-empty" style="padding:var(--space-5) 0;">
+                            <i class="bi bi-clock-history" style="font-size:1.5rem;"></i>
+                            No recent activity.
                         </div>
                     }
-                }
+                    else
+                    {
+                        @foreach (var a in d.RecentActivity.Take(6))
+                        {
+                            var dotCls = a.Status == 4 ? "act-dot--done" : a.Status == 2 ? "act-dot--prog" : "";
+                            <div class="act-row">
+                                <div class="act-dot @dotCls"></div>
+                                <div>
+                                    <div class="act-text">@a.Title</div>
+                                    <div class="act-meta">
+                                        <span class="badge-opms badge-opms--@StatusBadge(a.Status)" style="padding:1px 6px;font-size:10px;">@StatusLabel(a.Status)</span>
+                                        @if (a.ProductName != null) { <span>· @a.ProductName</span> }
+                                        <span>· @TimeAgo(a.UpdatedAt)</span>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    }
+                </div>
             </div>
 
         </div>
@@ -387,9 +355,9 @@ else
 </div>
 
 <script>
-    document.querySelectorAll('#filterPills .filter-pill').forEach(pill => {
+    document.querySelectorAll('#filterPills .opms-pill').forEach(pill => {
         pill.addEventListener('click', function () {
-            document.querySelectorAll('#filterPills .filter-pill').forEach(p => p.classList.remove('active'));
+            document.querySelectorAll('#filterPills .opms-pill').forEach(p => p.classList.remove('active'));
             this.classList.add('active');
             const filter = this.dataset.filter;
             document.querySelectorAll('#ticketsTable tbody tr').forEach(row => {

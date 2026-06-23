@@ -4,103 +4,192 @@
 @inject IWebHostEnvironment Environment
 @{
     ViewData["Title"] = "Login";
+    Layout = "_Layout";
 }
 
-<div class="row justify-content-center mt-5">
-    <div class="col-md-6">
-        <div class="card shadow-lg">
-            <div class="card-body p-5">
-                <h1 class="card-title text-center mb-4">Login to OPMS</h1>
+<style>
+    body.with-navbar { background: var(--primary-800) !important; }
 
-                @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-                {
-                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                        @Model.ErrorMessage
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                }
+    .auth-wrap {
+        min-height: 100vh;
+        display: flex; align-items: center; justify-content: center;
+        padding: var(--space-6);
+    }
 
-                <form method="post">
-                    <div class="mb-3">
-                        <label asp-for="Input.Email" class="form-label">Email Address</label>
-                        <input asp-for="Input.Email" class="form-control form-control-lg" placeholder="Enter your email" />
-                        <span asp-validation-for="Input.Email" class="text-danger small"></span>
-                    </div>
+    .auth-card {
+        background: var(--bg-surface);
+        border-radius: var(--radius-xl);
+        box-shadow: var(--shadow-lg);
+        border: 1px solid var(--border);
+        width: 100%; max-width: 440px;
+        padding: var(--space-10) var(--space-8);
+    }
 
-                    <div class="mb-3">
-                        <label asp-for="Input.Password" class="form-label">Password</label>
-                        <input asp-for="Input.Password" type="password" class="form-control form-control-lg" placeholder="Enter your password" />
-                        <span asp-validation-for="Input.Password" class="text-danger small"></span>
-                    </div>
+    .auth-logo {
+        display: flex; align-items: center; justify-content: center;
+        gap: var(--space-2); margin-bottom: var(--space-6);
+    }
+    .auth-logo i { font-size: 1.75rem; color: var(--primary-600); }
+    .auth-logo-name {
+        font-family: var(--font-heading); font-size: 1.5rem;
+        font-weight: var(--fw-bold); color: var(--primary-800);
+        letter-spacing: -.02em;
+    }
 
-                    <button type="submit" class="btn btn-primary btn-lg w-100 mb-3">Login</button>
-                </form>
+    .auth-title {
+        font-family: var(--font-heading);
+        font-size: var(--fs-h2); font-weight: var(--fw-bold);
+        color: var(--text-heading); text-align: center;
+        margin-bottom: var(--space-1);
+    }
+    .auth-subtitle {
+        font-size: var(--fs-sm); color: var(--text-muted);
+        text-align: center; margin-bottom: var(--space-6);
+    }
 
-                <hr />
+    .field-group { margin-bottom: var(--space-4); }
+    .field-group label {
+        display: block; font-size: var(--fs-sm);
+        font-weight: var(--fw-medium); color: var(--text-body);
+        margin-bottom: 6px;
+    }
+    .field-group .form-control {
+        border-color: var(--border); border-radius: var(--radius-sm);
+        font-size: var(--fs-base); padding: 10px 12px;
+        color: var(--text-body);
+    }
+    .field-group .form-control:focus {
+        border-color: var(--primary-500);
+        box-shadow: 0 0 0 3px var(--primary-100);
+    }
 
-                @if (Environment.IsDevelopment())
-                {
-                    <div class="alert alert-info alert-dismissible fade show" role="alert">
-                        <strong>⚡ Quick Login (Development Only)</strong>
-                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
+    .btn-login {
+        width: 100%; padding: 11px 16px;
+        background: var(--primary-600); color: var(--white);
+        border: none; border-radius: var(--radius-md);
+        font-family: var(--font-body); font-size: var(--fs-base);
+        font-weight: var(--fw-semibold); cursor: pointer;
+        transition: background .15s;
+        margin-bottom: var(--space-4);
+    }
+    .btn-login:hover { background: var(--primary-700); }
 
-                    <div class="row g-2 mb-3">
-                        <form method="post" asp-page-handler="QuickLogin" class="col-6">
-                            <input type="hidden" name="email" value="admin@pmtool.com" />
-                            <input type="hidden" name="password" value="Admin@123" />
-                            <button type="submit" class="btn btn-outline-danger btn-sm w-100">Admin</button>
-                        </form>
-                        <form method="post" asp-page-handler="QuickLogin" class="col-6">
-                            <input type="hidden" name="email" value="pm@pmtool.com" />
-                            <input type="hidden" name="password" value="PM@123" />
-                            <button type="submit" class="btn btn-outline-primary btn-sm w-100">PM</button>
-                        </form>
-                    </div>
+    .auth-divider {
+        display: flex; align-items: center; gap: var(--space-3);
+        color: var(--text-faint); font-size: var(--fs-xs);
+        margin: var(--space-4) 0;
+    }
+    .auth-divider::before, .auth-divider::after {
+        content: ''; flex: 1; height: 1px; background: var(--border);
+    }
 
-                    <div class="row g-2 mb-3">
-                        <form method="post" asp-page-handler="QuickLogin" class="col-6">
-                            <input type="hidden" name="email" value="dev@pmtool.com" />
-                            <input type="hidden" name="password" value="Dev@123" />
-                            <button type="submit" class="btn btn-outline-success btn-sm w-100">Developer</button>
-                        </form>
-                        <form method="post" asp-page-handler="QuickLogin" class="col-6">
-                            <input type="hidden" name="email" value="qa@pmtool.com" />
-                            <input type="hidden" name="password" value="QA@123" />
-                            <button type="submit" class="btn btn-outline-warning btn-sm w-100">QA</button>
-                        </form>
-                    </div>
+    .auth-footer {
+        text-align: center; font-size: var(--fs-sm); color: var(--text-muted);
+        margin-top: var(--space-4);
+    }
+    .auth-footer a { color: var(--primary-600); font-weight: var(--fw-semibold); }
+    .auth-footer a:hover { color: var(--primary-700); }
 
-                    <div class="row g-2 mb-3">
-                        <form method="post" asp-page-handler="QuickLogin" class="col-6">
-                            <input type="hidden" name="email" value="ba@pmtool.com" />
-                            <input type="hidden" name="password" value="BA@123" />
-                            <button type="submit" class="btn btn-outline-info btn-sm w-100">BA</button>
-                        </form>
-                        <form method="post" asp-page-handler="QuickLogin" class="col-6">
-                            <input type="hidden" name="email" value="viewer@pmtool.com" />
-                            <input type="hidden" name="password" value="Viewer@123" />
-                            <button type="submit" class="btn btn-outline-secondary btn-sm w-100">Viewer</button>
-                        </form>
-                    </div>
+    .dev-panel {
+        background: var(--info-bg); border: 1px solid var(--primary-200);
+        border-radius: var(--radius-md); padding: var(--space-4);
+        margin-top: var(--space-4);
+    }
+    .dev-panel__label {
+        font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+        color: var(--info-text); margin-bottom: var(--space-3);
+        text-transform: uppercase; letter-spacing: .06em;
+    }
+    .dev-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-2); }
+    .btn-dev {
+        padding: 5px 8px; font-size: var(--fs-xs); font-weight: var(--fw-semibold);
+        border-radius: var(--radius-sm); border: 1px solid var(--border);
+        background: var(--white); color: var(--text-body); cursor: pointer;
+        transition: background .12s;
+    }
+    .btn-dev:hover { background: var(--primary-600); color: var(--white); border-color: var(--primary-600); }
+</style>
 
-                    <div class="row g-2 mb-3">
-                        <form method="post" asp-page-handler="QuickLogin" class="col-6">
-                            <input type="hidden" name="email" value="guest@pmtool.com" />
-                            <input type="hidden" name="password" value="Guest@123" />
-                            <button type="submit" class="btn btn-outline-dark btn-sm w-100">Guest</button>
-                        </form>
-                    </div>
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <i class="bi bi-kanban"></i>
+            <span class="auth-logo-name">OPMS</span>
+        </div>
 
-                    <hr />
-                }
+        <h1 class="auth-title">Welcome back</h1>
+        <p class="auth-subtitle">Sign in to your account to continue</p>
 
-                <div class="text-center">
-                    <p class="mb-2">Don't have an account? <a asp-page="./Register" class="text-primary fw-bold">Register here</a></p>
-                    <p><a asp-page="./ForgotPassword" class="text-muted">Forgot your password?</a></p>
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="alert alert-danger d-flex align-items-center gap-2 mb-4 p-3" role="alert"
+                 style="border-radius:var(--radius-md);font-size:var(--fs-sm);border:1px solid var(--danger-bg);background:var(--danger-bg);color:var(--danger-text);">
+                <i class="bi bi-exclamation-circle-fill"></i>
+                <span>@Model.ErrorMessage</span>
+            </div>
+        }
+
+        <form method="post">
+            <div class="field-group">
+                <label asp-for="Input.Email">Email address</label>
+                <input asp-for="Input.Email" class="form-control" placeholder="you@example.com" autocomplete="email" />
+                <span asp-validation-for="Input.Email" class="text-danger" style="font-size:var(--fs-xs);margin-top:4px;display:block;"></span>
+            </div>
+
+            <div class="field-group">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label asp-for="Input.Password" style="margin-bottom:0;">Password</label>
+                    <a asp-page="./ForgotPassword" style="font-size:var(--fs-xs);color:var(--primary-600);">Forgot password?</a>
+                </div>
+                <input asp-for="Input.Password" type="password" class="form-control" placeholder="••••••••" autocomplete="current-password" />
+                <span asp-validation-for="Input.Password" class="text-danger" style="font-size:var(--fs-xs);margin-top:4px;display:block;"></span>
+            </div>
+
+            <button type="submit" class="btn-login">Sign in</button>
+        </form>
+
+        <div class="auth-footer">
+            Don't have an account? <a asp-page="./Register">Create one</a>
+        </div>
+
+        @if (Environment.IsDevelopment())
+        {
+            <div class="dev-panel">
+                <div class="dev-panel__label"><i class="bi bi-lightning-charge me-1"></i>Quick Login — Dev Only</div>
+                <div class="dev-grid">
+                    <form method="post" asp-page-handler="QuickLogin">
+                        <input type="hidden" name="email" value="admin@pmtool.com" />
+                        <input type="hidden" name="password" value="Admin@123" />
+                        <button type="submit" class="btn-dev w-100">Admin</button>
+                    </form>
+                    <form method="post" asp-page-handler="QuickLogin">
+                        <input type="hidden" name="email" value="pm@pmtool.com" />
+                        <input type="hidden" name="password" value="PM@123" />
+                        <button type="submit" class="btn-dev w-100">PM</button>
+                    </form>
+                    <form method="post" asp-page-handler="QuickLogin">
+                        <input type="hidden" name="email" value="dev@pmtool.com" />
+                        <input type="hidden" name="password" value="Dev@123" />
+                        <button type="submit" class="btn-dev w-100">Dev</button>
+                    </form>
+                    <form method="post" asp-page-handler="QuickLogin">
+                        <input type="hidden" name="email" value="qa@pmtool.com" />
+                        <input type="hidden" name="password" value="QA@123" />
+                        <button type="submit" class="btn-dev w-100">QA</button>
+                    </form>
+                    <form method="post" asp-page-handler="QuickLogin">
+                        <input type="hidden" name="email" value="ba@pmtool.com" />
+                        <input type="hidden" name="password" value="BA@123" />
+                        <button type="submit" class="btn-dev w-100">BA</button>
+                    </form>
+                    <form method="post" asp-page-handler="QuickLogin">
+                        <input type="hidden" name="email" value="viewer@pmtool.com" />
+                        <input type="hidden" name="password" value="Viewer@123" />
+                        <button type="submit" class="btn-dev w-100">Viewer</button>
+                    </form>
                 </div>
             </div>
-        </div>
+        }
     </div>
 </div>
 

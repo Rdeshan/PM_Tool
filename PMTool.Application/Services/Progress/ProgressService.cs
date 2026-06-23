@@ -194,7 +194,7 @@ public class ProgressService : IProgressService
 
         var totalItems = backlogItems.Count;
         var completedItems = backlogItems.Count(pb => pb.Status == 4);
-        var inProgressCount = backlogItems.Count(pb => pb.Status == 3);
+        var inProgressCount = backlogItems.Count(pb => pb.Status == 2 || pb.Status == 3);
         var blockedItems = backlogItems.Count(pb =>
             pb.DueDate.HasValue && pb.DueDate.Value.Date < todayDate && pb.Status != 4);
 
@@ -455,7 +455,7 @@ public class ProgressService : IProgressService
         int completedSubtasks = allSubtasks.Count(s => s.Status == 3);
 
         var inProgressItems = backlogItems
-            .Where(pb => pb.Status == 3)
+            .Where(pb => pb.Status == 2 || pb.Status == 3)
             .Select(pb =>
             {
                 var subs = pb.Subtasks.ToList();
@@ -482,7 +482,7 @@ public class ProgressService : IProgressService
                     WorkItemId = pb.Id,
                     Title = pb.Title,
                     WorkType = TypeNames.TryGetValue(pb.Type, out var tn) ? tn : $"Type {pb.Type}",
-                    StatusName = "In Progress",
+                    StatusName = pb.Status == 3 ? "In Review" : "In Progress",
                     ProgressPct = pct,
                     SubTaskCount = subs.Count,
                     CompletedSubTaskCount = subs.Count(s => s.Status == 3),

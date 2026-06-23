@@ -1,35 +1,46 @@
-﻿@page
+@page
 @model PMTool.Web.Pages.Notifications.IndexModel
 @{
     ViewData["Title"] = "Notifications";
 }
 
 <style>
-    .notif-page { max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
-    .notif-card { background: #fff; border-radius: 16px; box-shadow: 0 2px 8px rgba(0,0,0,.06); padding: 1.5rem; }
-    .notif-item { display: flex; gap: .75rem; align-items: flex-start; padding: .75rem 0; border-bottom: 1px solid #f4f4f4; }
+    .notif-wrap { max-width: 680px; margin: 0 auto; padding: var(--space-6); }
+    .notif-item {
+        display: flex; gap: var(--space-3); align-items: flex-start;
+        padding: var(--space-3) 0; border-bottom: 1px solid var(--slate-100);
+    }
     .notif-item:last-child { border-bottom: none; }
-    .notif-dot { width: 10px; height: 10px; border-radius: 50%; background: #0D6EFD; flex-shrink: 0; margin-top: 5px; }
-    .notif-body { flex: 1; }
-    .notif-msg { font-size: .9rem; color: #1b2b23; line-height: 1.4; }
-    .notif-time { font-size: .75rem; color: #6c757d; margin-top: 3px; }
-    .empty-state { text-align: center; padding: 3rem 1rem; color: #6c757d; }
-    .empty-state i { font-size: 2.5rem; display: block; margin-bottom: .75rem; opacity: .4; }
+    .notif-dot {
+        width: 8px; height: 8px; border-radius: 50%;
+        background: var(--primary-500); flex-shrink: 0; margin-top: 6px;
+    }
+    .notif-msg { font-size: var(--fs-sm); color: var(--text-body); line-height: 1.5; }
+    .notif-time { font-size: var(--fs-xs); color: var(--text-muted); margin-top: 2px; }
+    .btn-dismiss {
+        margin-left: auto; background: transparent; border: none;
+        color: var(--text-faint); padding: 2px 4px; border-radius: var(--radius-sm);
+        cursor: pointer; flex-shrink: 0; transition: color .12s, background .12s;
+    }
+    .btn-dismiss:hover { color: var(--danger-text); background: var(--danger-bg); }
 </style>
 
-<div class="notif-page">
-    <div class="d-flex align-items-center justify-content-between mb-3">
-        <h5 class="fw-bold mb-0">Notifications</h5>
-        <a asp-page="/Admin/Users/Dashboard" class="btn btn-sm btn-outline-secondary">
-            <i class="bi bi-arrow-left me-1"></i>Back to Dashboard
+<div class="notif-wrap">
+    <div class="d-flex align-items-center justify-content-between mb-4">
+        <div>
+            <h1 style="font-family:var(--font-heading);font-size:var(--fs-display);font-weight:var(--fw-bold);color:var(--text-heading);margin:0;">Notifications</h1>
+            <p style="font-size:var(--fs-sm);color:var(--text-muted);margin:var(--space-1) 0 0;">Your recent alerts and updates</p>
+        </div>
+        <a asp-page="/Admin/Users/Dashboard" class="btn-opms btn-opms--secondary btn-opms--sm">
+            <i class="bi bi-arrow-left"></i> Dashboard
         </a>
     </div>
 
-    <div class="notif-card">
+    <div class="opms-card opms-card--pad">
         <div id="notif-list">
-            <div class="text-center py-4 text-muted">
-                <div class="spinner-border spinner-border-sm me-2" role="status"></div>
-                Loading notifications...
+            <div class="opms-empty">
+                <div class="spinner-border spinner-border-sm" role="status" style="color:var(--primary-500);"></div>
+                <span style="display:block;margin-top:var(--space-3);">Loading notifications…</span>
             </div>
         </div>
     </div>
@@ -43,7 +54,7 @@
 
         if (!list.length) {
             container.innerHTML = `
-                <div class="empty-state">
+                <div class="opms-empty">
                     <i class="bi bi-bell-slash"></i>
                     You have no notifications.
                 </div>`;
@@ -53,12 +64,12 @@
         container.innerHTML = list.map(n => `
             <div class="notif-item" id="notif-${n.id}">
                 <div class="notif-dot"></div>
-                <div class="notif-body">
+                <div style="flex:1;">
                     <div class="notif-msg">${escHtml(n.message)}</div>
                     <div class="notif-time">${timeAgo(n.createdAt)}</div>
                 </div>
-                <button class="btn btn-sm btn-link text-muted p-0 ms-2" title="Dismiss" onclick="dismiss('${n.id}')">
-                    <i class="bi bi-x-lg"></i>
+                <button class="btn-dismiss" title="Dismiss" onclick="dismiss('${n.id}')">
+                    <i class="bi bi-x-lg" style="font-size:.75rem;"></i>
                 </button>
             </div>`).join('');
     }
@@ -67,18 +78,14 @@
         const token = document.querySelector('input[name="__RequestVerificationToken"]')?.value;
         const res = await fetch(`?handler=Delete&id=${id}`, {
             method: 'POST',
-            headers: {
-                'RequestVerificationToken': token,
-                'X-Requested-With': 'XMLHttpRequest'
-            }
+            headers: { 'RequestVerificationToken': token, 'X-Requested-With': 'XMLHttpRequest' }
         });
         const data = await res.json();
         if (data.success) {
-            const el = document.getElementById(`notif-${id}`);
-            el?.remove();
+            document.getElementById(`notif-${id}`)?.remove();
             if (!document.querySelector('.notif-item')) {
                 document.getElementById('notif-list').innerHTML = `
-                    <div class="empty-state">
+                    <div class="opms-empty">
                         <i class="bi bi-bell-slash"></i>
                         You have no notifications.
                     </div>`;
