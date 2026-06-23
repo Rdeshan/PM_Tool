@@ -31,5 +31,14 @@ namespace PMTool.Application.Services.Subtask
 
             await _context.SaveChangesAsync();
         }
+        public async Task DeleteCommentAsync(Guid commentId)
+        {
+            var comment = await _context.WorkComments.FindAsync(commentId);
+            if (comment != null)
+            {
+                _context.WorkComments.Remove(comment);
+                await _context.SaveChangesAsync();
+            }
+        }
     }
 }
