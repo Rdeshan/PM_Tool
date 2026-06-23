@@ -4,46 +4,70 @@
     ViewData["Title"] = "Confirm Email";
 }
 
-<div class="row justify-content-center mt-5">
-    <div class="col-md-5">
-        <div class="card shadow-lg">
-            <div class="card-body p-5 text-center">
-                @if (Model.IsConfirmed)
-                {
-                    <div class="mb-3">
-                        <i class="bi bi-check-circle-fill text-success" style="font-size: 3rem;"></i>
-                    </div>
-                    <h1 class="card-title mb-3">Email Confirmed!</h1>
-                    <p class="text-muted mb-4">Your email has been verified successfully.</p>
-                    <a asp-page="./Login" class="btn btn-primary btn-lg">Login Now</a>
-                }
-                else if (Model.IsExpired)
-                {
-                    <div class="mb-3">
-                        <i class="bi bi-clock-history text-warning" style="font-size: 3rem;"></i>
-                    </div>
-                    <h1 class="card-title mb-3">Confirmation Expired</h1>
-                    <p class="text-muted mb-4">This confirmation link has expired.</p>
-                    <a asp-page="./ResendConfirmationEmail" asp-route-email="@Model.Email" class="btn btn-warning btn-lg">Resend Confirmation Email</a>
-                }
-                else if (Model.IsInvalid)
-                {
-                    <div class="mb-3">
-                        <i class="bi bi-x-circle-fill text-danger" style="font-size: 3rem;"></i>
-                    </div>
-                    <h1 class="card-title mb-3">Invalid Link</h1>
-                    <p class="text-muted mb-4">The confirmation link is invalid.</p>
-                    <a asp-page="./Register" class="btn btn-danger btn-lg">Register Again</a>
-                }
-                else
-                {
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Confirming...</span>
-                    </div>
-                    <h1 class="card-title mt-3">Confirming Email...</h1>
-                    <p class="text-muted">Please wait while we confirm your email address.</p>
-                }
-            </div>
+<style>
+    body.with-navbar { background: var(--primary-800) !important; }
+    .auth-wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:var(--space-6); }
+    .auth-card { background:var(--bg-surface); border-radius:var(--radius-xl); box-shadow:var(--shadow-lg); border:1px solid var(--border); width:100%; max-width:400px; padding:var(--space-10) var(--space-8); text-align:center; }
+    .auth-logo { display:flex; align-items:center; justify-content:center; gap:var(--space-2); margin-bottom:var(--space-6); }
+    .auth-logo i { font-size:1.75rem; color:var(--primary-600); }
+    .auth-logo-name { font-family:var(--font-heading); font-size:1.5rem; font-weight:var(--fw-bold); color:var(--primary-800); letter-spacing:-.02em; }
+    .auth-icon { width:64px; height:64px; border-radius:var(--radius-xl); display:flex; align-items:center; justify-content:center; margin:0 auto var(--space-4); }
+    .auth-title { font-family:var(--font-heading); font-size:var(--fs-h2); font-weight:var(--fw-bold); color:var(--text-heading); margin-bottom:var(--space-2); }
+    .auth-subtitle { font-size:var(--fs-sm); color:var(--text-muted); margin-bottom:var(--space-6); line-height:1.6; }
+    .btn-cta { display:inline-flex; align-items:center; gap:var(--space-2); padding:11px 24px; border-radius:var(--radius-md); font-family:var(--font-body); font-size:var(--fs-base); font-weight:var(--fw-semibold); text-decoration:none; transition:background .15s; }
+    .btn-cta--primary { background:var(--primary-600); color:var(--white); }
+    .btn-cta--primary:hover { background:var(--primary-700); color:var(--white); }
+    .btn-cta--warning { background:var(--warning-bg); color:var(--warning-text); border:1px solid #fcd34d; }
+    .btn-cta--warning:hover { background:#fef9c3; }
+    .btn-cta--danger { background:var(--danger-bg); color:var(--danger-text); }
+    .btn-cta--danger:hover { background:#fecaca; }
+</style>
+
+<div class="auth-wrap">
+    <div class="auth-card">
+        <div class="auth-logo">
+            <i class="bi bi-kanban"></i>
+            <span class="auth-logo-name">OPMS</span>
         </div>
+
+        @if (Model.IsConfirmed)
+        {
+            <div class="auth-icon" style="background:var(--success-bg);">
+                <i class="bi bi-check-circle-fill" style="font-size:1.75rem;color:var(--success-text);"></i>
+            </div>
+            <h1 class="auth-title">Email confirmed!</h1>
+            <p class="auth-subtitle">Your email address has been verified successfully. You can now sign in to your account.</p>
+            <a asp-page="./Login" class="btn-cta btn-cta--primary"><i class="bi bi-box-arrow-in-right"></i> Sign in now</a>
+        }
+        else if (Model.IsExpired)
+        {
+            <div class="auth-icon" style="background:var(--warning-bg);">
+                <i class="bi bi-clock-history" style="font-size:1.75rem;color:var(--warning-text);"></i>
+            </div>
+            <h1 class="auth-title">Link expired</h1>
+            <p class="auth-subtitle">This confirmation link has expired. Request a new one to verify your email.</p>
+            <a asp-page="./ResendConfirmationEmail" asp-route-email="@Model.Email" class="btn-cta btn-cta--warning">
+                <i class="bi bi-envelope-arrow-up"></i> Resend confirmation
+            </a>
+        }
+        else if (Model.IsInvalid)
+        {
+            <div class="auth-icon" style="background:var(--danger-bg);">
+                <i class="bi bi-x-circle-fill" style="font-size:1.75rem;color:var(--danger-text);"></i>
+            </div>
+            <h1 class="auth-title">Invalid link</h1>
+            <p class="auth-subtitle">The confirmation link is invalid. Please register again to get a new link.</p>
+            <a asp-page="./Register" class="btn-cta btn-cta--danger"><i class="bi bi-person-plus"></i> Register again</a>
+        }
+        else
+        {
+            <div class="auth-icon" style="background:var(--primary-50);">
+                <div class="spinner-border text-primary" role="status" style="width:1.5rem;height:1.5rem;border-width:2px;">
+                    <span class="visually-hidden">Confirming...</span>
+                </div>
+            </div>
+            <h1 class="auth-title">Confirming email…</h1>
+            <p class="auth-subtitle">Please wait while we verify your email address.</p>
+        }
     </div>
 </div>
