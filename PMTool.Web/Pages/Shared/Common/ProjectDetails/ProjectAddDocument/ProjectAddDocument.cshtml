@@ -11,15 +11,27 @@
 
             <div class="row g-3">
 
-                <!-- Document Name (full width on top) -->
-                <div class="col-12">
+                <!-- Document Name -->
+                <div class="col-md-8">
                     <label asp-for="UploadDocument.DocumentName" class="form-label">
                         Document Name
                     </label>
                     <input asp-for="UploadDocument.DocumentName"
                            class="form-control"
-                           placeholder="SRS, BRD, Requirement Spec..." />
+                           placeholder="e.g. System Requirements Spec v1.0" />
                     <span asp-validation-for="UploadDocument.DocumentName" class="text-danger"></span>
+                </div>
+
+                <!-- Document Type -->
+                <div class="col-md-4">
+                    <label asp-for="UploadDocument.DocumentType" class="form-label">
+                        Document Type
+                    </label>
+                    <select asp-for="UploadDocument.DocumentType" class="form-select">
+                        <option value="1">BRD — Business Requirements</option>
+                        <option value="2">SRS — Software Requirements</option>
+                        <option value="3">Other</option>
+                    </select>
                 </div>
 
                 <!-- File + Button in same row -->
