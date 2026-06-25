@@ -22,6 +22,89 @@ namespace PMTool.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
+            modelBuilder.Entity("PMTool.Domain.Entities.AiBacklogDraft", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime?>("ApprovedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid?>("ApprovedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("GeneratedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<Guid>("GeneratedByUserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsApproved")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid?>("ProductId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ProjectId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("SourceFileName")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ApprovedByUserId");
+
+                    b.HasIndex("GeneratedByUserId");
+
+                    b.HasIndex("ProductId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("AiBacklogDrafts");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.AiBacklogDraftItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("DraftId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<int>("StoryPoints")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DraftId");
+
+                    b.ToTable("AiBacklogDraftItems");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.AuditLog", b =>
                 {
                     b.Property<Guid>("Id")
@@ -606,6 +689,10 @@ namespace PMTool.Infrastructure.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
+
+                    b.Property<int>("DocumentType")
+                        .HasColumnType("int")
+                        .HasDefaultValue(3);
 
                     b.Property<string>("FilePath")
                         .IsRequired()
@@ -1365,6 +1452,50 @@ namespace PMTool.Infrastructure.Migrations
                     b.ToTable("WorkTypes");
                 });
 
+            modelBuilder.Entity("PMTool.Domain.Entities.AiBacklogDraft", b =>
+                {
+                    b.HasOne("PMTool.Domain.Entities.User", "ApprovedBy")
+                        .WithMany()
+                        .HasForeignKey("ApprovedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("PMTool.Domain.Entities.User", "GeneratedBy")
+                        .WithMany()
+                        .HasForeignKey("GeneratedByUserId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("PMTool.Domain.Entities.Product", "Product")
+                        .WithMany()
+                        .HasForeignKey("ProductId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("PMTool.Domain.Entities.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.NoAction)
+                        .IsRequired();
+
+                    b.Navigation("ApprovedBy");
+
+                    b.Navigation("GeneratedBy");
+
+                    b.Navigation("Product");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.AiBacklogDraftItem", b =>
+                {
+                    b.HasOne("PMTool.Domain.Entities.AiBacklogDraft", "Draft")
+                        .WithMany("Items")
+                        .HasForeignKey("DraftId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Draft");
+                });
+
             modelBuilder.Entity("PMTool.Domain.Entities.AuditLog", b =>
                 {
                     b.HasOne("PMTool.Domain.Entities.User", "User")
@@ -1831,6 +1962,11 @@ namespace PMTool.Infrastructure.Migrations
                     b.Navigation("WorkStatus");
 
                     b.Navigation("WorkType");
+                });
+
+            modelBuilder.Entity("PMTool.Domain.Entities.AiBacklogDraft", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("PMTool.Domain.Entities.Product", b =>

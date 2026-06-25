@@ -239,13 +239,15 @@
             </li>
         </ul>
 
-        <!-- Right: Back Button -->
-        <a class="btn btn-sm btn-secondary"
-           asp-page="/Products/Details"
-           asp-route-projectId="@Model.ProjectId"
-           asp-route-id="@Model.ProductId">
-            <i class="bi bi-arrow-left"></i> Back
-        </a>
+        <!-- Right: Actions -->
+        <div class="d-flex align-items-center gap-2">
+            <a class="btn btn-sm btn-secondary"
+               asp-page="/Products/Details"
+               asp-route-projectId="@Model.ProjectId"
+               asp-route-id="@Model.ProductId">
+                <i class="bi bi-arrow-left"></i> Back
+            </a>
+        </div>
 
     </div>
 

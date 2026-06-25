@@ -30,6 +30,7 @@ public class DetailsModel : PageModel
     public IEnumerable<Domain.Entities.User> TeamMembers { get; set; } = new List<Domain.Entities.User>();
     public Dictionary<Guid, List<TeamBadgeViewModel>> MemberTeams { get; set; } = new();
     public IEnumerable<ProjectDocumentViewModel> ProjectDocuments { get; set; } = new List<ProjectDocumentViewModel>();
+    public IEnumerable<ProductSummaryViewModel> Products { get; set; } = new List<ProductSummaryViewModel>();
 
     public IEnumerable<TeamDTO> Teams { get; set; } = new List<TeamDTO>();
     public string? ErrorMessage { get; set; }
@@ -83,7 +84,7 @@ public class DetailsModel : PageModel
             return Page();
         }
 
-        var uploadsRoot = Path.Combine(_environment.WebRootPath, "uploads", "project-documents", id.ToString());
+        var uploadsRoot = Path.Combine(_environment.ContentRootPath, "upload-store", "project-documents", id.ToString());
         Directory.CreateDirectory(uploadsRoot);
 
         var extension = Path.GetExtension(UploadDocument.File.FileName);
@@ -100,6 +101,7 @@ public class DetailsModel : PageModel
             Id = Guid.NewGuid(),
             ProjectId = id,
             DocumentName = UploadDocument.DocumentName.Trim(),
+            DocumentType = UploadDocument.DocumentType,
             OriginalFileName = UploadDocument.File.FileName,
             FilePath = $"/uploads/project-documents/{id}/{storedFileName}",
             ContentType = UploadDocument.File.ContentType ?? "application/octet-stream",
@@ -250,13 +252,13 @@ public class DetailsModel : PageModel
 
         if (!string.IsNullOrWhiteSpace(document.FilePath))
         {
+            // FilePath is "/uploads/project-documents/..." — map to upload-store outside wwwroot
             var relativePath = document.FilePath.TrimStart('/').Replace('/', Path.DirectorySeparatorChar);
-            var absolutePath = Path.Combine(_environment.WebRootPath, relativePath);
+            var absolutePath = Path.Combine(_environment.ContentRootPath, "upload-store",
+                relativePath["uploads".Length..].TrimStart(Path.DirectorySeparatorChar));
 
             if (System.IO.File.Exists(absolutePath))
-            {
                 System.IO.File.Delete(absolutePath);
-            }
         }
 
         _context.ProjectDocuments.Remove(document);
@@ -307,12 +309,19 @@ public class DetailsModel : PageModel
             {
                 Id = d.Id,
                 DocumentName = d.DocumentName,
+                DocumentType = d.DocumentType,
                 OriginalFileName = d.OriginalFileName,
                 FilePath = d.FilePath,
                 SubmittedAt = d.SubmittedAt,
                 SubmittedBy = $"{d.SubmittedByUser.FirstName} {d.SubmittedByUser.LastName}".Trim(),
                 SubmittedByEmail = d.SubmittedByUser.Email
             })
+            .ToListAsync();
+
+        Products = await _context.Products
+            .Where(p => p.ProjectId == id)
+            .OrderBy(p => p.VersionName)
+            .Select(p => new ProductSummaryViewModel { Id = p.Id, Name = p.VersionName })
             .ToListAsync();
 
         return true;
@@ -324,6 +333,9 @@ public class DetailsModel : PageModel
         [StringLength(200)]
         public string DocumentName { get; set; } = string.Empty;
 
+        // 1=BRD, 2=SRS, 3=Other
+        public int DocumentType { get; set; } = 3;
+
         [Required]
         public IFormFile? File { get; set; }
     }
@@ -332,6 +344,7 @@ public class DetailsModel : PageModel
     {
         public Guid Id { get; set; }
         public string DocumentName { get; set; } = string.Empty;
+        public int DocumentType { get; set; } = 3; // 1=BRD, 2=SRS, 3=Other
         public string OriginalFileName { get; set; } = string.Empty;
         public string FilePath { get; set; } = string.Empty;
         public DateTime SubmittedAt { get; set; }
@@ -343,5 +356,11 @@ public class DetailsModel : PageModel
     {
         public string TeamName { get; set; } = string.Empty;
         public string TeamColorCode { get; set; } = "#6c757d";
+    }
+
+    public class ProductSummaryViewModel
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = string.Empty;
     }
 }

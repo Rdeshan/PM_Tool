@@ -1,0 +1,152 @@
+@page
+@model PMTool.Web.Pages.Backlog.GenerateBacklogModel
+@{
+    ViewData["Title"] = "Generate Backlog from Document";
+    Layout = "_Layout";
+}
+
+<div class="container py-4" style="max-width:680px">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="/Backlog/Index?projectId=@Model.ProjectId" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <p class="text-uppercase text-muted small fw-semibold mb-0" style="letter-spacing:.05em">
+                AI Backlog Generator — Project Level
+            </p>
+            <h4 class="fw-bold mb-0">Generate Project Backlog from Document</h4>
+            @if (Model.Project != null)
+            {
+                <p class="text-muted small mb-0">@Model.Project.Name</p>
+            }
+        </div>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body p-4">
+
+            <div class="d-flex align-items-center gap-3 mb-4 p-3 rounded-3"
+                 style="background:#f0f7ff;border:1px solid #cce0ff">
+                <i class="bi bi-stars fs-2 text-primary"></i>
+                <div>
+                    <div class="fw-semibold small">AI-Powered — No Version Required</div>
+                    <div class="text-muted" style="font-size:.82rem">
+                        Upload your BRD or SRS document. The AI extracts structured backlog items
+                        (BRDs, Epics, User Stories, Use Cases) for the <strong>entire project</strong>.
+                        Review and adjust before publishing.
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" enctype="multipart/form-data">
+                @Html.AntiForgeryToken()
+
+                <div class="mb-4">
+                    <label class="form-label fw-semibold">Upload Document</label>
+                    <div id="dropZone" class="rounded-3 text-center p-5"
+                         style="border:2px dashed #ced4da;cursor:pointer;transition:border-color .2s"
+                         onclick="document.getElementById('docFile').click()">
+                        <i class="bi bi-cloud-upload fs-1 text-muted"></i>
+                        <p class="mt-2 mb-1 fw-medium">Drop file here or click to browse</p>
+                        <p class="text-muted small mb-0">Supports .txt, .pdf, .docx — max 10 MB</p>
+                        <p id="fileName" class="text-primary small mt-2 mb-0 fw-semibold"></p>
+                    </div>
+                    <input type="file" id="docFile" name="document"
+                           accept=".txt,.pdf,.docx,.md" class="d-none"
+                           onchange="showFileName(this)">
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button type="submit" id="submitBtn" class="btn btn-primary btn-lg">
+                        <i class="bi bi-stars me-2"></i>Generate Backlog with AI
+                    </button>
+                    <a href="/Backlog/ManualEntry?projectId=@Model.ProjectId"
+                       class="btn btn-outline-secondary">
+                        <i class="bi bi-pencil-square me-2"></i>Enter Manually Instead
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <h6 class="fw-semibold mb-3">How it works</h6>
+            <div class="d-flex flex-column gap-3">
+                <div class="d-flex gap-3">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center flex-shrink-0 fw-bold"
+                         style="width:28px;height:28px;font-size:.8rem">1</div>
+                    <div>
+                        <div class="fw-medium small">Upload your BRD or SRS</div>
+                        <div class="text-muted" style="font-size:.8rem">Accepted: PDF, DOCX, TXT</div>
+                    </div>
+                </div>
+                <div class="d-flex gap-3">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center flex-shrink-0 fw-bold"
+                         style="width:28px;height:28px;font-size:.8rem">2</div>
+                    <div>
+                        <div class="fw-medium small">AI extracts the full hierarchy</div>
+                        <div class="text-muted" style="font-size:.8rem">Generates BRDs → Epics → User Stories → Use Cases in order</div>
+                    </div>
+                </div>
+                <div class="d-flex gap-3">
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center flex-shrink-0 fw-bold"
+                         style="width:28px;height:28px;font-size:.8rem">3</div>
+                    <div>
+                        <div class="fw-medium small">Review and fix mistakes</div>
+                        <div class="text-muted" style="font-size:.8rem">Edit any item, delete irrelevant ones, reorder as needed</div>
+                    </div>
+                </div>
+                <div class="d-flex gap-3">
+                    <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center flex-shrink-0 fw-bold"
+                         style="width:28px;height:28px;font-size:.8rem">4</div>
+                    <div>
+                        <div class="fw-medium small">Approve to publish</div>
+                        <div class="text-muted" style="font-size:.8rem">
+                            Items are added to the project backlog with parent-child hierarchy built automatically
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+function showFileName(input) {
+    const name = input.files[0]?.name;
+    document.getElementById('fileName').textContent = name ? `Selected: ${name}` : '';
+    document.getElementById('dropZone').style.borderColor = name ? '#0d6efd' : '#ced4da';
+}
+
+document.querySelector('form').addEventListener('submit', function () {
+    const btn = document.getElementById('submitBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generating…';
+});
+
+const zone = document.getElementById('dropZone');
+zone.addEventListener('dragover', e => { e.preventDefault(); zone.style.borderColor = '#0d6efd'; });
+zone.addEventListener('dragleave', () => { zone.style.borderColor = '#ced4da'; });
+zone.addEventListener('drop', e => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) {
+        const dt = new DataTransfer();
+        dt.items.add(file);
+        document.getElementById('docFile').files = dt.files;
+        showFileName(document.getElementById('docFile'));
+    }
+});
+</script>
+}
