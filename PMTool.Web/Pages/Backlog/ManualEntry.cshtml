@@ -1,0 +1,268 @@
+@page
+@model PMTool.Web.Pages.Backlog.ManualEntryModel
+@{
+    ViewData["Title"] = "Manual Backlog Entry";
+    Layout = "_Layout";
+}
+
+<div class="container py-4" style="max-width:820px">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="/Backlog/Index?projectId=@Model.ProjectId" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div>
+            <p class="text-uppercase text-muted small fw-semibold mb-0" style="letter-spacing:.05em">
+                Manual Entry — Project Level
+            </p>
+            <h4 class="fw-bold mb-0">Create Backlog Items Manually</h4>
+            @if (Model.Project != null)
+            {
+                <p class="text-muted small mb-0">@Model.Project.Name</p>
+            }
+        </div>
+    </div>
+
+    <div class="alert alert-info d-flex gap-2 align-items-start small mb-4">
+        <i class="bi bi-info-circle-fill flex-shrink-0 mt-1"></i>
+        <span>
+            Create items in hierarchy order: <strong>BRD first</strong>, then Epics (child of BRD),
+            then User Stories (child of Epic), then Use Cases (child of User Story).
+            Items created here are added directly to the project backlog.
+        </span>
+    </div>
+
+    <div id="toast" class="alert py-2 px-3 mb-3 d-none"></div>
+
+    @* Hierarchy legend *@
+    <div class="card border-0 shadow-sm mb-3">
+        <div class="card-body py-2 px-3">
+            <div class="d-flex flex-wrap gap-3 align-items-center" style="font-size:.82rem">
+                <span class="fw-semibold text-muted">Hierarchy:</span>
+                <span><span class="badge bg-secondary me-1">BRD</span>Business Requirement</span>
+                <span>→ <span class="badge me-1" style="background:#6f42c1">Epic</span>Large feature group</span>
+                <span>→ <span class="badge bg-info text-dark me-1">User Story</span>User-facing requirement</span>
+                <span>→ <span class="badge bg-dark me-1">Use Case</span>Specific interaction</span>
+            </div>
+        </div>
+    </div>
+
+    @* Item creation form *@
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-white py-3 px-4">
+            <h6 class="fw-semibold mb-0">Add Backlog Item</h6>
+        </div>
+        <div class="card-body p-4">
+            <div class="row g-3">
+                <div class="col-md-8">
+                    <label class="form-label fw-semibold">Title <span class="text-danger">*</span></label>
+                    <input type="text" id="manTitle" class="form-control" placeholder="e.g. User Account Management" maxlength="300">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Type <span class="text-danger">*</span></label>
+                    <select id="manType" class="form-select" onchange="onTypeChange()">
+                        <option value="1">BRD</option>
+                        <option value="4">Epic</option>
+                        <option value="2" selected>User Story</option>
+                        <option value="3">Use Case</option>
+                        <option value="5">Change Request</option>
+                    </select>
+                </div>
+                <div class="col-12" id="manParentWrap">
+                    <label class="form-label fw-semibold">Parent <span class="text-danger" id="parentRequired">*</span></label>
+                    <select id="manParent" class="form-select">
+                        <option value="">— Select parent —</option>
+                    </select>
+                    <div class="form-text" id="parentHint"></div>
+                </div>
+                <div class="col-12">
+                    <label class="form-label fw-semibold">Description</label>
+                    <textarea id="manDesc" class="form-control" rows="2" placeholder="Optional description"></textarea>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Status</label>
+                    <select id="manStatus" class="form-select">
+                        <option value="1" selected>Draft</option>
+                        <option value="2">Approved</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Owner</label>
+                    <select id="manOwner" class="form-select">
+                        <option value="">Unassigned</option>
+                        @foreach (var owner in Model.Owners)
+                        {
+                            <option value="@owner.Id">@owner.FirstName @owner.LastName</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-12 d-flex gap-2">
+                    <button type="button" id="manSaveBtn" class="btn btn-primary" onclick="saveItem()">
+                        <i class="bi bi-plus-circle me-1"></i>Add Item
+                    </button>
+                    <a href="/Backlog/Index?projectId=@Model.ProjectId" class="btn btn-outline-secondary">
+                        Done — View Backlog
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @* Items added this session *@
+    <div class="card border-0 shadow-sm mt-3" id="sessionCard" style="display:none">
+        <div class="card-header bg-white py-2 px-4">
+            <span class="fw-semibold small">Items added this session</span>
+        </div>
+        <ul id="sessionList" class="list-group list-group-flush"></ul>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+const PROJECT_ID = '@Model.ProjectId';
+const TOKEN = document.querySelector('meta[name="RequestVerificationToken"]')?.content
+    ?? document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+
+// All backlog items for this project (fetched fresh after each add)
+let projectItems = [];
+
+async function loadProjectItems() {
+    try {
+        const r = await fetch(`/Backlog/Index?handler=GetItems&projectId=${PROJECT_ID}`, {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        // We rely on the existing backlog API via /Backlog/Index?handler=Item
+        // Instead, we build a simple parent list from items already inserted this session
+    } catch (e) { /* noop */ }
+}
+
+// Session-level tracking of created items
+const sessionItems = [];  // { id, title, type }
+
+function onTypeChange() {
+    refreshParentDropdown();
+}
+
+function refreshParentDropdown() {
+    const type = parseInt(document.getElementById('manType').value);
+    const parentWrap = document.getElementById('manParentWrap');
+    const parentSel = document.getElementById('manParent');
+    const hint = document.getElementById('parentHint');
+
+    parentSel.innerHTML = '<option value="">— Select parent —</option>';
+
+    let parentType = null;
+    let hintText = '';
+
+    if (type === 1) { // BRD - no parent
+        parentWrap.style.display = 'none';
+        return;
+    } else if (type === 4) { // Epic → parent is BRD
+        parentType = 1;
+        hintText = 'Select the BRD this Epic belongs to';
+    } else if (type === 2) { // UserStory → parent is Epic
+        parentType = 4;
+        hintText = 'Select the Epic this User Story belongs to';
+    } else if (type === 3 || type === 5) { // UseCase/CR → parent is UserStory
+        parentType = 2;
+        hintText = 'Select the User Story this item belongs to';
+    }
+
+    parentWrap.style.display = '';
+    hint.textContent = hintText;
+
+    const filtered = sessionItems.filter(i => i.type === parentType);
+    filtered.forEach(i => {
+        const opt = document.createElement('option');
+        opt.value = i.id;
+        opt.textContent = i.title;
+        parentSel.appendChild(opt);
+    });
+
+    if (filtered.length === 0 && parentType !== null) {
+        parentSel.innerHTML = '<option value="">— No matching parents yet; create one first —</option>';
+    }
+}
+
+async function saveItem() {
+    const title = document.getElementById('manTitle').value.trim();
+    const type = parseInt(document.getElementById('manType').value);
+    const parentId = document.getElementById('manParent').value || null;
+    const desc = document.getElementById('manDesc').value.trim();
+    const status = parseInt(document.getElementById('manStatus').value);
+    const owner = document.getElementById('manOwner').value || null;
+
+    if (!title) { showToast('Title is required.', 'danger'); return; }
+
+    if (type !== 1 && !parentId) {
+        showToast('Please select a parent item for this type.', 'danger');
+        return;
+    }
+
+    const btn = document.getElementById('manSaveBtn');
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
+
+    try {
+        const resp = await fetch('/Backlog/Index?handler=Create', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'RequestVerificationToken': TOKEN
+            },
+            body: JSON.stringify({
+                projectId: PROJECT_ID,
+                title,
+                description: desc,
+                type,
+                status,
+                ownerId: owner || null,
+                parentBacklogItemId: parentId || null
+            })
+        });
+
+        const data = await resp.json();
+        if (data.success) {
+            const typeName = { 1:'BRD', 4:'Epic', 2:'User Story', 3:'Use Case', 5:'Change Request' }[type] ?? 'Item';
+            sessionItems.push({ id: data.item.id, title, type });
+            addSessionRow(data.item.id, title, typeName);
+            showToast(`${typeName} "${title}" added successfully.`, 'success');
+            document.getElementById('manTitle').value = '';
+            document.getElementById('manDesc').value = '';
+            refreshParentDropdown();
+        } else {
+            showToast(data.message ?? 'Failed to create item.', 'danger');
+        }
+    } catch (e) {
+        showToast('Network error. Please try again.', 'danger');
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-plus-circle me-1"></i>Add Item';
+    }
+}
+
+function addSessionRow(id, title, typeName) {
+    document.getElementById('sessionCard').style.display = '';
+    const li = document.createElement('li');
+    li.className = 'list-group-item d-flex align-items-center gap-2 py-2 small';
+    li.innerHTML = `<span class="badge bg-secondary">${typeName}</span>
+        <span class="fw-medium">${escHtml(title)}</span>`;
+    document.getElementById('sessionList').appendChild(li);
+}
+
+function showToast(msg, type) {
+    const el = document.getElementById('toast');
+    el.className = `alert alert-${type} py-2 px-3 mb-3`;
+    el.textContent = msg;
+    el.classList.remove('d-none');
+    setTimeout(() => el.classList.add('d-none'), 4000);
+}
+
+function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Init
+document.addEventListener('DOMContentLoaded', () => refreshParentDropdown());
+</script>
+}

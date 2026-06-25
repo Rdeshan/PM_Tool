@@ -13,13 +13,27 @@
 
 <div class="container-fluid mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <div class="d-flex align-items-center gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
             <button id="createIssueBtn" class="btn btn-sm btn-primary">
                 <i class="bi bi-plus-circle"></i> Create issue...
             </button>
+            @if (Model.SelectedProjectId != Guid.Empty && !Model.SelectedProductId.HasValue)
+            {
+                <a id="generateBacklogBtn"
+                   href="/Backlog/GenerateBacklog?projectId=@Model.SelectedProjectId"
+                   class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-stars"></i> Generate with AI
+                </a>
+            }
             <button id="bulkDeleteBtn" class="btn btn-sm btn-outline-danger d-none" type="button" title="Delete selected">
                 <i class="bi bi-trash"></i>
             </button>
+        </div>
+        <div class="text-muted small d-none d-md-block">
+            Hierarchy: <span class="badge bg-secondary">BRD</span>
+            → <span class="badge" style="background:#6f42c1">Epic</span>
+            → <span class="badge bg-info text-dark">User Story</span>
+            → <span class="badge bg-dark">Use Case</span>
         </div>
     </div>
 

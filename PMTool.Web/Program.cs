@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.EntityFrameworkCore;
 using FluentValidation;
 using PMTool.Application.Services.Auth;
@@ -22,6 +23,7 @@ using PMTool.Infrastructure.Services.Interfaces;
 using PMTool.Infrastructure.Settings;
 using PMTool.Application.Interfaces;
 using PMTool.Application.Services.Subtask;
+using PMTool.Application.Services.Ai;
 using PMTool.Web.Hubs;
 
 
@@ -62,7 +64,9 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 // DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))
+           .ConfigureWarnings(w => w.Ignore(
+               Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning)));
 
 // Infrastructure Services
 builder.Services.AddScoped<ITokenService, TokenService>();
@@ -110,6 +114,10 @@ builder.Services.AddScoped<IProgressService, PMTool.Application.Services.Progres
 builder.Services.AddScoped<ICommentService, CommentService>();
 builder.Services.AddScoped<IDailyTaskService, PMTool.Application.Services.DailyTaskService>();
 
+// AI Backlog Generator
+builder.Services.AddHttpClient<IGeminiService, GeminiService>();
+builder.Services.AddScoped<IDocumentExtractorService, DocumentExtractorService>();
+
 // Audit
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<PMTool.Infrastructure.Repositories.Interfaces.IAuditRepository, PMTool.Infrastructure.Repositories.AuditRepository>();
@@ -143,6 +151,15 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseStaticFiles();
+
+// Serve uploaded documents from outside wwwroot so dotnet watch never triggers on them
+var uploadStorePath = Path.Combine(app.Environment.ContentRootPath, "upload-store");
+Directory.CreateDirectory(uploadStorePath);
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(uploadStorePath),
+    RequestPath = "/uploads"
+});
 
 app.UseRouting();
 

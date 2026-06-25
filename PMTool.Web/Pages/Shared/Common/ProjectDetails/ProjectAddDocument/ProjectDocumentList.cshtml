@@ -1,7 +1,24 @@
-﻿@model PMTool.Web.Pages.Projects.DetailsModel
+@model PMTool.Web.Pages.Projects.DetailsModel
 @{
     var canManageDocuments = User.IsInRole("Administrator") || User.IsInRole("Project Manager");
 }
+
+@* Loading overlay — shown while AI generates *@
+<div id="genLoadingOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:99999;align-items:center;justify-content:center;">
+    <div style="background:#fff;border-radius:12px;padding:36px 48px;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.2);min-width:280px;">
+        <div class="spinner-border text-primary mb-3" style="width:3rem;height:3rem;" role="status"></div>
+        <h5 class="fw-semibold mb-1">Generating Backlog…</h5>
+        <p class="text-muted small mb-0">Please wait while the AI reads your document.</p>
+    </div>
+</div>
+
+@* Hidden form — posts to project-level backlog generator (no product version needed) *@
+<form id="genDocForm" method="post" asp-page="/Backlog/GenerateBacklog" asp-page-handler="FromDocument"
+      style="display:none;" onsubmit="startGenLoading()">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="documentId" id="genDocId" value="" />
+    <input type="hidden" name="projectId" value="@Model.Project?.Id" />
+</form>
 
 @if (Model.ProjectDocuments.Any())
 {
@@ -10,20 +27,23 @@
             <thead>
                 <tr>
                     <th>Document</th>
+                    <th>Type</th>
                     <th>File</th>
                     <th>Submitted By</th>
                     <th>Submitted At</th>
-                    @if (canManageDocuments)
-                    {
-                        <th class="text-end">Action</th>
-                    }
+                    <th class="text-end">Action</th>
                 </tr>
             </thead>
             <tbody>
                 @foreach (var doc in Model.ProjectDocuments)
                 {
+                    var typeName  = doc.DocumentType switch { 1 => "BRD", 2 => "SRS", _ => "Other" };
+                    var typeBadge = doc.DocumentType switch { 1 => "bg-primary", 2 => "bg-success", _ => "bg-secondary" };
+                    var canGenerate = doc.DocumentType == 1 || doc.DocumentType == 2;
+
                     <tr>
                         <td>@doc.DocumentName</td>
+                        <td><span class="badge @typeBadge">@typeName</span></td>
                         <td>
                             <a href="@doc.FilePath" target="_blank" rel="noopener noreferrer">@doc.OriginalFileName</a>
                         </td>
@@ -32,18 +52,37 @@
                             <small class="text-muted">@doc.SubmittedByEmail</small>
                         </td>
                         <td>@doc.SubmittedAt.ToLocalTime().ToString("MMM dd, yyyy HH:mm")</td>
-                        @if (canManageDocuments)
-                        {
-                            <td class="text-end">
-                                <form method="post" asp-page-handler="DeleteDocument" style="display:inline;">
-                                    <input type="hidden" name="id" value="@Model.Project?.Id" />
-                                    <input type="hidden" name="documentId" value="@doc.Id" />
-                                    <button type="submit" class="btn btn-sm btn-outline-danger" onclick="return confirm('Delete this document?')">
-                                        <i class="bi bi-trash"></i>
-                                    </button>
-                                </form>
-                            </td>
-                        }
+                        <td class="text-end">
+                            <div class="d-flex justify-content-end align-items-center gap-1">
+                                @if (canManageDocuments)
+                                {
+                                    @if (canGenerate)
+                                    {
+                                        <button type="button"
+                                                class="btn btn-sm btn-outline-primary"
+                                                onclick="openGenModal('@doc.Id')"
+                                                title="Generate backlog from this BRD/SRS">
+                                            <i class="bi bi-stars me-1"></i>Generate Backlog
+                                        </button>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small" title="Only BRD or SRS documents can generate a backlog">
+                                            <i class="bi bi-lock me-1"></i>Not eligible
+                                        </span>
+                                    }
+
+                                    <form method="post" asp-page-handler="DeleteDocument" style="display:inline;">
+                                        <input type="hidden" name="id" value="@Model.Project?.Id" />
+                                        <input type="hidden" name="documentId" value="@doc.Id" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                onclick="return confirm('Delete this document?')">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
                     </tr>
                 }
             </tbody>
@@ -54,3 +93,13 @@ else
 {
     <p class="text-muted mb-0">No documents uploaded yet.</p>
 }
+
+<script>
+function openGenModal(docId) {
+    document.getElementById('genDocId').value = docId;
+    document.getElementById('genDocForm').submit();
+}
+function startGenLoading() {
+    document.getElementById('genLoadingOverlay').style.display = 'flex';
+}
+</script>
