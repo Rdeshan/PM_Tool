@@ -18,6 +18,9 @@
     <ProjectReference Include="..\PMTool.Application\PMTool.Application.csproj" />
     <ProjectReference Include="..\PMTool.Infrastructure\PMTool.Infrastructure.csproj" />
   </ItemGroup>
-	
+
+  <ItemGroup>
+    <Watch Remove="wwwroot\uploads\**" />
+  </ItemGroup>
 
 </Project>

@@ -41,6 +41,8 @@ public class AppDbContext : DbContext
     public DbSet<WorkComment> WorkComments { get; set; } = null!;
     public DbSet<WorkStatus> WorkStatuses { get; set; } = null!;
     public DbSet<AuditLog> AuditLogs { get; set; } = null!;
+    public DbSet<AiBacklogDraft> AiBacklogDrafts { get; set; } = null!;
+    public DbSet<AiBacklogDraftItem> AiBacklogDraftItems { get; set; } = null!;
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
@@ -793,6 +795,38 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(c => c.UserId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // AiBacklogDraft configuration
+        modelBuilder.Entity<AiBacklogDraft>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+
+            entity.HasOne(d => d.Product)
+                .WithMany()
+                .HasForeignKey(d => d.ProductId)
+                .IsRequired(false)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            entity.HasOne(d => d.Project)
+                .WithMany()
+                .HasForeignKey(d => d.ProjectId)
+                .OnDelete(DeleteBehavior.NoAction);
+
+            entity.HasOne(d => d.GeneratedBy)
+                .WithMany()
+                .HasForeignKey(d => d.GeneratedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasOne(d => d.ApprovedBy)
+                .WithMany()
+                .HasForeignKey(d => d.ApprovedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            entity.HasMany(d => d.Items)
+                .WithOne(i => i.Draft)
+                .HasForeignKey(i => i.DraftId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         // AuditLog configuration

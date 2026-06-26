@@ -7,5 +7,6 @@ namespace PMTool.Application.Interfaces
     {
         // NEW: Add comment
         Task AddCommentAsync(CreateCommentDto dto);
+        Task DeleteCommentAsync(Guid commentId);
     }
 }

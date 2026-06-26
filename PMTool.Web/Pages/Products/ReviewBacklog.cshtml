@@ -1,0 +1,272 @@
+@page
+@model PMTool.Web.Pages.Products.ReviewBacklogModel
+@using PMTool.Domain.Entities
+@{
+    ViewData["Title"] = "Review AI-Generated Backlog";
+    Layout = "_Layout";
+    var draft = Model.Draft!;
+    var items = draft.Items.ToList();
+
+    string TypeName(int t) => t switch { 1 => "BRD", 2 => "User Story", 3 => "Use Case", 4 => "Epic", 6 => "Feature", 9 => "Bug", _ => "Item" };
+    string TypeBadge(int t) => t switch { 4 => "bg-purple", 9 => "bg-danger", 1 => "bg-secondary", _ => "bg-primary" };
+    string PriorityName(int p) => p switch { 1 => "Low", 2 => "Medium", 3 => "High", 4 => "Critical", _ => "Medium" };
+    string PriorityBadge(int p) => p switch { 4 => "bg-danger", 3 => "bg-warning text-dark", 2 => "bg-info text-dark", _ => "bg-secondary" };
+}
+
+<style>
+    .bg-purple { background-color: #6f42c1 !important; }
+    .item-row { transition: background .15s; }
+    .item-row:hover { background: #f8f9fa; }
+    .item-row.editing { background: #fff8e1; }
+    .edit-area { display: none; }
+    .item-row.editing .view-area { display: none; }
+    .item-row.editing .edit-area { display: block; }
+</style>
+
+<div class="container-fluid px-4 py-3">
+
+    <div class="d-flex align-items-center gap-3 mb-4">
+        <a href="/Products/GenerateBacklog?projectId=@Model.ProjectId&id=@Model.ProductId"
+           class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i>
+        </a>
+        <div class="flex-grow-1">
+            <p class="text-uppercase text-muted small fw-semibold mb-0" style="letter-spacing:.05em">
+                AI Backlog Generator — Review
+            </p>
+            <h4 class="fw-bold mb-0">Review Generated Backlog</h4>
+        </div>
+        @if (Model.CanManage && !draft.IsApproved)
+        {
+            <form method="post" asp-page-handler="Approve" class="d-inline"
+                  asp-route-projectId="@Model.ProjectId"
+                  asp-route-id="@Model.ProductId"
+                  asp-route-draftId="@Model.DraftId"
+                  onsubmit="return confirm('Approve and publish @items.Count item(s) to the project backlog?')">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle me-1"></i>Approve & Publish
+                </button>
+            </form>
+        }
+    </div>
+
+    @* Info bar *@
+    <div class="d-flex flex-wrap align-items-center gap-3 mb-3 p-3 rounded-3 bg-light border">
+        <span class="small text-muted">
+            <i class="bi bi-file-earmark-text me-1"></i>@draft.SourceFileName
+        </span>
+        <span class="small text-muted">
+            <i class="bi bi-calendar me-1"></i>Generated @draft.GeneratedAt.ToString("MMM d, yyyy HH:mm")
+        </span>
+        <span class="small text-muted">
+            <i class="bi bi-person me-1"></i>@(draft.GeneratedBy != null ? $"{draft.GeneratedBy.FirstName} {draft.GeneratedBy.LastName}".Trim() : "Unknown")
+        </span>
+        <span class="badge @(draft.IsApproved ? "bg-success" : "bg-warning text-dark")">
+            @(draft.IsApproved ? "Approved" : "Pending Review")
+        </span>
+        <span class="badge bg-primary rounded-pill">@items.Count items</span>
+    </div>
+
+    @if (draft.IsApproved)
+    {
+        <div class="alert alert-success d-flex align-items-center gap-2">
+            <i class="bi bi-check-circle-fill"></i>
+            This draft has been approved and published to the project backlog.
+        </div>
+    }
+    else if (Model.CanManage)
+    {
+        <div class="alert alert-info d-flex align-items-center gap-2 small">
+            <i class="bi bi-info-circle-fill"></i>
+            Review each item below. Click <strong>Edit</strong> to fix mistakes, <strong>Delete</strong> to remove unwanted items, then click <strong>Approve &amp; Publish</strong>.
+        </div>
+    }
+
+    @* Items table *@
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-0">
+            @if (!items.Any())
+            {
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-inbox fs-1 opacity-40"></i>
+                    <p class="mt-2">No items in this draft.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="ps-3" style="width:40px">#</th>
+                                <th>Title</th>
+                                <th style="width:110px">Type</th>
+                                <th style="width:110px">Priority</th>
+                                <th style="width:70px" class="text-center">Pts</th>
+                                @if (Model.CanManage && !draft.IsApproved)
+                                {
+                                    <th style="width:100px" class="pe-3 text-end">Actions</th>
+                                }
+                            </tr>
+                        </thead>
+                        <tbody id="itemsBody">
+                            @for (int i = 0; i < items.Count; i++)
+                            {
+                                var item = items[i];
+                                <tr class="item-row" id="row_@item.Id"
+                                    data-id="@item.Id"
+                                    data-title="@item.Title"
+                                    data-desc="@item.Description"
+                                    data-type="@item.Type"
+                                    data-priority="@item.Priority"
+                                    data-pts="@item.StoryPoints">
+
+                                    <td class="ps-3 text-muted small">@(i + 1)</td>
+
+                                    <td>
+                                        <div class="view-area">
+                                            <div class="fw-medium small">@item.Title</div>
+                                            @if (!string.IsNullOrWhiteSpace(item.Description))
+                                            {
+                                                <div class="text-muted" style="font-size:.75rem;white-space:pre-wrap;max-height:60px;overflow:hidden">@item.Description</div>
+                                            }
+                                        </div>
+                                        <div class="edit-area">
+                                            <input type="text" class="form-control form-control-sm mb-1 edit-title"
+                                                   value="@item.Title" placeholder="Title">
+                                            <textarea class="form-control form-control-sm edit-desc"
+                                                      rows="2" placeholder="Description">@item.Description</textarea>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div class="view-area">
+                                            <span class="badge @TypeBadge(item.Type)">@TypeName(item.Type)</span>
+                                        </div>
+                                        <div class="edit-area">
+                                            <select class="form-select form-select-sm edit-type">
+                                                <option value="1">BRD</option>
+                                                <option value="2">User Story</option>
+                                                <option value="3">Use Case</option>
+                                                <option value="4">Epic</option>
+                                                <option value="6">Feature</option>
+                                                <option value="9">Bug</option>
+                                            </select>
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <div class="view-area">
+                                            <span class="badge @PriorityBadge(item.Priority)">@PriorityName(item.Priority)</span>
+                                        </div>
+                                        <div class="edit-area">
+                                            <select class="form-select form-select-sm edit-priority">
+                                                <option value="1">Low</option>
+                                                <option value="2">Medium</option>
+                                                <option value="3">High</option>
+                                                <option value="4">Critical</option>
+                                            </select>
+                                        </div>
+                                    </td>
+
+                                    <td class="text-center">
+                                        <div class="view-area fw-medium">@item.StoryPoints</div>
+                                        <div class="edit-area">
+                                            <select class="form-select form-select-sm edit-pts">
+                                                <option value="1">1</option>
+                                                <option value="2">2</option>
+                                                <option value="3">3</option>
+                                                <option value="5">5</option>
+                                                <option value="8">8</option>
+                                                <option value="13">13</option>
+                                            </select>
+                                        </div>
+                                    </td>
+
+                                    @if (Model.CanManage && !draft.IsApproved)
+                                    {
+                                        <td class="pe-3 text-end">
+                                            <div class="view-area d-flex justify-content-end gap-1">
+                                                <button class="btn btn-sm btn-outline-secondary"
+                                                        onclick="startEdit('@item.Id')" title="Edit">
+                                                    <i class="bi bi-pencil"></i>
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-danger"
+                                                        onclick="deleteItem('@item.Id')" title="Delete">
+                                                    <i class="bi bi-trash"></i>
+                                                </button>
+                                            </div>
+                                            <div class="edit-area d-flex justify-content-end gap-1">
+                                                <button class="btn btn-sm btn-primary"
+                                                        onclick="saveEdit('@item.Id')">Save</button>
+                                                <button class="btn btn-sm btn-outline-secondary"
+                                                        onclick="cancelEdit('@item.Id')">Cancel</button>
+                                            </div>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+const TOKEN = document.querySelector('input[name="__RequestVerificationToken"]')?.value ?? '';
+const ROUTE = `projectId=@Model.ProjectId&id=@Model.ProductId&draftId=@Model.DraftId`;
+
+function startEdit(id) {
+    const row = document.getElementById('row_' + id);
+    row.querySelector('.edit-type').value = row.dataset.type;
+    row.querySelector('.edit-priority').value = row.dataset.priority;
+    row.querySelector('.edit-pts').value = row.dataset.pts;
+    row.classList.add('editing');
+}
+function cancelEdit(id) {
+    document.getElementById('row_' + id).classList.remove('editing');
+}
+
+async function saveEdit(id) {
+    const row = document.getElementById('row_' + id);
+    const body = {
+        itemId: id,
+        title: row.querySelector('.edit-title').value.trim(),
+        description: row.querySelector('.edit-desc').value.trim(),
+        type: parseInt(row.querySelector('.edit-type').value),
+        priority: parseInt(row.querySelector('.edit-priority').value),
+        storyPoints: parseInt(row.querySelector('.edit-pts').value)
+    };
+    if (!body.title) { alert('Title is required.'); return; }
+
+    const resp = await fetch(`?handler=UpdateItem&${ROUTE}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'RequestVerificationToken': TOKEN },
+        body: JSON.stringify(body)
+    });
+    if (!(await resp.json()).success) { alert('Save failed.'); return; }
+
+    // Update view-area values without reload
+    row.querySelector('.view-area .fw-medium.small').textContent = body.title;
+    row.classList.remove('editing');
+}
+
+async function deleteItem(id) {
+    if (!confirm('Remove this item from the draft?')) return;
+    const resp = await fetch(`?handler=DeleteItem&itemId=${id}&${ROUTE}`, {
+        method: 'POST',
+        headers: { 'RequestVerificationToken': TOKEN }
+    });
+    if ((await resp.json()).success) {
+        const row = document.getElementById('row_' + id);
+        row.style.transition = 'opacity .3s';
+        row.style.opacity = '0';
+        setTimeout(() => row.remove(), 300);
+    }
+}
+</script>
+}
