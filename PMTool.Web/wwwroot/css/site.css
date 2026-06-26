@@ -98,7 +98,8 @@ body {
   font-family: var(--font-body);
   font-size: var(--fs-base);
   color: var(--text-body);
-  background: var(--bg-app);
+  background: linear-gradient(155deg, #caf0f8 0%, #e2f6fb 12%, #edf9fd 25%, #f4fbfe 42%, #f8fcfe 60%, #fafcfe 78%, #ffffff 100%);
+  background-attachment: fixed;
   -webkit-font-smoothing: antialiased;
   line-height: 1.5;
   overflow-x: hidden;
@@ -129,7 +130,7 @@ a:hover { color: var(--primary-700); }
 .pm-global-sidebar {
   width: var(--sidebar-w);
   min-height: 100vh;
-  background: var(--primary-800);
+  background: linear-gradient(180deg, #020617 0%, #03045e 45%, #023e8a 100%);
   color: var(--slate-400);
   display: flex;
   flex-direction: column;
@@ -211,9 +212,11 @@ a:hover { color: var(--primary-700); }
 /* ============================================================
    TOPBAR (fixed navbar)
    ============================================================ */
-.pm-global-sidebar-topbar {
-  background: var(--primary-800) !important;
-  border-bottom: 1px solid rgba(255,255,255,.06);
+.pm-global-sidebar-topbar,
+.pm-navbar-gradient {
+  background: linear-gradient(90deg, #020617 0%, #03045e 35%, #023e8a 70%, #0077b6 100%) !important;
+  border-bottom: 1px solid rgba(0, 180, 216, 0.18) !important;
+  box-shadow: 0 2px 12px rgba(2, 5, 94, 0.25) !important;
 }
 
 /* ============================================================
@@ -277,10 +280,16 @@ body.with-navbar { padding-top: var(--topbar-h); }
    CARDS
    ============================================================ */
 .opms-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.88);
+  border: none;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-xs);
+  box-shadow: 0 2px 16px rgba(0, 119, 182, 0.08), 0 1px 4px rgba(0, 150, 199, 0.04);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.opms-card:hover {
+  box-shadow: 0 6px 28px rgba(0, 119, 182, 0.13), 0 2px 8px rgba(0, 150, 199, 0.07);
 }
 
 .opms-card--pad { padding: var(--space-5); }
@@ -288,7 +297,7 @@ body.with-navbar { padding-top: var(--topbar-h); }
 .opms-card__header {
   display: flex; align-items: center; justify-content: space-between;
   padding: var(--space-4) var(--space-5);
-  border-bottom: 1px solid var(--slate-100);
+  border-bottom: 1px solid rgba(226, 232, 240, 0.5);
 }
 
 .opms-card__title {
@@ -298,11 +307,18 @@ body.with-navbar { padding-top: var(--topbar-h); }
 
 /* Stat cards */
 .opms-stat {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.88);
+  border: none;
   border-radius: var(--radius-lg);
   padding: var(--space-4) var(--space-5);
-  box-shadow: var(--shadow-xs);
+  box-shadow: 0 2px 16px rgba(0, 119, 182, 0.08), 0 1px 4px rgba(0, 150, 199, 0.04);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.opms-stat:hover {
+  box-shadow: 0 6px 28px rgba(0, 119, 182, 0.13), 0 2px 8px rgba(0, 150, 199, 0.07);
+  transform: translateY(-1px);
 }
 
 .opms-stat__top {
@@ -522,8 +538,11 @@ body.with-navbar { padding-top: var(--topbar-h); }
 .notification-menu {
   width: 320px; padding: 0;
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  border: 1px solid var(--border);
+  box-shadow: 0 8px 32px rgba(0, 119, 182, 0.14), 0 2px 8px rgba(0, 150, 199, 0.07);
+  border: none;
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.96);
 }
 .notification-header {
   padding: var(--space-3) var(--space-4);
@@ -608,21 +627,83 @@ body.with-navbar { padding-top: var(--topbar-h); }
   border-color: var(--primary-200) !important;
 }
 
-.modal-header { border-bottom: 1px solid var(--border); }
-.modal-footer { border-top: 1px solid var(--border); }
-.modal-content { border-radius: var(--radius-lg); border: 1px solid var(--border); box-shadow: var(--shadow-lg); }
+.modal-header { border-bottom: 1px solid rgba(226, 232, 240, 0.5); }
+.modal-footer { border-top: 1px solid rgba(226, 232, 240, 0.5); }
+.modal-content {
+  border-radius: var(--radius-lg); border: none;
+  box-shadow: 0 12px 48px rgba(0, 119, 182, 0.16), 0 4px 16px rgba(0, 150, 199, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.97);
+}
 
 .dropdown-menu {
-  border: 1px solid var(--border); border-radius: var(--radius-md);
-  box-shadow: var(--shadow-md); font-size: var(--fs-base);
+  border: none; border-radius: var(--radius-md);
+  box-shadow: 0 6px 24px rgba(0, 119, 182, 0.12), 0 2px 8px rgba(0, 150, 199, 0.06);
+  font-size: var(--fs-base);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.97);
 }
 .dropdown-item { color: var(--text-body); }
 .dropdown-item:hover { background: var(--slate-50); color: var(--text-heading); }
 
 /* Auth pages */
 body.with-navbar .auth-card {
-  background: var(--bg-surface); border: 1px solid var(--border);
-  border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);
+  background: rgba(255, 255, 255, 0.92);
+  border: none;
+  border-radius: var(--radius-xl);
+  box-shadow: 0 8px 40px rgba(0, 119, 182, 0.13), 0 2px 12px rgba(0, 150, 199, 0.07);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
   padding: var(--space-10) var(--space-8);
   width: 100%; max-width: 440px;
+}
+
+/* ============================================================
+   BOOTSTRAP CARD UNIFICATION
+   All Bootstrap .card elements get the same borderless,
+   shadow-only treatment as the OPMS design system cards.
+   ============================================================ */
+.card {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: none !important;
+  border-radius: var(--radius-lg) !important;
+  box-shadow: 0 2px 16px rgba(0, 119, 182, 0.08), 0 1px 4px rgba(0, 150, 199, 0.04) !important;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.card:hover {
+  box-shadow: 0 6px 28px rgba(0, 119, 182, 0.13), 0 2px 8px rgba(0, 150, 199, 0.07) !important;
+  transform: translateY(-1px);
+}
+.card-header {
+  background: rgba(248, 250, 252, 0.75) !important;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.5) !important;
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0 !important;
+  font-family: var(--font-heading);
+  font-weight: var(--fw-semibold);
+  color: var(--text-heading);
+}
+.card-footer {
+  background: rgba(248, 250, 252, 0.65) !important;
+  border-top: 1px solid rgba(226, 232, 240, 0.5) !important;
+  border-radius: 0 0 var(--radius-lg) var(--radius-lg) !important;
+}
+
+/* Page-level gradient accent strip at the top of content */
+.pm-global-content {
+  background: transparent;
+}
+
+/* Sprint card — intentionally dark, keep as-is */
+.opms-sprint-card,
+.sprint-card-opms {
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.opms-sprint-card:hover,
+.sprint-card-opms:hover {
+  box-shadow: 0 6px 24px rgba(2, 5, 94, 0.35);
+  transform: translateY(-1px);
 }

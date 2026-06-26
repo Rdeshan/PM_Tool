@@ -44,10 +44,16 @@ else
 
     /* Section card */
     .sec-card {
-        background: var(--bg-surface);
-        border: 1px solid var(--border);
+        background: rgba(255, 255, 255, 0.88);
+        border: none;
         border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-xs);
+        box-shadow: 0 2px 16px rgba(0, 119, 182, 0.08), 0 1px 4px rgba(0, 150, 199, 0.04);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: box-shadow 0.2s ease;
+    }
+    .sec-card:hover {
+        box-shadow: 0 6px 28px rgba(0, 119, 182, 0.13), 0 2px 8px rgba(0, 150, 199, 0.07);
     }
     .sec-card__header {
         display: flex; align-items: center; justify-content: space-between;

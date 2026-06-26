@@ -24,8 +24,8 @@
     <div class="modal fade" id="createProductModal" tabindex="-1" aria-labelledby="createProductModalLabel" aria-hidden="true">
         <div class="modal-dialog" style="max-width:600px; margin-top:1rem;">
             <div class="modal-content">
-                <div class="modal-header bg-primary text-white py-2">
-                    <h6 class="modal-title" id="createProductModalLabel">Add New Product</h6>
+                <div class="modal-header py-2" style="background: linear-gradient(90deg, #03045e 0%, #0077b6 100%); color: #fff;">
+                    <h6 class="modal-title" id="createProductModalLabel" style="color:#fff;">Add New Product</h6>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-0">
@@ -54,29 +54,17 @@
     }
 
     <!-- Tabs for filtering -->
-    <ul class="nav nav-tabs mb-3" role="tablist">
-        <li class="nav-item" role="presentation">
-            <a class="nav-link @(Model.FilterStatus == "all" ? "active" : "")" 
-               asp-route-projectId="@Model.ProjectId" 
-               asp-route-status="all">
-                All Products
-            </a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link @(Model.FilterStatus == "active" ? "active" : "")" 
-               asp-route-projectId="@Model.ProjectId" 
-               asp-route-status="active">
-                Active
-            </a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link @(Model.FilterStatus == "released" ? "active" : "")" 
-               asp-route-projectId="@Model.ProjectId" 
-               asp-route-status="released">
-                Released
-            </a>
-        </li>
-    </ul>
+    <div class="opms-tabs mb-3">
+        <a class="opms-tab @(Model.FilterStatus == "all" ? "active" : "")"
+           asp-route-projectId="@Model.ProjectId"
+           asp-route-status="all">All Products</a>
+        <a class="opms-tab @(Model.FilterStatus == "active" ? "active" : "")"
+           asp-route-projectId="@Model.ProjectId"
+           asp-route-status="active">Active</a>
+        <a class="opms-tab @(Model.FilterStatus == "released" ? "active" : "")"
+           asp-route-projectId="@Model.ProjectId"
+           asp-route-status="released">Released</a>
+    </div>
 
     <!-- Products Grid -->
     <div class="row">
@@ -100,71 +88,41 @@
                        class="text-decoration-none text-dark"
                        target="_top">
 
-                        <div class="card h-100 shadow-sm product-card">
-                            <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                                <span class="badge bg-info">v@product.VersionName</span>
-                                <span class="badge @GetStatusBadgeClass(product.Status)">@GetStatusLabel(product.Status)</span>
+                        <div class="opms-card h-100 product-card" style="cursor:pointer;">
+                            <div class="opms-card__header">
+                                <div class="opms-card__title">@product.VersionName</div>
+                                <span class="badge-opms badge-opms--@(product.Status == 4 ? "success" : product.Status == 3 ? "warning" : product.Status == 5 ? "danger" : "info")">
+                                    <span class="dot"></span>@GetStatusLabel(product.Status)
+                                </span>
                             </div>
-                            <div class="card-body">
-                                <h5 class="card-title">@product.VersionName</h5>
-                                <p class="card-text text-muted">@(product.Description?.Length > 100 ? product.Description.Substring(0, 100) + "..." : product.Description)</p>
-
-                                <div class="mb-3">
-                                    <small class="text-muted">
-                                        <i class="bi bi-calendar-event"></i>
-                                        Planned: @product.PlannedReleaseDate.ToShortDateString()
-                                    </small>
-                                    @if (product.ActualReleaseDate.HasValue)
-                                    {
-                                        <br />
-                                        <small class="text-success">
-                                            <i class="bi bi-check-circle"></i>
-                                            Released: @product.ActualReleaseDate.Value.ToShortDateString()
-                                        </small>
-                                    }
+                            <div class="opms-card--pad">
+                                <p style="font-size: var(--fs-sm); color: var(--text-muted); margin-bottom: var(--space-3); min-height: 2.5em;">
+                                    @(product.Description?.Length > 100 ? product.Description.Substring(0, 100) + "…" : product.Description)
+                                </p>
+                                <div style="font-size: var(--fs-xs); color: var(--text-muted); margin-bottom: var(--space-2);">
+                                    <i class="bi bi-calendar-event me-1"></i>Planned: @product.PlannedReleaseDate.ToShortDateString()
                                 </div>
-
-                                <div class="row text-center mb-3">
-                                    <div class="col-6">
-                                        <small class="text-muted">Backlog Items</small>
-                                        <br />
-                                        <strong>@product.BacklogItemCount</strong>
+                                @if (product.ActualReleaseDate.HasValue)
+                                {
+                                    <div style="font-size: var(--fs-xs); color: var(--success-text); margin-bottom: var(--space-3);">
+                                        <i class="bi bi-check-circle me-1"></i>Released: @product.ActualReleaseDate.Value.ToShortDateString()
                                     </div>
-                                    <div class="col-6">
-                                        <small class="text-muted">Release Notes</small>
-                                        <br />
-                                        <strong>@product.ReleaseNotesCount</strong>
+                                }
+                                <div class="d-flex gap-3 mb-3" style="font-size: var(--fs-xs); text-align:center;">
+                                    <div style="flex:1; background: var(--slate-50); border-radius: var(--radius-sm); padding: var(--space-2);">
+                                        <div style="color: var(--text-muted);">Backlog</div>
+                                        <strong style="color: var(--text-heading);">@product.BacklogItemCount</strong>
+                                    </div>
+                                    <div style="flex:1; background: var(--slate-50); border-radius: var(--radius-sm); padding: var(--space-2);">
+                                        <div style="color: var(--text-muted);">Rel. Notes</div>
+                                        <strong style="color: var(--text-heading);">@product.ReleaseNotesCount</strong>
                                     </div>
                                 </div>
-                            </div>
-                            <div class="card-footer bg-white">
-                                <div class="btn-group w-100" role="group">
-                                    <a href="/SubProjects/@product.Id"
-                                       class="btn btn-sm btn-outline-info"
-                                       target="_top"
-                                       onclick="event.stopPropagation()">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span style="font-size: var(--fs-xs); color: var(--text-faint);">@product.CreatedAt.ToString("MMM dd, yyyy")</span>
+                                    <a href="/SubProjects/@product.Id" class="btn-opms btn-opms--ghost btn-opms--sm" target="_top" onclick="event.stopPropagation()">
                                         <i class="bi bi-diagram-3"></i> Sub-Projects
                                     </a>
-                                    @* @if (Model.CanCreateProduct)
-                                    {
-                                        <a asp-page="./Edit"
-                                           asp-route-id="@product.Id"
-                                           asp-route-projectId="@Model.ProjectId"
-                                           class="btn btn-sm btn-outline-warning"
-                                           target="_top"
-                                           onclick="event.stopPropagation()">
-                                            <i class="bi bi-pencil"></i> Edit
-                                        </a>
-                                    } *@
-                                    @* else
-                                    {
-                                        <button class="btn btn-sm btn-outline-warning" disabled title="Only Project Managers and Administrators can edit products">
-                                            <i class="bi bi-pencil"></i> Edit
-                                        </button>
-                                    } *@
-                                </div>
-                                <div class="mt-1">
-                                    <small class="text-muted">Created @product.CreatedAt.ToString("MMM dd, yyyy")</small>
                                 </div>
                             </div>
                         </div>
@@ -206,12 +164,11 @@
 
 <style>
     .product-card {
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-
     .product-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
+        transform: translateY(-4px);
+        box-shadow: 0 10px 32px rgba(0, 119, 182, 0.16), 0 3px 10px rgba(0, 150, 199, 0.08) !important;
     }
 </style>
 

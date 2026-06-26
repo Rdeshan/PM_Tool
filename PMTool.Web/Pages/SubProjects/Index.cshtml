@@ -76,7 +76,7 @@
             @foreach (var subProject in Model.SubProjects)
             {
                 <div class="col-md-6 col-lg-4 mb-4">
-                    <div class="card h-100 shadow-sm">
+                    <div class="card h-100">
                         <div class="card-header d-flex justify-content-between align-items-start">
                             <div>
                                 <h5 class="card-title mb-1">@subProject.Name</h5>
@@ -181,7 +181,7 @@
                             }
                         </div>
 
-                        <div class="card-footer bg-white d-flex gap-2">
+                        <div class="card-footer d-flex gap-2">
                         
                             <!-- <a href="/SubProjects/@subProject.Id/@Model.ProductId" 
                                class="btn btn-sm btn-outline-primary flex-grow-1">

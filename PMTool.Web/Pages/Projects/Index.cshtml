@@ -36,23 +36,17 @@
     </div>
 
     <!-- Filter Tabs -->
-    <ul class="nav nav-tabs mb-4" role="tablist">
-        <li class="nav-item" role="presentation">
-            <a class="nav-link @(isActiveTab ? "active" : "")" href="@Url.Page("./Index", new { archived = false })">
-                Active Projects
-            </a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link @(isOnHoldTab ? "active" : "")" href="@Url.Page("./Index", new { archived = false, status = 2 })">
-                On Hold
-            </a>
-        </li>
-        <li class="nav-item" role="presentation">
-            <a class="nav-link @(Model.ShowArchived ? "active" : "")" href="@Url.Page("./Index", new { archived = true })">
-                Archived
-            </a>
-        </li>
-    </ul>
+    <div class="opms-tabs mb-4">
+        <a class="opms-tab @(isActiveTab ? "active" : "")" href="@Url.Page("./Index", new { archived = false })">
+            Active Projects
+        </a>
+        <a class="opms-tab @(isOnHoldTab ? "active" : "")" href="@Url.Page("./Index", new { archived = false, status = 2 })">
+            On Hold
+        </a>
+        <a class="opms-tab @(Model.ShowArchived ? "active" : "")" href="@Url.Page("./Index", new { archived = true })">
+            Archived
+        </a>
+    </div>
 
     <!-- Projects Grid -->
     @if (Model.Projects.Any())
@@ -65,45 +59,39 @@
                     asp-route-id="@project.Id"
                     class="text-decoration-none text-dark">
                         
-                        <div class="card h-100 shadow-sm project-card">
-                        <div class="card-body">
-                            <div class="d-flex align-items-start justify-content-between mb-3">
+                        <div class="opms-card h-100 project-card" style="cursor:pointer;">
+                            <div class="opms-card__header">
                                 <div>
-                                    <h5 class="card-title">@project.Name</h5>
-                                    <p class="text-muted small mb-0">Code: <strong>@project.ProjectCode</strong></p>
+                                    <div class="opms-card__title">@project.Name</div>
+                                    <span class="chip-opms chip-opms--team mt-1">@project.ProjectCode</span>
                                 </div>
                                 @if (!string.IsNullOrEmpty(project.ColourCode))
                                 {
-                                    <div class="p-2 rounded" style="background-color: @project.ColourCode; width: 40px; height: 40px;"></div>
+                                    <div style="background-color: @project.ColourCode; width: 36px; height: 36px; border-radius: var(--radius-md); flex-shrink:0;"></div>
                                 }
                             </div>
-
-                            <p class="card-text small text-secondary">@project.ClientName</p>
-                            <p class="card-text" style="font-size: 0.9rem;">@project.Description</p>
-
-                            <div class="small text-muted mb-3">
-                                <div><i class="bi bi-calendar"></i> @project.StartDate.ToShortDateString() - @project.ExpectedEndDate.ToShortDateString()</div>
-                                <div class="mt-2">
-                                    <span class="badge bg-info">@GetStatusLabel(project.Status)</span>
+                            <div class="opms-card--pad">
+                                <p class="eyebrow mb-1">@project.ClientName</p>
+                                <p style="font-size: var(--fs-sm); color: var(--text-body); margin-bottom: var(--space-4); min-height: 2.5em;">@project.Description</p>
+                                <div style="font-size: var(--fs-xs); color: var(--text-muted); margin-bottom: var(--space-3);">
+                                    <i class="bi bi-calendar3 me-1"></i>@project.StartDate.ToShortDateString() – @project.ExpectedEndDate.ToShortDateString()
+                                </div>
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <span class="badge-opms badge-opms--@(project.Status == 1 ? "success" : project.Status == 2 ? "warning" : "neutral")">
+                                        <span class="dot"></span>@GetStatusLabel(project.Status)
+                                    </span>
+                                    @if (!Model.ShowArchived && canEditProject)
+                                    {
+                                        <form method="post" asp-page-handler="Archive" style="display:inline;" onclick="event.stopPropagation();">
+                                            <input type="hidden" name="projectId" value="@project.Id" />
+                                            <button type="submit" class="btn-opms btn-opms--ghost btn-opms--sm" onclick="return confirm('Archive this project?')">
+                                                <i class="bi bi-archive"></i> Archive
+                                            </button>
+                                        </form>
+                                    }
                                 </div>
                             </div>
                         </div>
-                        <div class="card-footer bg-white">
-                            <div class="btn-group w-100" role="group">
-                                @*
-                                <a asp-page="./Details" asp-route-id="@project.Id" class="btn btn-sm btn-outline-primary">View</a>
-                                *@
-                                <!-- <a asp-page="/Products/Index" asp-route-projectId="@project.Id" class="btn btn-sm btn-outline-info">Products</a> -->
-                                @if (!Model.ShowArchived && canEditProject)
-                                {
-                                    <form method="post" asp-page-handler="Archive" style="display: inline;">
-                                        <input type="hidden" name="projectId" value="@project.Id" />
-                                        <button type="submit" class="btn btn-sm btn-outline-warning" onclick="return confirm('Archive this project?')">Archive</button>
-                                    </form>
-                                }
-                            </div>
-                        </div>
-                    </div>
                     </a>
                 </div>
             }
@@ -111,8 +99,8 @@
     }
     else
     {
-        <div class="alert alert-info">
-            <i class="bi bi-info-circle"></i>
+        <div class="opms-empty">
+            <i class="bi bi-folder2-open"></i>
             No projects found.
         </div>
     }
@@ -133,21 +121,20 @@
 
 <style>
     .project-card {
-        transition: transform 0.2s, box-shadow 0.2s;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
-
-        .project-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1) !important;
-        }
+    .project-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 10px 32px rgba(0, 119, 182, 0.16), 0 3px 10px rgba(0, 150, 199, 0.08) !important;
+    }
 </style>
 
 <!-- Create Project Modal -->
 <div class="modal fade" id="createProjectModal" tabindex="-1" aria-labelledby="createProjectModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header bg-primary text-white">
-                <h5 class="modal-title" id="createProjectModalLabel">Add New Project</h5>
+            <div class="modal-header" style="background: linear-gradient(90deg, #03045e 0%, #0077b6 100%); color: #fff;">
+                <h5 class="modal-title" id="createProjectModalLabel" style="color:#fff;">Add New Project</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-0">
