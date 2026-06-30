@@ -3,7 +3,7 @@
 @using PMTool.Domain.Entities
 @{
     ViewData["Title"] = "Review AI-Generated Backlog";
-    Layout = "_Layout";
+    Layout = "_EmbeddedLayout";
     var draft = Model.Draft!;
     var items = draft.Items.ToList();
 
