@@ -511,7 +511,9 @@
                             ["WorkTypes"] = Model.WorkTypes,
                             ["ActiveUsers"] = Model.ActiveUsers,
                             ["CustomStatuses"] = Model.CustomBoardColumns,
-                            ["SubtasksByItem"] = Model.SubtasksByItem
+                            ["SubtasksByItem"] = Model.SubtasksByItem,
+                              ["IsAdminOrPM"] = Model.CanEditBacklog,
+    ["CurrentUserId"] = Model.CurrentUserId.ToString()
                         })
                     }
                     @if (!backlogItems.Any())
@@ -913,7 +915,7 @@ async function submitStartSprint() {
 }
 
 async function completeSprint(id) {
-    if (!confirm('Complete this sprint? All remaining items will stay in the sprint.')) return;
+    if (!confirm('Complete this sprint? This will only succeed if all items are marked as Done.')) return;
     try {
         const resp = await fetch(`?handler=CompleteSprint&sprintId=${id}`, {
             method: 'POST',
@@ -923,6 +925,8 @@ async function completeSprint(id) {
         if (result.success) {
             showToast('Sprint completed!');
             setTimeout(() => location.reload(), 400);
+        } else if (result.notAllDone) {
+            showToast(result.message || 'All items must be Done before completing the sprint.', 'warning');
         } else {
             showToast('Failed to complete sprint', 'danger');
         }

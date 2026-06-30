@@ -1,0 +1,145 @@
+@page
+@using System.Security.Claims
+@model PMTool.Web.Pages.Account.EmailConfigModel
+@{
+    ViewData["Title"] = "Email Configuration";
+}
+
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="list-group">
+                <a class="list-group-item list-group-item-action" asp-page="./Settings">Account Settings</a>
+                <a class="list-group-item list-group-item-action" asp-page="./Security">Security</a>
+                <a class="list-group-item list-group-item-action" asp-page="./TwoFactor">Two-Factor Auth</a>
+                <a class="list-group-item list-group-item-action active" asp-page="./EmailConfig">Email Configuration</a>
+                @if (User.IsInRole("Administrator"))
+                {
+                    <a class="list-group-item list-group-item-action" asp-page="/Admin/AuditLog/Index">
+                        <i class="bi bi-journal-text me-2"></i>Audit Log
+                    </a>
+                }
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            @if (!string.IsNullOrEmpty(Model.StatusMessage))
+            {
+                <div class="alert @(Model.IsSuccess ? "alert-success" : "alert-danger") alert-dismissible fade show" role="alert">
+                    <i class="bi @(Model.IsSuccess ? "bi-check-circle-fill" : "bi-exclamation-circle-fill") me-2"></i>
+                    @Model.StatusMessage
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            }
+
+            <div class="card border-0 shadow-sm">
+                <div class="card-header d-flex align-items-center gap-2 py-3" style="background:linear-gradient(135deg,#0052cc,#0747a6);border-radius:12px 12px 0 0;">
+                    <i class="bi bi-envelope-check-fill text-white fs-5"></i>
+                    <div>
+                        <h5 class="mb-0 text-white fw-semibold">Email Notifications</h5>
+                        <small class="text-white-50">Choose which events send you an email</small>
+                    </div>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post">
+                        <p class="text-muted small mb-4">
+                            <i class="bi bi-info-circle me-1"></i>
+                            These settings control the emails sent to <strong>@User.FindFirst(ClaimTypes.Email)?.Value</strong>.
+                            You can turn individual notifications on or off at any time.
+                        </p>
+
+                        <!-- Task Assignment -->
+                        <div class="d-flex align-items-start justify-content-between py-3 border-bottom">
+                            <div class="d-flex align-items-start gap-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                     style="width:40px;height:40px;background:#e3f2fd;">
+                                    <i class="bi bi-person-check-fill" style="color:#0052cc;font-size:16px;"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold" style="font-size:14px;color:#172b4d;">Assigned to a task</div>
+                                    <div class="text-muted" style="font-size:12px;">Receive an email when you are assigned as the owner of a backlog item.</div>
+                                </div>
+                            </div>
+                            <div class="form-check form-switch ms-3 flex-shrink-0 mt-1">
+                                <input class="form-check-input email-toggle" type="checkbox"
+                                       id="toggleTaskAssigned"
+                                       name="EmailOnTaskAssigned"
+                                       value="true"
+                                       @(Model.EmailOnTaskAssigned ? "checked" : "")
+                                       style="width:44px;height:22px;cursor:pointer;" />
+                                <label class="form-check-label visually-hidden" for="toggleTaskAssigned">Assigned to task</label>
+                            </div>
+                        </div>
+
+                        <!-- Sprint Events -->
+                        <div class="d-flex align-items-start justify-content-between py-3 border-bottom">
+                            <div class="d-flex align-items-start gap-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                     style="width:40px;height:40px;background:#e8f5e9;">
+                                    <i class="bi bi-lightning-charge-fill" style="color:#2e7d32;font-size:16px;"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold" style="font-size:14px;color:#172b4d;">Sprint started or completed</div>
+                                    <div class="text-muted" style="font-size:12px;">Receive an email when a sprint in your project is started or marked as completed.</div>
+                                </div>
+                            </div>
+                            <div class="form-check form-switch ms-3 flex-shrink-0 mt-1">
+                                <input class="form-check-input email-toggle" type="checkbox"
+                                       id="toggleSprintEvent"
+                                       name="EmailOnSprintEvent"
+                                       value="true"
+                                       @(Model.EmailOnSprintEvent ? "checked" : "")
+                                       style="width:44px;height:22px;cursor:pointer;" />
+                                <label class="form-check-label visually-hidden" for="toggleSprintEvent">Sprint events</label>
+                            </div>
+                        </div>
+
+                        <!-- Project Assignment -->
+                        <div class="d-flex align-items-start justify-content-between py-3">
+                            <div class="d-flex align-items-start gap-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center flex-shrink-0"
+                                     style="width:40px;height:40px;background:#fff3e0;">
+                                    <i class="bi bi-folder-check" style="color:#e65100;font-size:16px;"></i>
+                                </div>
+                                <div>
+                                    <div class="fw-semibold" style="font-size:14px;color:#172b4d;">Assigned to a project</div>
+                                    <div class="text-muted" style="font-size:12px;">Receive an email when you are added to a project or your project role changes.</div>
+                                </div>
+                            </div>
+                            <div class="form-check form-switch ms-3 flex-shrink-0 mt-1">
+                                <input class="form-check-input email-toggle" type="checkbox"
+                                       id="toggleProjectAssigned"
+                                       name="EmailOnProjectAssigned"
+                                       value="true"
+                                       @(Model.EmailOnProjectAssigned ? "checked" : "")
+                                       style="width:44px;height:22px;cursor:pointer;" />
+                                <label class="form-check-label visually-hidden" for="toggleProjectAssigned">Assigned to project</label>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-4 pt-3 border-top">
+                            <button type="submit" class="btn btn-primary px-4">
+                                <i class="bi bi-save me-2"></i>Save Preferences
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    // Instant visual feedback on toggle
+    document.querySelectorAll('.email-toggle').forEach(toggle => {
+        toggle.addEventListener('change', function() {
+            const label = this.closest('.d-flex').querySelector('.fw-semibold');
+            label.style.opacity = this.checked ? '1' : '0.5';
+        });
+        // Set initial state
+        const label = toggle.closest('.d-flex')?.querySelector('.fw-semibold');
+        if (label) label.style.opacity = toggle.checked ? '1' : '0.5';
+    });
+</script>
+}

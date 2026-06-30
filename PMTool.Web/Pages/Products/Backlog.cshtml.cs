@@ -1250,6 +1250,22 @@ public class BacklogModel : PageModel
         SetPermissions();
         if (!CanEditBacklog) return Forbid();
 
+        // Check how many items are not Done before calling the service
+        var sprint = await _sprintService.GetActiveSprintAsync(ProductId);
+        if (sprint != null && sprint.Id == sprintId)
+        {
+            var incompleteItems = sprint.BacklogItems?.Where(i => i.Status != 4).ToList();
+            if (incompleteItems != null && incompleteItems.Count > 0)
+            {
+                return new JsonResult(new
+                {
+                    success = false,
+                    notAllDone = true,
+                    message = $"{incompleteItems.Count} item(s) are not Done. Move all items to Done before completing this sprint."
+                });
+            }
+        }
+
         var success = await _sprintService.CompleteSprintAsync(sprintId);
         return new JsonResult(new { success });
     }
