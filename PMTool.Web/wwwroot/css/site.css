@@ -246,10 +246,10 @@ body.sidebar-collapsed.with-sidebar .navbar.fixed-top {
   width: calc(100% - var(--sidebar-collapsed-w));
 }
 
-body.with-navbar { padding-top: var(--topbar-h); }
+body.with-navbar { padding-top: calc(var(--topbar-h) + 1.5rem); }
 
 .pm-global-content {
-  padding-top: var(--topbar-h) !important;
+  padding-top: calc(var(--topbar-h) + 1.5rem) !important;
   flex: 1; display: flex; flex-direction: column;
   overflow-x: hidden; min-width: 0;
 }
