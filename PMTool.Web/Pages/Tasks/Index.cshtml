@@ -31,18 +31,22 @@
         --pm-text:        #1b2b23;
         --pm-muted:       #6c757d;
     }
-    body { background: var(--pm-bg); }
-
     .pm-topbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:1.75rem; }
     .pm-topbar h4 { font-weight:700; color:var(--pm-text); margin:0; }
     .pm-topbar .topbar-right { display:flex; gap:.75rem; align-items:center; }
 
     .section-card {
-        background: var(--pm-card);
-        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.88);
+        border-radius: 14px;
         padding: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,.06);
+        box-shadow: 0 2px 16px rgba(0, 119, 182, 0.08), 0 1px 4px rgba(0, 150, 199, 0.04);
         border: none;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+        transition: box-shadow 0.2s ease;
+    }
+    .section-card:hover {
+        box-shadow: 0 6px 28px rgba(0, 119, 182, 0.13), 0 2px 8px rgba(0, 150, 199, 0.07);
     }
     .section-card .section-title { font-size:1rem; font-weight:600; color:var(--pm-text); margin-bottom:1rem; }
 

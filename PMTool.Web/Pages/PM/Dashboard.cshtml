@@ -36,16 +36,21 @@ else
         --pm-muted-light: #e9ecef;
     }
 
-    body { background: var(--pm-bg); }
-
     /* ── Stat Cards ── */
     .stat-card {
-        background: var(--pm-card);
-        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.88);
+        border-radius: 14px;
         padding: 1.25rem 1.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,.06);
+        box-shadow: 0 2px 16px rgba(0, 119, 182, 0.08), 0 1px 4px rgba(0, 150, 199, 0.04);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         border: none;
         height: 100%;
+        transition: box-shadow 0.2s ease, transform 0.2s ease;
+    }
+    .stat-card:not(.dark):hover {
+        box-shadow: 0 6px 28px rgba(0, 119, 182, 0.13), 0 2px 8px rgba(0, 150, 199, 0.07);
+        transform: translateY(-1px);
     }
     .stat-card.dark {
         background: var(--pm-green);
@@ -58,18 +63,24 @@ else
     .stat-card .stat-sub { font-size: .78rem; color: var(--pm-green-mid); }
     .stat-card.dark .stat-sub { color: var(--pm-green-pale); }
     .stat-card.clickable { cursor: pointer; transition: box-shadow .15s, transform .15s; }
-    .stat-card.clickable:hover { box-shadow: 0 4px 14px rgba(0,0,0,.1); transform: translateY(-2px); }
+    .stat-card.clickable:hover { box-shadow: 0 6px 28px rgba(0, 119, 182, 0.16); transform: translateY(-2px); }
     .clickable-card { transition: box-shadow .15s, transform .15s; }
-    .clickable-card:hover { box-shadow: 0 6px 18px rgba(0,0,0,.12); transform: translateY(-2px); }
+    .clickable-card:hover { box-shadow: 0 8px 24px rgba(0, 119, 182, 0.14); transform: translateY(-2px); }
 
     /* ── Section Cards ── */
     .section-card {
-        background: var(--pm-card);
-        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.88);
+        border-radius: 14px;
         padding: 1.5rem;
-        box-shadow: 0 2px 8px rgba(0,0,0,.06);
+        box-shadow: 0 2px 16px rgba(0, 119, 182, 0.08), 0 1px 4px rgba(0, 150, 199, 0.04);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
         border: none;
         height: 100%;
+        transition: box-shadow 0.2s ease;
+    }
+    .section-card:hover {
+        box-shadow: 0 6px 28px rgba(0, 119, 182, 0.13), 0 2px 8px rgba(0, 150, 199, 0.07);
     }
     .section-card .section-title { font-size: 1rem; font-weight: 600; color: var(--pm-text); margin-bottom: 1rem; }
 
