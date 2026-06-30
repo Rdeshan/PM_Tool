@@ -130,7 +130,7 @@ a:hover { color: var(--primary-700); }
 .pm-global-sidebar {
   width: var(--sidebar-w);
   min-height: 100vh;
-  background: linear-gradient(180deg, #020617 0%, #03045e 45%, #023e8a 100%);
+  background: linear-gradient(180deg, #020617 0%, #131436 45%, #05172f 100%);
   color: var(--slate-400);
   display: flex;
   flex-direction: column;
@@ -214,7 +214,7 @@ a:hover { color: var(--primary-700); }
    ============================================================ */
 .pm-global-sidebar-topbar,
 .pm-navbar-gradient {
-  background: linear-gradient(90deg, #020617 0%, #03045e 35%, #023e8a 70%, #0077b6 100%) !important;
+  background: linear-gradient(90deg, #020617 0%, #090a39 35%, #163257 70%, #062231 100%) !important;
   border-bottom: 1px solid rgba(0, 180, 216, 0.18) !important;
   box-shadow: 0 2px 12px rgba(2, 5, 94, 0.25) !important;
 }
