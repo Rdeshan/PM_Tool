@@ -153,6 +153,10 @@ public class SprintService : ISprintService
         var sprint = await _sprintRepository.GetByIdAsync(sprintId);
         if (sprint == null) return false;
 
+        // Block completion if any item is not Done (status = 4)
+        var incompleteCount = sprint.BacklogItems.Count(item => item.Status != 4);
+        if (incompleteCount > 0) return false;
+
         sprint.Status = 3; // Completed
         await _sprintRepository.UpdateAsync(sprint);
         await _auditService.LogAsync(Guid.Empty, "Sprint.Completed", "Sprint", sprintId.ToString());

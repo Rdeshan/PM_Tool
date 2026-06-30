@@ -14,6 +14,11 @@ public class User
     public bool IsActive { get; set; } = true;
     public bool NotificationsEnabled { get; set; } = true;
 
+    // Email notification preferences
+    public bool EmailOnTaskAssigned { get; set; } = true;
+    public bool EmailOnSprintEvent { get; set; } = true;
+    public bool EmailOnProjectAssigned { get; set; } = true;
+
     // Account lockout
     public int FailedLoginAttempts { get; set; }
     public DateTime? LockoutEnd { get; set; }

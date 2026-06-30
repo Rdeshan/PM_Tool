@@ -691,8 +691,7 @@ namespace PMTool.Infrastructure.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<int>("DocumentType")
-                        .HasColumnType("int")
-                        .HasDefaultValue(3);
+                        .HasColumnType("int");
 
                     b.Property<string>("FilePath")
                         .IsRequired()
@@ -1187,6 +1186,15 @@ namespace PMTool.Infrastructure.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("EmailConfirmed")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EmailOnProjectAssigned")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EmailOnSprintEvent")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("EmailOnTaskAssigned")
                         .HasColumnType("bit");
 
                     b.Property<int>("FailedLoginAttempts")
