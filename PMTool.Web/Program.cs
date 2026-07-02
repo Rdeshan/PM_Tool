@@ -88,7 +88,7 @@ builder.Services.AddScoped<IUserAdminRepository, UserAdminRepository>();
 builder.Services.AddScoped<ITeamRepository, TeamRepository>();
 builder.Services.AddScoped<ISprintRepository, SprintRepository>();
 builder.Services.AddScoped<IDailyTaskRepository, DailyTaskRepository>();
-builder.Services.AddScoped<DataSeedingService>();
+
 
 // Application Services
 builder.Services.AddScoped<IAuthenticationService, AuthenticationService>();
@@ -134,10 +134,7 @@ using (var scope = app.Services.CreateScope())
     var roleService = scope.ServiceProvider.GetRequiredService<IRoleService>();
     await roleService.InitializeDefaultRolesAsync();
 
-    // Seed test users for each role
-    var seedingService = scope.ServiceProvider.GetRequiredService<DataSeedingService>();
-    await seedingService.SeedTestUsersAsync();
-    await seedingService.SeedDashboardDataAsync();
+
 }
 
 // Configure the HTTP request pipeline.

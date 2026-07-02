@@ -4,218 +4,287 @@
     ViewData["Title"] = "Profile Settings";
 }
 
-<div class="container-fluid mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h4 class="mb-0"><i class="bi bi-person"></i> Profile Settings</h4>
-                </div>
-                <div class="card-body p-4">
-                    @if (!string.IsNullOrEmpty(Model.SuccessMessage))
-                    {
-                        <div class="alert alert-success alert-dismissible fade show" role="alert">
-                            <i class="bi bi-check-circle"></i> @Model.SuccessMessage
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    }
+<style>
+    .profile-page { background: #f4f5f7; min-height: 100vh; padding: 32px 16px 64px; }
+    .profile-shell { max-width: 880px; margin: 0 auto; }
 
-                    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
-                    {
-                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                            <i class="bi bi-exclamation-circle"></i> @Model.ErrorMessage
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    }
+    .profile-pagehead { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 20px; }
+    .profile-pagehead h1 { font-size: 20px; font-weight: 700; color: #172b4d; margin: 0; }
+    .profile-pagehead p { font-size: 13px; color: #6b778c; margin: 2px 0 0; }
+    .profile-status-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; padding: 4px 10px; border-radius: 14px; }
+    .chip-active { background: #e3fcef; color: #006644; }
+    .chip-inactive { background: #ffebe6; color: #bf2600; }
 
-                    @if (Model.CurrentUser != null)
-                    {
-                        <form method="post">
-                            <!-- Avatar Section -->
-                            <div class="row mb-4">
-                                <div class="col-md-3 text-center">
-                                    <div class="mb-3">
-                                        @if (!string.IsNullOrEmpty(Model.CurrentUser.AvatarUrl))
-                                        {
-                                            <img src="@Model.CurrentUser.AvatarUrl" alt="Avatar" class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover;" />
-                                        }
-                                        else
-                                        {
-                                            <div class="bg-light rounded-circle d-inline-flex align-items-center justify-content-center" style="width: 120px; height: 120px;">
-                                                <i class="bi bi-person" style="font-size: 3rem; color: #ccc;"></i>
-                                            </div>
-                                        }
-                                    </div>
-                                </div>
-                                <div class="col-md-9">
-                                    <div class="mb-3">
-                                        <label asp-for="Input.AvatarUrl" class="form-label">Avatar URL</label>
-                                        <input asp-for="Input.AvatarUrl" type="url" class="form-control" placeholder="https://example.com/avatar.jpg" />
-                                        <small class="text-muted">Provide a URL to an image for your profile avatar</small>
-                                    </div>
-                                </div>
-                            </div>
+    .profile-alert { border: none; border-radius: 6px; padding: 12px 14px; font-size: 13px; display: flex; align-items: center; gap: 8px; }
 
-                            <hr />
+    .profile-card { background: #fff; border: 1px solid #e4e6ea; border-radius: 8px; margin-bottom: 18px; overflow: hidden; }
+    .profile-card-header { padding: 16px 22px; border-bottom: 1px solid #eef0f3; }
+    .profile-card-header h2 { font-size: 13px; font-weight: 700; color: #172b4d; text-transform: uppercase; letter-spacing: .04em; margin: 0; }
+    .profile-card-header p { font-size: 12px; color: #6b778c; margin: 3px 0 0; }
+    .profile-card-body { padding: 22px; }
 
-                            <!-- Basic Information -->
-                            <h5 class="mb-3">Basic Information</h5>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label asp-for="Input.FirstName" class="form-label">First Name <span class="text-danger">*</span></label>
-                                        <input asp-for="Input.FirstName" class="form-control form-control-lg" />
-                                        <span asp-validation-for="Input.FirstName" class="text-danger small"></span>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label asp-for="Input.LastName" class="form-label">Last Name <span class="text-danger">*</span></label>
-                                        <input asp-for="Input.LastName" class="form-control form-control-lg" />
-                                        <span asp-validation-for="Input.LastName" class="text-danger small"></span>
-                                    </div>
-                                </div>
-                            </div>
+    .avatar-block { display: flex; align-items: center; gap: 20px; }
+    .avatar-frame { position: relative; width: 92px; height: 92px; flex-shrink: 0; }
+    .avatar-frame img,
+    .avatar-frame .avatar-fallback {
+        width: 92px; height: 92px; border-radius: 50%; object-fit: cover;
+        border: 3px solid #fff; box-shadow: 0 0 0 1px #e4e6ea;
+    }
+    .avatar-fallback { display: flex; align-items: center; justify-content: center; background: #eef1f6; color: #97a0af; font-size: 30px; }
+    .avatar-fields { flex: 1; min-width: 0; }
 
-                            <div class="mb-3">
-                                <label asp-for="Input.DisplayName" class="form-label">Display Name (Optional)</label>
-                                <input asp-for="Input.DisplayName" class="form-control form-control-lg" placeholder="How you appear to others" />
-                                <small class="text-muted">If set, this will be used instead of your first and last names</small>
-                            </div>
+    .field-label { font-size: 12px; font-weight: 600; color: #42526e; margin-bottom: 5px; display: flex; align-items: center; gap: 4px; }
+    .field-required { color: #de350b; }
+    .field-help { font-size: 11.5px; color: #8993a4; margin-top: 5px; }
 
-                            <hr />
+    .pf-input {
+        border: 1.5px solid #dfe1e6; border-radius: 5px; font-size: 14px; padding: 9px 12px;
+        transition: border-color .15s, box-shadow .15s; background: #fff;
+    }
+    .pf-input:focus { border-color: #4c9aff; box-shadow: 0 0 0 3px rgba(76,154,255,.18); outline: none; }
+    .pf-input:disabled { background: #f4f5f7; color: #6b778c; }
 
-                            <!-- Account Information -->
-                            <h5 class="mb-3">Account Information</h5>
-                            <div class="mb-3">
-                                <label class="form-label">Email Address</label>
-                                <input type="email" class="form-control" value="@Model.CurrentUser.Email" disabled />
-                                <small class="text-muted">Contact administrator to change email</small>
-                            </div>
+    .readonly-row {
+        display: flex; align-items: center; justify-content: space-between;
+        border: 1.5px solid #eef0f3; background: #fafbfc; border-radius: 5px; padding: 9px 12px;
+    }
+    .readonly-row span.value { font-size: 14px; color: #172b4d; }
+    .readonly-row span.tag { font-size: 10.5px; color: #97a0af; text-transform: uppercase; letter-spacing: .03em; }
 
-                            <div class="mb-3">
-                                <label class="form-label">Account Status</label>
-                                @if (Model.CurrentUser.IsActive)
+    .tag-pills { display: flex; flex-wrap: wrap; gap: 6px; }
+    .tag-pill { font-size: 11.5px; font-weight: 600; padding: 4px 10px; border-radius: 12px; }
+    .tag-pill.role { background: #deebff; color: #0747a6; }
+    .tag-pill.team { background: #f3f0ff; color: #403294; }
+    .tag-empty { font-size: 12px; color: #97a0af; font-style: italic; }
+
+    .toggle-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding: 4px 0; }
+    .toggle-row .toggle-text strong { font-size: 13.5px; color: #172b4d; }
+    .toggle-row .toggle-text small { display: block; font-size: 12px; color: #6b778c; margin-top: 2px; }
+    .form-switch .form-check-input { width: 38px; height: 21px; cursor: pointer; }
+    .form-switch .form-check-input:checked { background-color: #0052cc; border-color: #0052cc; }
+
+    .meta-strip { display: flex; gap: 28px; font-size: 12px; color: #6b778c; padding-top: 4px; }
+    .meta-strip strong { color: #42526e; font-weight: 600; }
+
+    .profile-actionbar {
+        position: sticky; bottom: 0; background: #fff; border: 1px solid #e4e6ea; border-radius: 8px;
+        padding: 14px 22px; display: flex; justify-content: flex-end; gap: 10px; margin-top: -2px;
+        box-shadow: 0 -4px 10px rgba(9,30,66,.04);
+    }
+    .btn-pf-primary { background: #0052cc; border: none; color: #fff; font-weight: 600; font-size: 13.5px; padding: 9px 22px; border-radius: 5px; }
+    .btn-pf-primary:hover { background: #0747a6; color: #fff; }
+    .btn-pf-secondary { background: #fff; border: 1.5px solid #dfe1e6; color: #42526e; font-weight: 600; font-size: 13.5px; padding: 9px 18px; border-radius: 5px; }
+    .btn-pf-secondary:hover { background: #f4f5f7; color: #172b4d; }
+
+    .quicklinks { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-top: 18px; }
+    .quicklink-card { background: #fff; border: 1px solid #e4e6ea; border-radius: 8px; padding: 16px 18px; }
+    .quicklink-card .ql-icon { width: 34px; height: 34px; border-radius: 8px; display: flex; align-items: center; justify-content: center; background: #deebff; color: #0747a6; font-size: 16px; margin-bottom: 10px; }
+    .quicklink-card h6 { font-size: 13px; font-weight: 700; color: #172b4d; margin: 0 0 4px; }
+    .quicklink-card p { font-size: 12px; color: #6b778c; margin: 0 0 10px; }
+    .quicklink-card a { font-size: 12.5px; font-weight: 600; color: #0052cc; text-decoration: none; }
+    .quicklink-card a:hover { text-decoration: underline; }
+
+    @@media (max-width: 767px) {
+        .quicklinks { grid-template-columns: 1fr; }
+        .avatar-block { flex-direction: column; align-items: flex-start; }
+    }
+</style>
+
+<div class="profile-page">
+    <div class="profile-shell">
+
+        <div class="profile-pagehead">
+            <div>
+                <h1>Profile Settings</h1>
+                <p>Manage your personal details, account information, and notification preferences.</p>
+            </div>
+            @if (Model.CurrentUser != null)
+            {
+                if (Model.CurrentUser.IsActive)
+                {
+                    <span class="profile-status-chip chip-active"><i class="bi bi-check-circle-fill"></i> Active</span>
+                }
+                else
+                {
+                    <span class="profile-status-chip chip-inactive"><i class="bi bi-x-circle-fill"></i> Inactive</span>
+                }
+            }
+        </div>
+
+        @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+        {
+            <div class="profile-alert alert-success mb-3">
+                <i class="bi bi-check-circle"></i>
+                <span>@Model.SuccessMessage</span>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+        {
+            <div class="profile-alert alert-danger mb-3">
+                <i class="bi bi-exclamation-circle"></i>
+                <span>@Model.ErrorMessage</span>
+            </div>
+        }
+
+        @if (Model.CurrentUser != null)
+        {
+            <form method="post">
+
+                <!-- Identity -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h2>Identity</h2>
+                        <p>Your photo and name as they appear across the workspace.</p>
+                    </div>
+                    <div class="profile-card-body">
+                        <div class="avatar-block mb-4">
+                            <div class="avatar-frame">
+                                @if (!string.IsNullOrEmpty(Model.CurrentUser.AvatarUrl))
                                 {
-                                    <div class="alert alert-success mb-0">
-                                        <i class="bi bi-check-circle"></i> <strong>Active</strong> - Your account is active
+                                    <img src="@Model.CurrentUser.AvatarUrl" alt="Avatar" />
+                                }
+                                else
+                                {
+                                    <div class="avatar-fallback"><i class="bi bi-person"></i></div>
+                                }
+                            </div>
+                            <div class="avatar-fields">
+                                <label asp-for="Input.AvatarUrl" class="field-label">Avatar URL</label>
+                                <input asp-for="Input.AvatarUrl" type="url" class="form-control pf-input" placeholder="https://example.com/avatar.jpg" />
+                                <div class="field-help">Paste a link to an image. It will be used as your profile photo everywhere.</div>
+                            </div>
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label asp-for="Input.FirstName" class="field-label">First name <span class="field-required">*</span></label>
+                                <input asp-for="Input.FirstName" class="form-control pf-input" />
+                                <span asp-validation-for="Input.FirstName" class="text-danger small"></span>
+                            </div>
+                            <div class="col-md-6">
+                                <label asp-for="Input.LastName" class="field-label">Last name <span class="field-required">*</span></label>
+                                <input asp-for="Input.LastName" class="form-control pf-input" />
+                                <span asp-validation-for="Input.LastName" class="text-danger small"></span>
+                            </div>
+                        </div>
+
+                        <div class="row g-3 mt-1">
+                            <div class="col-12">
+                                <label asp-for="Input.DisplayName" class="field-label">Display name</label>
+                                <input asp-for="Input.DisplayName" class="form-control pf-input" placeholder="How you appear to others" />
+                                <div class="field-help">If set, this replaces your first and last name throughout the app.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Account -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h2>Account</h2>
+                        <p>Read-only information tied to your account.</p>
+                    </div>
+                    <div class="profile-card-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="field-label">Email address</div>
+                                <div class="readonly-row">
+                                    <span class="value">@Model.CurrentUser.Email</span>
+                                    <span class="tag">Locked</span>
+                                </div>
+                                <div class="field-help">Contact an administrator to change your email.</div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="field-label">Roles</div>
+                                @if (Model.CurrentUser.Roles.Any())
+                                {
+                                    <div class="tag-pills">
+                                        @foreach (var role in Model.CurrentUser.Roles)
+                                        {
+                                            <span class="tag-pill role">@role</span>
+                                        }
                                     </div>
                                 }
                                 else
                                 {
-                                    <div class="alert alert-danger mb-0">
-                                        <i class="bi bi-x-circle"></i> <strong>Inactive</strong> - Your account has been deactivated
-                                    </div>
+                                    <span class="tag-empty">No roles assigned</span>
                                 }
                             </div>
-
-                            <!-- Roles and Teams -->
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Roles</label>
-                                        @if (Model.CurrentUser.Roles.Any())
+                            <div class="col-md-6">
+                                <div class="field-label">Teams</div>
+                                @if (Model.CurrentUser.Teams.Any())
+                                {
+                                    <div class="tag-pills">
+                                        @foreach (var team in Model.CurrentUser.Teams)
                                         {
-                                            <div class="d-flex flex-wrap gap-2">
-                                                @foreach (var role in Model.CurrentUser.Roles)
-                                                {
-                                                    <span class="badge bg-info">@role</span>
-                                                }
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <small class="text-muted">No roles assigned</small>
+                                            <span class="tag-pill team">@team</span>
                                         }
                                     </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="mb-3">
-                                        <label class="form-label">Teams</label>
-                                        @if (Model.CurrentUser.Teams.Any())
-                                        {
-                                            <div class="d-flex flex-wrap gap-2">
-                                                @foreach (var team in Model.CurrentUser.Teams)
-                                                {
-                                                    <span class="badge bg-secondary">@team</span>
-                                                }
-                                            </div>
-                                        }
-                                        else
-                                        {
-                                            <small class="text-muted">Not assigned to any team</small>
-                                        }
-                                    </div>
-                                </div>
+                                }
+                                else
+                                {
+                                    <span class="tag-empty">Not assigned to any team</span>
+                                }
                             </div>
+                        </div>
 
-                            <hr />
+                        <hr class="my-3" style="border-color:#eef0f3;" />
 
-                            <!-- Preferences -->
-                            <h5 class="mb-3">Preferences</h5>
-                            <div class="mb-4">
-                                <div class="form-check form-switch">
-                                    <input class="form-check-input" type="checkbox" asp-for="Input.NotificationsEnabled" id="notificationsToggle" />
-                                    <label class="form-check-label" for="notificationsToggle">
-                                        <strong>Enable Email Notifications</strong>
-                                        <small class="d-block text-muted">Receive email updates about project activities and assignments</small>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <!-- Account Dates -->
-                            <div class="row text-muted small">
-                                <div class="col-md-6">
-                                    <p><strong>Member Since:</strong> @Model.CurrentUser.CreatedAt.ToString("MMMM dd, yyyy")</p>
-                                </div>
-                                <div class="col-md-6">
-                                    <p><strong>Last Updated:</strong> @Model.CurrentUser.UpdatedAt.ToString("MMMM dd, yyyy HH:mm")</p>
-                                </div>
-                            </div>
-
-                            <!-- Buttons -->
-                            <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
-                                <a asp-page="/Admin/Users/Dashboard" class="btn btn-outline-secondary btn-lg">Cancel</a>
-                                <button type="submit" class="btn btn-primary btn-lg">
-                                    <i class="bi bi-save"></i> Save Changes
-                                </button>
-                            </div>
-                        </form>
-                    }
+                        <div class="meta-strip">
+                            <span><strong>Member since</strong> @Model.CurrentUser.CreatedAt.ToString("MMMM dd, yyyy")</span>
+                            <span><strong>Last updated</strong> @Model.CurrentUser.UpdatedAt.ToString("MMMM dd, yyyy HH:mm")</span>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Preferences -->
+                <div class="profile-card">
+                    <div class="profile-card-header">
+                        <h2>Preferences</h2>
+                        <p>Control how PMTool communicates with you.</p>
+                    </div>
+                    <div class="profile-card-body">
+                        <div class="toggle-row">
+                            <div class="toggle-text">
+                                <strong>Email notifications</strong>
+                                <small>Receive email updates about project activity, comments, and assignments.</small>
+                            </div>
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" asp-for="Input.NotificationsEnabled" id="notificationsToggle" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-actionbar">
+                    <a asp-page="/Admin/Users/Dashboard" class="btn btn-pf-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-pf-primary"><i class="bi bi-save me-1"></i> Save changes</button>
+                </div>
+            </form>
+        }
+
+        <div class="quicklinks">
+            <div class="quicklink-card">
+                <div class="ql-icon"><i class="bi bi-key"></i></div>
+                <h6>Security</h6>
+                <p>Change your password and manage security settings.</p>
+                <a asp-page="/Account/Security">Manage security →</a>
             </div>
-
-            <!-- Additional Settings Cards -->
-            <div class="row mt-4">
-                <div class="col-md-4">
-                    <div class="card shadow-sm">
-                        <div class="card-body">
-                            <h6 class="card-title"><i class="bi bi-key"></i> Security</h6>
-                            <p class="card-text text-muted small">Change password and manage security settings</p>
-                            <a asp-page="/Account/Security" class="btn btn-sm btn-outline-primary">Manage Security</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card shadow-sm">
-                        <div class="card-body">
-                            <h6 class="card-title"><i class="bi bi-shield-check"></i> Two-Factor</h6>
-                            <p class="card-text text-muted small">Enable two-factor authentication for added security</p>
-                            <a asp-page="/Account/TwoFactor" class="btn btn-sm btn-outline-primary">Configure 2FA</a>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card shadow-sm">
-                        <div class="card-body">
-                            <h6 class="card-title"><i class="bi bi-question-circle"></i> Help</h6>
-                            <p class="card-text text-muted small">Need help or have questions?</p>
-                            <a href="#" class="btn btn-sm btn-outline-primary">Contact Support</a>
-                        </div>
-                    </div>
-                </div>
+            <div class="quicklink-card">
+                <div class="ql-icon"><i class="bi bi-shield-check"></i></div>
+                <h6>Two-factor authentication</h6>
+                <p>Add an extra layer of protection to your account.</p>
+                <a asp-page="/Account/TwoFactor">Configure 2FA →</a>
+            </div>
+            <div class="quicklink-card">
+                <div class="ql-icon"><i class="bi bi-question-circle"></i></div>
+                <h6>Help</h6>
+                <p>Need help or have questions about your account?</p>
+                <a href="#">Contact support →</a>
             </div>
         </div>
+
     </div>
 </div>
 
